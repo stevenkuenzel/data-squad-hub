@@ -499,16 +499,16 @@ uno.update(0.1);
 assert(uno.turnIndex !== uno.playerOrder.indexOf('uBot'), 'Bot executed turn and passed turn index');
 
 // ----------------------------------------------------
-// TEST SUITE 7: CORPORATE DODGEBALL (DATA SQUAD VS. COMM)
+// TEST SUITE 7: CORPORATE DODGEBALL (DATA SQUAD VS. COMN)
 // ----------------------------------------------------
 console.log('\n--- TEST 7: CORPORATE DODGEBALL ---');
 const db = new sandbox.DodgeballGame();
 const dev = db.addPlayer('dev1', 'DataLead', '#00f3ff', false, 'squad');
-const comm = db.addPlayer('comm1', 'ComM-Lead', '#ff0055', false, 'comm');
-const commBot = db.addPlayer('botComM', 'Bot Berater', '#ff00aa', true, 'comm');
+const comn = db.addPlayer('comn1', 'ComN-Lead', '#ff0055', false, 'comn');
+const comnBot = db.addPlayer('botComN', 'Bot Berater', '#ff00aa', true, 'comn');
 
 assert(dev.team === 'squad', 'Data Squad player assigned to Squad team');
-assert(comm.team === 'comm', 'ComM player assigned to ComM team');
+assert(comn.team === 'comn', 'ComN player assigned to ComN team');
 
 // 1. Match Start & Ball Rushes
 db.startMatch(3);
@@ -520,13 +520,13 @@ db.status = 'PLAYING';
 dev.x = sandbox.DB_CENTER_X - 10;
 dev.inputRight = true;
 db.update(0.1);
-assert(dev.x < sandbox.DB_CENTER_X, 'Data Squad player cannot cross center dividing line into ComM court');
+assert(dev.x < sandbox.DB_CENTER_X, 'Data Squad player cannot cross center dividing line into ComN court');
 
-comm.x = sandbox.DB_CENTER_X + 10;
-comm.inputLeft = true;
+comn.x = sandbox.DB_CENTER_X + 10;
+comn.inputLeft = true;
 db.update(0.1);
-assert(comm.x > sandbox.DB_CENTER_X, 'ComM player cannot cross center dividing line into Squad court');
-comm.inputLeft = false;
+assert(comn.x > sandbox.DB_CENTER_X, 'ComN player cannot cross center dividing line into Squad court');
+comn.inputLeft = false;
 dev.inputRight = false;
 
 // 3. Ball Pickup
@@ -548,18 +548,18 @@ assert(dev.hasBall !== null && dev.hasBall.type === 'release', 'Player picks up 
 
 // 4. Ball Throw
 dev.inputThrow = true;
-dev.aimAngle = 0; // aim right towards ComM
+dev.aimAngle = 0; // aim right towards ComN
 db.update(0.05);
 assert(dev.hasBall === null, 'Player released held ball upon throw');
 const thrownBall = db.balls.find(b => b.state === 'FLYING' && b.thrownBy === 'dev1');
 assert(thrownBall !== undefined && thrownBall.vx > 0, 'Flying projectile launched with velocity towards enemy court');
 
 // 5. Direct Hit & HP Reduction
-comm.x = 800;
-comm.y = 400;
-comm.hp = 3;
-comm.dashTimer = 0;
-// Place flying ball directly on comm
+comn.x = 800;
+comn.y = 400;
+comn.hp = 3;
+comn.dashTimer = 0;
+// Place flying ball directly on comn
 db.balls.push({
     id: 8002,
     type: 'release',
@@ -575,11 +575,11 @@ db.balls.push({
     thrownTeam: 'squad'
 });
 db.update(0.05);
-assert(comm.hp === 2, 'Direct hit reduces enemy player HP from 3 to 2');
+assert(comn.hp === 2, 'Direct hit reduces enemy player HP from 3 to 2');
 
 // 6. Catch Mechanic (Dodgeball Catch)
-comm.hasBall = null;
-comm.dashTimer = 0.2; // Dashing!
+comn.hasBall = null;
+comn.dashTimer = 0.2; // Dashing!
 db.balls.push({
     id: 8003,
     type: 'coffee',
@@ -595,21 +595,21 @@ db.balls.push({
     thrownTeam: 'squad'
 });
 db.update(0.05);
-assert(comm.hasBall !== null && comm.hasBall.type === 'coffee', 'Dashing into incoming ball catches the ball mid-air');
-assert(comm.hp === 2, 'Catching ball negates all incoming damage');
+assert(comn.hasBall !== null && comn.hasBall.type === 'coffee', 'Dashing into incoming ball catches the ball mid-air');
+assert(comn.hp === 2, 'Catching ball negates all incoming damage');
 
 // 7. Stein im Weg (Stone creates obstacle rock)
 const rockCountBefore = db.rocks.length;
-comm.x = 800;
-comm.y = 400;
-comm.vx = 0;
-comm.vy = 0;
-comm.inputLeft = false;
-comm.inputRight = false;
-comm.inputFwd = false;
-comm.inputBack = false;
-comm.dashTimer = 0; // Not dashing, direct hit!
-comm.hasBall = null;
+comn.x = 800;
+comn.y = 400;
+comn.vx = 0;
+comn.vy = 0;
+comn.inputLeft = false;
+comn.inputRight = false;
+comn.inputFwd = false;
+comn.inputBack = false;
+comn.dashTimer = 0; // Not dashing, direct hit!
+comn.hasBall = null;
 db.balls.push({
     id: 8004,
     type: 'stone',
@@ -628,13 +628,13 @@ db.balls.push({
 db.update(0.05);
 assert(db.rocks.length > rockCountBefore, 'Stein im Weg leaves physical rock obstacle on the floor upon impact');
 
-// 8. Special Attack: Das große ComM-Paket cluster detonation
+// 8. Special Attack: Das große ComN-Paket cluster detonation
 const rockCountBeforePkg = db.rocks.length;
 const ballCountBeforePkg = db.balls.length;
 db.balls.push({
     id: 8888,
-    type: 'comm_package',
-    name: 'Das große ComM-Paket',
+    type: 'comn_package',
+    name: 'Das große ComN-Paket',
     icon: '📦',
     color: '#ffd700',
     x: 800,
@@ -647,13 +647,13 @@ db.balls.push({
     isCluster: true
 });
 db.update(0.05);
-assert(db.rocks.length > rockCountBeforePkg, 'ComM-Paket explosion places massive obstacle rock on impact');
-assert(db.balls.length > ballCountBeforePkg, 'ComM-Paket cluster detonates into multiple sub-projectiles (Rechnung, Ordner, Stein)');
+assert(db.rocks.length > rockCountBeforePkg, 'ComN-Paket explosion places massive obstacle rock on impact');
+assert(db.balls.length > ballCountBeforePkg, 'ComN-Paket cluster detonates into multiple sub-projectiles (Rechnung, Ordner, Stein)');
 
 // 9. Bot AI Dodge & Aim
-commBot.alive = true;
-commBot.x = 900;
-commBot.y = 400;
+comnBot.alive = true;
+comnBot.x = 900;
+comnBot.y = 400;
 // Send incoming threat straight at bot
 db.balls.push({
     id: 8005,
@@ -670,7 +670,7 @@ db.balls.push({
     thrownTeam: 'squad'
 });
 db.update(0.05);
-assert(commBot.inputFwd || commBot.inputBack || commBot.inputDash, 'Bot reacts dynamically to incoming threat by dodging');
+assert(comnBot.inputFwd || comnBot.inputBack || comnBot.inputDash, 'Bot reacts dynamically to incoming threat by dodging');
 
 // 9. Snapshot Serialization
 const dbSnap = db.getSnapshot();
@@ -680,13 +680,13 @@ assert(Array.isArray(dbSnap.rocks), 'Snapshot serializes floor rocks');
 
 
 // ----------------------------------------------------
-// TEST SUITE 8: COMM: FREIGABE-ROULETTE
+// TEST SUITE 8: COMN: FREIGABE-ROULETTE
 // ----------------------------------------------------
 console.log('\n--- TEST 8: FREIGABE-ROULETTE ENGINE ---');
 const rGame = new sandbox.FreigabeRouletteGame();
 const rP1 = rGame.addPlayer('r1', 'Alice', '#00f3ff', false);
 const rP2 = rGame.addPlayer('r2', 'Bob', '#ff0055', false);
-const rBot = rGame.addPlayer('rBot', 'Bot ComM', '#f59e0b', true);
+const rBot = rGame.addPlayer('rBot', 'Bot ComN', '#f59e0b', true);
 
 // 1. Deck generation & card structure
 const rDeck = rGame.createDeck();
@@ -754,7 +754,7 @@ rGame.players.set('dummy', dummyAttacker);
 rGame.turnIndex = rGame.playerOrder.indexOf('dummy');
 rGame.cardsPlayedThisTurn = 0;
 rGame.playCard('dummy', attackCard.uid, nextActive.id);
-assert(nextActive.progress === progBefore, 'Chef-Bypass shield successfully deflects ComM blocker attack without progress loss');
+assert(nextActive.progress === progBefore, 'Chef-Bypass shield successfully deflects ComN blocker attack without progress loss');
 rGame.players.delete('dummy');
 
 // 6. Bot AI Turn execution

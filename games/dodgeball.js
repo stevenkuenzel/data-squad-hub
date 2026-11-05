@@ -1,8 +1,8 @@
 /**
- * DataSquad Hub: Corporate Dodgeball (Data Squad vs. ComM)
+ * DataSquad Hub: Corporate Dodgeball (Data Squad vs. ComN)
  * 2D Action-Arena / Büro-Völkerball
  * 
- * Data Squad (Links) vs. ComM (Rechts)
+ * Data Squad (Links) vs. ComN (Rechts)
  * Mit Steinen im Weg, Code-Releases, Aktenordnern, Agentur-Rechnungen & Kaffeepausen.
  */
 
@@ -21,7 +21,7 @@ const DB_BALL_TYPES = [
     { type: 'stone', name: 'Stein im Weg', icon: '🪨', color: '#ff0055', speed: 420, damage: 1, leavesRock: true, desc: 'Hinterlässt bürokratischen Felsen' },
     { type: 'folder', name: 'Aktenordner', icon: '📁', color: '#ff00aa', speed: 440, damage: 1, boomerang: true, desc: 'Feedback-Schleife' },
     { type: 'bill', name: 'Agentur-Rechnung', icon: '💸', color: '#ffff00', speed: 470, damage: 1, desc: 'Teuer & schmerzhaft' },
-    { type: 'comm_package', name: 'Das große ComM-Paket', icon: '📦', color: '#ffd700', speed: 380, damage: 2, isCluster: true, desc: 'Spezialangriff: Explodiert in Fels, Rechnung & Ordner!' }
+    { type: 'comn_package', name: 'Das große ComN-Paket', icon: '📦', color: '#ffd700', speed: 380, damage: 2, isCluster: true, desc: 'Spezialangriff: Explodiert in Fels, Rechnung & Ordner!' }
 ];
 
 const DB_QUOTES = [
@@ -46,7 +46,7 @@ class DodgeballGame {
         this.round = 1;
         this.maxRounds = 3;
         this.scoreSquad = 0;
-        this.scoreComM = 0;
+        this.scoreComN = 0;
         this.countdownTimer = 0;
         this.roundOverTimer = 0;
         this.winner = null;
@@ -59,16 +59,16 @@ class DodgeballGame {
     addPlayer(id, name, color, isBot = false, preferredTeam = null) {
         if (this.players.has(id)) return this.players.get(id);
 
-        // Auto-balance teams: Squad (Left) vs ComM (Right)
+        // Auto-balance teams: Squad (Left) vs ComN (Right)
         let team = preferredTeam;
         if (!team) {
             let squadCount = 0;
-            let commCount = 0;
+            let comnCount = 0;
             for (const p of this.players.values()) {
                 if (p.team === 'squad') squadCount++;
-                else commCount++;
+                else comnCount++;
             }
-            team = squadCount <= commCount ? 'squad' : 'comm';
+            team = squadCount <= comnCount ? 'squad' : 'comn';
         }
 
         const isSquad = team === 'squad';
@@ -76,7 +76,7 @@ class DodgeballGame {
 
         const p = {
             id,
-            name: String(name || (isSquad ? 'Dev' : 'ComM-Berater')).slice(0, 16),
+            name: String(name || (isSquad ? 'Dev' : 'ComN-Berater')).slice(0, 16),
             team,
             color: color || defaultColor,
             isBot,
@@ -114,7 +114,7 @@ class DodgeballGame {
         this.maxRounds = maxRounds;
         this.round = 1;
         this.scoreSquad = 0;
-        this.scoreComM = 0;
+        this.scoreComN = 0;
         this.winner = null;
         this.startRound();
     }
@@ -126,7 +126,7 @@ class DodgeballGame {
         this.rocks = [];
         this.particles = [];
         this.banner = {
-            text: '🔔 RUNDE ' + this.round + ': DATA SQUAD VS. COMM!',
+            text: '🔔 RUNDE ' + this.round + ': DATA SQUAD VS. COMN!',
             color: '#00f3ff',
             timer: 2.8
         };
@@ -218,9 +218,9 @@ class DodgeballGame {
             this.roundOverTimer -= dt;
             this.updateParticles(dt);
             if (this.roundOverTimer <= 0) {
-                if (this.scoreSquad >= Math.ceil(this.maxRounds / 2) || this.scoreComM >= Math.ceil(this.maxRounds / 2)) {
+                if (this.scoreSquad >= Math.ceil(this.maxRounds / 2) || this.scoreComN >= Math.ceil(this.maxRounds / 2)) {
                     this.status = 'MATCH_OVER';
-                    this.winner = this.scoreSquad > this.scoreComM ? 'Data Squad' : 'ComM (Kommunikation)';
+                    this.winner = this.scoreSquad > this.scoreComN ? 'Data Squad' : 'ComN';
                     if (window.soundFX) window.soundFX.playWin();
                 } else {
                     this.round++;
@@ -242,11 +242,11 @@ class DodgeballGame {
             this.spawnCenterBall();
         }
 
-        // Air-Drop: Das große ComM-Paket
+        // Air-Drop: Das große ComN-Paket
         this.packageSpawnTimer -= dt;
         if (this.packageSpawnTimer <= 0) {
             this.packageSpawnTimer = 16.0 + Math.random() * 8.0;
-            this.spawnCommPackage();
+            this.spawnComnPackage();
         }
 
         // 2. Update Rocks expiration
@@ -304,7 +304,7 @@ class DodgeballGame {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
 
-            // Half-Court Boundary Enforcement (Data Squad on Left, ComM on Right)
+            // Half-Court Boundary Enforcement (Data Squad on Left, ComN on Right)
             const minX = p.team === 'squad' ? 36 + DB_PLAYER_RADIUS : DB_CENTER_X + 16 + DB_PLAYER_RADIUS;
             const maxX = p.team === 'squad' ? DB_CENTER_X - 16 - DB_PLAYER_RADIUS : DB_ARENA_W - 36 - DB_PLAYER_RADIUS;
             const minY = 36 + DB_PLAYER_RADIUS;
@@ -463,7 +463,7 @@ class DodgeballGame {
                     enemy.hp = Math.max(0, enemy.hp - dmg);
                     this.spawnHitExplosion(b.x, b.y, b.color);
 
-                    // Special Attack: Das große ComM-Paket
+                    // Special Attack: Das große ComN-Paket
                     if (b.isCluster) {
                         this.triggerClusterExplosion(b.x, b.y, b.thrownTeam);
                     } else if (b.leavesRock) {
@@ -482,7 +482,7 @@ class DodgeballGame {
                     if (enemy.hp <= 0) {
                         enemy.alive = false;
                         this.banner = {
-                            text: `💥 ${enemy.name} scheidet aus! (${enemy.team === 'squad' ? 'Data Squad' : 'ComM'})`,
+                            text: `💥 ${enemy.name} scheidet aus! (${enemy.team === 'squad' ? 'Data Squad' : 'ComN'})`,
                             color: '#ff0055',
                             timer: 2.5
                         };
@@ -498,24 +498,24 @@ class DodgeballGame {
 
         // 6. Check Round Win Condition (One team fully eliminated)
         let squadAlive = 0;
-        let commAlive = 0;
+        let comnAlive = 0;
         for (const p of this.players.values()) {
             if (p.alive) {
                 if (p.team === 'squad') squadAlive++;
-                else commAlive++;
+                else comnAlive++;
             }
         }
 
-        if (squadAlive === 0 || commAlive === 0) {
+        if (squadAlive === 0 || comnAlive === 0) {
             this.status = 'ROUND_OVER';
             this.roundOverTimer = 2.6;
             if (squadAlive > 0) {
                 this.scoreSquad++;
                 this.banner = { text: '🎉 DATA SQUAD GEWINNT DIE RUNDE! 🎉', color: '#00f3ff', timer: 2.5 };
                 if (window.soundFX) window.soundFX.playWin();
-            } else if (commAlive > 0) {
-                this.scoreComM++;
-                this.banner = { text: '📄 COMM GEWINNT DIE RUNDE! (Wegen Formfehler)', color: '#ff0055', timer: 2.5 };
+            } else if (comnAlive > 0) {
+                this.scoreComN++;
+                this.banner = { text: '📄 COMN GEWINNT DIE RUNDE! (Wegen Formfehler)', color: '#ff0055', timer: 2.5 };
                 if (window.soundFX) window.soundFX.playDie();
             } else {
                 this.banner = { text: '🤝 UNENTSCHIEDEN! Beide Teams im Meeting!', color: '#ffff00', timer: 2.5 };
@@ -688,8 +688,8 @@ class DodgeballGame {
         }
     }
 
-    spawnCommPackage() {
-        const pkgTemplate = DB_BALL_TYPES.find(b => b.type === 'comm_package') || DB_BALL_TYPES[0];
+    spawnComnPackage() {
+        const pkgTemplate = DB_BALL_TYPES.find(b => b.type === 'comn_package') || DB_BALL_TYPES[0];
         const x = 760 + Math.random() * 260;
         const y = 140 + Math.random() * (DB_ARENA_H - 280);
         this.balls.push({
@@ -708,7 +708,7 @@ class DodgeballGame {
             state: 'FLOOR'
         });
         this.banner = {
-            text: '📦 LIEFERUNG: "Das große ComM-Paket" ist eingetroffen!',
+            text: '📦 LIEFERUNG: "Das große ComN-Paket" ist eingetroffen!',
             color: '#ffd700',
             timer: 3.0
         };
@@ -717,7 +717,7 @@ class DodgeballGame {
 
     triggerClusterExplosion(x, y, thrownTeam) {
         this.banner = {
-            text: '🚨 COMM-PAKET EXPLODIERT! 120 Seiten CI & 3 neue Blocker!',
+            text: '🚨 COMN-PAKET EXPLODIERT! 120 Seiten CI & 3 neue Blocker!',
             color: '#ffd700',
             timer: 3.0
         };
@@ -756,7 +756,7 @@ class DodgeballGame {
                 vx: Math.cos(angle) * spd,
                 vy: Math.sin(angle) * spd,
                 state: 'FLYING',
-                thrownBy: 'comm_cluster',
+                thrownBy: 'comn_cluster',
                 thrownTeam: thrownTeam
             });
         });
@@ -849,7 +849,7 @@ class DodgeballGame {
             round: this.round,
             maxRounds: this.maxRounds,
             scoreSquad: this.scoreSquad,
-            scoreComM: this.scoreComM,
+            scoreComN: this.scoreComN,
             countdown: Math.ceil(this.countdownTimer),
             winner: this.winner,
             banner: this.banner ? {
@@ -868,7 +868,7 @@ class DodgeballGame {
         this.round = snap.round;
         this.maxRounds = snap.maxRounds;
         this.scoreSquad = snap.scoreSquad;
-        this.scoreComM = snap.scoreComM;
+        this.scoreComN = snap.scoreComN;
         this.countdownTimer = snap.countdown;
         this.winner = snap.winner;
         this.banner = snap.banner;

@@ -1,8 +1,8 @@
 /**
- * DataSquad Hub: ComM: Freigabe-Roulette
+ * DataSquad Hub: ComN: Freigabe-Roulette
  * Satirisches Büro- & Kartenspiel (2 - 8 Spieler & Bots)
  * 
- * Wer erreicht als Erster 100% Projektfortschritt, bevor ComM mit Steinen im Weg,
+ * Wer erreicht als Erster 100% Projektfortschritt, bevor ComN mit Steinen im Weg,
  * externen Agenturen, Veto-Stempeln und 4-Stunden-Meetings das Projekt beerdigt?
  */
 
@@ -10,16 +10,16 @@ const ROULETTE_CARDS = [
     // --- FORTSCHRITT (Data Squad) ---
     { id: 'deploy_20', category: 'progress', title: 'Code-Deploy', icon: '🚀', value: 20, count: 8, desc: '+20% Fortschritt: Feature erfolgreich live geschaltet.' },
     { id: 'pipeline_30', category: 'progress', title: 'Automatisierte Pipeline', icon: '⚡', value: 30, count: 5, desc: '+30% Fortschritt: CI/CD läuft vollautomatisch ohne Freigabe!' },
-    { id: 'hotfix_15', category: 'progress', title: 'Quick-Fix am Freitag', icon: '🔥', value: 15, count: 7, desc: '+15% Fortschritt: Schnell gemerged, bevor ComM es merkt.' },
+    { id: 'hotfix_15', category: 'progress', title: 'Quick-Fix am Freitag', icon: '🔥', value: 15, count: 7, desc: '+15% Fortschritt: Schnell gemerged, bevor ComN es merkt.' },
     { id: 'kaffee_10', category: 'progress', title: 'Kaffee-Sprint', icon: '☕', value: 10, count: 6, drawExtra: true, desc: '+10% Fortschritt & ziehe 1 extra Handkarte.' },
-    { id: 'night_shift_25', category: 'progress', title: 'Nachtschicht-Hack', icon: '🌙', value: 25, count: 5, desc: '+25% Fortschritt: Gearbeitet, während ComM schläft.' },
+    { id: 'night_shift_25', category: 'progress', title: 'Nachtschicht-Hack', icon: '🌙', value: 25, count: 5, desc: '+25% Fortschritt: Gearbeitet, während ComN schläft.' },
     { id: 'ai_dashboard_20', category: 'progress', title: 'KI ins Dashboard gebaut', icon: '🤖', value: 20, count: 5, desc: '+20% Fortschritt: Stakeholder klatschen begeistert.' },
-    { id: 'feature_flag_25', category: 'progress', title: 'Stiller Feature-Flag', icon: '🚩', value: 25, count: 5, desc: '+25% Fortschritt: Live geschaltet, ohne ComM zu fragen.' },
+    { id: 'feature_flag_25', category: 'progress', title: 'Stiller Feature-Flag', icon: '🚩', value: 25, count: 5, desc: '+25% Fortschritt: Live geschaltet, ohne ComN zu fragen.' },
     { id: 'espresso_double', category: 'progress', title: 'Doppelter Espresso', icon: '🥤', value: 15, count: 4, drawCount: 2, desc: '+15% Fortschritt & ziehe 2 Handkarten!' },
 
-    // --- COMM BLOCKER (Troll & Steine im Weg) ---
+    // --- COMN BLOCKER (Troll & Steine im Weg) ---
     { id: 'stein_weg', category: 'blocker', title: 'Stein im Weg', icon: '🪨', target: 'enemy', penalty: 15, count: 8, desc: 'Gegner verliert 15% („Müssen erst Stakeholder abholen“).' },
-    { id: 'agentur', category: 'blocker', title: 'Externe Agentur', icon: '💸', target: 'enemy', penalty: 20, count: 7, desc: 'ComM lagert aus: Gegner verliert 20% durch endlose Mockups.' },
+    { id: 'agentur', category: 'blocker', title: 'Externe Agentur', icon: '💸', target: 'enemy', penalty: 20, count: 7, desc: 'ComN lagert aus: Gegner verliert 20% durch endlose Mockups.' },
     { id: 'ci_2018', category: 'blocker', title: 'CI-Handbuch 2018', icon: '📐', target: 'all_enemies', penalty: 10, count: 5, desc: 'Alle Gegner verlieren 10% („Schriftart ist 1px zu schmal“).' },
     { id: 'meeting_4h', category: 'blocker', title: '4-Stunden-Alignment', icon: '🗣️', target: 'enemy', skipTurn: true, count: 5, desc: 'Zwingt einen Gegner, seinen nächsten Zug im Meeting abzusitzen.' },
     { id: 'datenschutz_gate', category: 'blocker', title: 'Datenschutz-Bedenken', icon: '🔒', target: 'enemy', penalty: 20, count: 5, desc: 'Gegner verliert 20% („Müssen erst 40-Seiten DSFA prüfen“).' },
@@ -27,8 +27,8 @@ const ROULETTE_CARDS = [
 
     // --- REAKTIONEN & VETOS ---
     { id: 'problem_gefunden', category: 'reaction', title: 'Problem gefunden!', icon: '🛑', isCounter: true, count: 6, desc: 'Blockt Angriffe („Gute Lösung, aber hier ist ein neues Problem!“).' },
-    { id: 'nicht_zustaendig', category: 'reaction', title: 'Nicht zuständig', icon: '😴', isRedirect: true, count: 5, desc: 'Leitet einen ComM-Angriff einfach an den nächsten Spieler weiter.' },
-    { id: 'chef_genehmigung', category: 'action', title: 'Chef-Bypass', icon: '👔', count: 5, desc: 'Schützt dich 1 Runde vor allen ComM-Einwänden.' },
+    { id: 'nicht_zustaendig', category: 'reaction', title: 'Nicht zuständig', icon: '😴', isRedirect: true, count: 5, desc: 'Leitet einen ComN-Angriff einfach an den nächsten Spieler weiter.' },
+    { id: 'chef_genehmigung', category: 'action', title: 'Chef-Bypass', icon: '👔', count: 5, desc: 'Schützt dich 1 Runde vor allen ComN-Einwänden.' },
     { id: 'vorstand_demo', category: 'action', title: 'Vorstandspräsentation', icon: '👑', value: 35, count: 3, desc: 'Direkter Segen vom Vorstand: +35% Fortschritt!' }
 ];
 
@@ -213,7 +213,7 @@ class FreigabeRouletteGame {
                 return { success: true, won: true };
             }
         }
-        // 2. ComM Blocker (Stein im Weg / Agentur / Meeting / DSFA / Wording)
+        // 2. ComN Blocker (Stein im Weg / Agentur / Meeting / DSFA / Wording)
         else if (card.category === 'blocker') {
             if (card.target === 'enemy' && target) {
                 // Check if target is shielded
@@ -236,7 +236,7 @@ class FreigabeRouletteGame {
         // 3. Chef-Bypass
         else if (card.id === 'chef_genehmigung') {
             curr.shielded = true;
-            this.logs.unshift(`👔 ${curr.name} aktiviert Chef-Bypass! 1 Runde Schutz vor ComM-Einwänden.`);
+            this.logs.unshift(`👔 ${curr.name} aktiviert Chef-Bypass! 1 Runde Schutz vor ComN-Einwänden.`);
         }
         // 4. Vorstandspräsentation (Mega-Progress Action)
         else if (card.id === 'vorstand_demo') {

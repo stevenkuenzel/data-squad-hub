@@ -240,8 +240,8 @@
             tank: 'Tank Trouble',
             pong: 'Octa-Pong',
             uno: 'UNO',
-            dodgeball: 'Corporate Dodgeball (Data Squad vs. ComM)',
-            roulette: 'ComM: Freigabe-Roulette'
+            dodgeball: 'Corporate Dodgeball (Data Squad vs. ComN)',
+            roulette: 'ComN: Freigabe-Roulette'
         };
         lobbyGameTitle.textContent = titles[gameType] || 'Lobby';
         curveSettings.style.display = gameType === 'curve' ? 'block' : 'none';
@@ -741,20 +741,20 @@
             tip: '💡 <strong>Taktik:</strong> Hebe dir Farbwahl- und +4-Karten für den perfekten Moment auf, um das Spielgeschehen abrupt zu drehen!'
         },
         dodgeball: {
-            title: '🤾 Corporate Dodgeball: Data Squad vs. ComM',
-            goal: 'Büro-Völkerball! Wirf das gegnerische Team ab. Data Squad (Links) wirft Code-Releases & Live-Dashboards, ComM (Rechts) wirft bürokratische Steine, Aktenordner, teure Rechnungen und "Das große ComM-Paket"!',
+            title: '🤾 Corporate Dodgeball: Data Squad vs. ComN',
+            goal: 'Büro-Völkerball! Wirf das gegnerische Team ab. Data Squad (Links) wirft Code-Releases & Live-Dashboards, ComN (Rechts) wirft bürokratische Steine, Aktenordner, teure Rechnungen und "Das große ComN-Paket"!',
             controls: [
                 '💻 <strong>Desktop:</strong> <code>WASD</code> / Pfeile = Bewegen | <code>Leertaste</code> / Linksklick = Werfen | <code>Shift</code> / <code>Rechtsklick</code> / <code>C</code> = Hechtsprung & Fangen.',
                 '📱 <strong>Mobile:</strong> Virtuelles D-Pad links + <code>WURF</code> & <code>FANGEN / DASH</code> Knöpfe rechts.'
             ],
-            tip: '🎯 <strong>Catch-Mechanik:</strong> Drücke <code>Shift</code>, <code>Rechtsklick</code>, <code>C</code> oder den <code>FANGEN</code>-Knopf, wenn ein gegnerischer Ball auf dich zufliegt, um ihn direkt aus der Luft zu schnappen! Vorsicht vor dem <strong>"Großen ComM-Paket"</strong> (📦), das bei Einschlag in 3 neue Blocker explodiert!'
+            tip: '🎯 <strong>Catch-Mechanik:</strong> Drücke <code>Shift</code>, <code>Rechtsklick</code>, <code>C</code> oder den <code>FANGEN</code>-Knopf, wenn ein gegnerischer Ball auf dich zufliegt, um ihn direkt aus der Luft zu schnappen! Vorsicht vor dem <strong>"Großen ComN-Paket"</strong> (📦), das bei Einschlag in 3 neue Blocker explodiert!'
         },
         roulette: {
-            title: '🎲 ComM: Freigabe-Roulette',
-            goal: 'Bürokratie-Survival! Erreiche als Erster 100% Projektfortschritt mit Code-Deploys und CI/CD, während ComM versucht, das Projekt mit Steinen im Weg, externen Agenturen und 4-Stunden-Meetings zu sabotieren.',
+            title: '🎲 ComN: Freigabe-Roulette',
+            goal: 'Bürokratie-Survival! Erreiche als Erster 100% Projektfortschritt mit Code-Deploys und CI/CD, während ComN versucht, das Projekt mit Steinen im Weg, externen Agenturen und 4-Stunden-Meetings zu sabotieren.',
             roles: [
                 '🚀 <strong>Fortschritt (Data Squad):</strong> Deploys (+20%), Automatisierte Pipelines (+30%), Quick-Fixes (+15%), Nachtschichten (+25%).',
-                '🪨 <strong>ComM-Blocker:</strong> Stein im Weg (-15%), Externe Agentur (-20%), CI-Handbuch 2018 (-10% für alle), 4-Stunden-Alignment (Aussetzen).',
+                '🪨 <strong>ComN-Blocker:</strong> Stein im Weg (-15%), Externe Agentur (-20%), CI-Handbuch 2018 (-10% für alle), 4-Stunden-Alignment (Aussetzen).',
                 '👔 <strong>Reaktionen & Schutz:</strong> Chef-Bypass (Schützt vor Angriffen).'
             ],
             controls: [
@@ -1920,7 +1920,7 @@
     }
 
     // ==========================================
-    // GAME 7: CORPORATE DODGEBALL (Data Squad vs. ComM)
+    // GAME 7: CORPORATE DODGEBALL (Data Squad vs. ComN)
     // ==========================================
     const dbCanvas = document.getElementById('dodgeballCanvas');
     const dbCtx = dbCanvas ? dbCanvas.getContext('2d') : null;
@@ -1989,7 +1989,7 @@
         dbCtx.fillStyle = 'rgba(0, 243, 255, 0.04)';
         dbCtx.fillRect(30, 30, DB_CENTER_X - 30, DB_ARENA_H - 60);
 
-        // ComM half (Right)
+        // ComN half (Right)
         dbCtx.fillStyle = 'rgba(255, 0, 85, 0.04)';
         dbCtx.fillRect(DB_CENTER_X, 30, DB_CENTER_X - 30, DB_ARENA_H - 60);
 
@@ -2002,7 +2002,7 @@
         dbCtx.fillText('DATA SQUAD', 315, DB_ARENA_H / 2);
 
         dbCtx.fillStyle = 'rgba(255, 0, 85, 0.06)';
-        dbCtx.fillText('COMMUNICATION', 885, DB_ARENA_H / 2);
+        dbCtx.fillText('COMN', 885, DB_ARENA_H / 2);
         dbCtx.restore();
 
         // Outer Arena Border
@@ -2044,7 +2044,7 @@
         // Draw Balls on Floor
         for (const b of dodgeballGame.balls) {
             if (b.state === 'FLOOR') {
-                const r = b.type === 'comm_package' ? 24 : 18;
+                const r = b.type === 'comn_package' ? 24 : 18;
                 dbCtx.save();
                 // Outer glow
                 dbCtx.shadowColor = b.color || '#00f3ff';
@@ -2058,7 +2058,7 @@
 
                 // Bright neon border
                 dbCtx.strokeStyle = b.color || '#00f3ff';
-                dbCtx.lineWidth = b.type === 'comm_package' ? 3.5 : 2.5;
+                dbCtx.lineWidth = b.type === 'comn_package' ? 3.5 : 2.5;
                 dbCtx.stroke();
 
                 // Crisp large emoji
@@ -2081,7 +2081,7 @@
         // Draw Flying Balls (With Speed Trail & Aura)
         for (const b of dodgeballGame.balls) {
             if (b.state === 'FLYING') {
-                const r = b.type === 'comm_package' ? 26 : 20;
+                const r = b.type === 'comn_package' ? 26 : 20;
                 dbCtx.save();
 
                 // Motion speed trail
@@ -2213,8 +2213,8 @@
         const scoreSquadEl = document.getElementById('db-score-squad');
         if (scoreSquadEl) scoreSquadEl.textContent = String(dodgeballGame.scoreSquad);
 
-        const scoreComMEl = document.getElementById('db-score-comm');
-        if (scoreComMEl) scoreComMEl.textContent = String(dodgeballGame.scoreComM);
+        const scoreComNEl = document.getElementById('db-score-comn');
+        if (scoreComNEl) scoreComNEl.textContent = String(dodgeballGame.scoreComN);
 
         // Banner Popup
         const bannerEl = document.getElementById('db-banner');
@@ -2295,7 +2295,7 @@
 
         const catLabel = {
             progress: 'FORTSCHRITT',
-            blocker: 'COMM-BLOCK',
+            blocker: 'COMN-BLOCK',
             reaction: 'REAKTION',
             action: 'AKTION'
         }[card.category] || card.category.toUpperCase();
