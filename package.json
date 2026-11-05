@@ -1,0 +1,18 @@
+{
+  "name": "datasquad-hub",
+  "version": "1.0.0",
+  "description": "Corporate Team Multiplayer Game Hub (P2P WebRTC)",
+  "type": "module",
+  "scripts": {
+    "test": "node test/sim-tests.mjs",
+    "test:e2e": "node test/e2e-playwright.mjs"
+  },
+  "keywords": [
+    "multiplayer",
+    "webrtc",
+    "games",
+    "p2p"
+  ],
+  "author": "Jimmy",
+  "license": "MIT"
+}

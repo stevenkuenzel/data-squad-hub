@@ -137,90 +137,94 @@ class OctaPongGame {
             }
         }
 
-        // 2. Ball physics & octagon boundary collision
-        for (let bIdx = this.balls.length - 1; bIdx >= 0; bIdx--) {
-            const b = this.balls[bIdx];
-            b.x += b.vx * dt;
-            b.y += b.vy * dt;
+        // 2. Ball physics & octagon boundary collision with sub-stepping (prevents tunneling at high speeds)
+        const SUB_STEPS = 4;
+        const subDt = dt / SUB_STEPS;
 
-            // Check collision against all 8 sides
-            for (let s = 0; s < 8; s++) {
-                const { p1, p2 } = this.getSideSegment(s);
-                const dx = p2.x - p1.x;
-                const dy = p2.y - p1.y;
-                const sideLen = Math.hypot(dx, dy);
+        for (let step = 0; step < SUB_STEPS; step++) {
+            for (let bIdx = this.balls.length - 1; bIdx >= 0; bIdx--) {
+                const b = this.balls[bIdx];
+                b.x += b.vx * subDt;
+                b.y += b.vy * subDt;
 
-                // Normal vector pointing inwards
-                const nx = -(p2.y - p1.y) / sideLen;
-                const ny = (p2.x - p1.x) / sideLen;
+                // Check collision against all 8 sides
+                for (let s = 0; s < 8; s++) {
+                    const { p1, p2 } = this.getSideSegment(s);
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const sideLen = Math.hypot(dx, dy);
 
-                // Test distance from ball to line
-                const distToLine = (b.x - p1.x) * nx + (b.y - p1.y) * ny;
+                    // Inward normal vector pointing towards center
+                    const nx = -(p2.y - p1.y) / sideLen;
+                    const ny = (p2.x - p1.x) / sideLen;
 
-                if (distToLine <= BALL_RADIUS) {
-                    // Check projection t along segment [0, 1]
-                    const t = ((b.x - p1.x) * dx + (b.y - p1.y) * dy) / (sideLen * sideLen);
+                    // Dot product: only collide when ball is moving OUTWARDS toward the boundary
+                    const dot = b.vx * nx + b.vy * ny;
+                    if (dot >= 0) continue; // Moving inward away from wall, skip
 
-                    if (t >= -0.05 && t <= 1.05) {
-                        // Find if there is an active player on this side
-                        let playerOnSide = null;
-                        for (const pl of this.players.values()) {
-                            if (pl.sideIdx === s && pl.alive) {
-                                playerOnSide = pl;
-                                break;
-                            }
-                        }
+                    // Distance from ball to boundary line (positive inside court, 0 on line, negative outside)
+                    const distToLine = (b.x - p1.x) * nx + (b.y - p1.y) * ny;
 
-                        let bounced = false;
+                    if (distToLine <= BALL_RADIUS) {
+                        // Projection t along segment [0, 1]
+                        const t = ((b.x - p1.x) * dx + (b.y - p1.y) * dy) / (sideLen * sideLen);
 
-                        if (playerOnSide) {
-                            // Check if hit within paddle bounds
-                            const halfW = PADDLE_WIDTH_RATIO / 2;
-                            if (Math.abs(t - playerOnSide.paddlePos) <= halfW + 0.05) {
-                                // Hit paddle! Deflect based on offset from paddle center
-                                const hitOffset = (t - playerOnSide.paddlePos) / halfW; // -1 to 1
-                                const tangentAngle = Math.atan2(dy, dx);
-                                const normalAngle = tangentAngle - Math.PI / 2;
-
-                                const deflectAngle = normalAngle + hitOffset * 0.55;
-                                b.speed = Math.min(BALL_MAX_SPEED, b.speed * 1.04);
-                                b.vx = Math.cos(deflectAngle) * b.speed;
-                                b.vy = Math.sin(deflectAngle) * b.speed;
-
-                                // Push ball slightly inwards to avoid re-triggering
-                                b.x += nx * 4;
-                                b.y += ny * 4;
-                                bounced = true;
-                                if (window.soundFX) window.soundFX.playClick();
-                            } else {
-                                // Ball passed paddle! Goal scored against player!
-                                playerOnSide.lives--;
-                                this.spawnGoalExplosion(b.x, b.y, playerOnSide.color);
-                                if (window.soundFX) window.soundFX.playDie();
-
-                                if (playerOnSide.lives <= 0) {
-                                    playerOnSide.alive = false;
+                        if (t >= -0.08 && t <= 1.08) {
+                            // Find active player on this side
+                            let playerOnSide = null;
+                            for (const pl of this.players.values()) {
+                                if (pl.sideIdx === s && pl.alive) {
+                                    playerOnSide = pl;
+                                    break;
                                 }
-
-                                // Reset ball to center
-                                b.x = PONG_CENTER_X;
-                                b.y = PONG_CENTER_Y;
-                                const resetAngle = Math.random() * Math.PI * 2;
-                                b.speed = BALL_INITIAL_SPEED;
-                                b.vx = Math.cos(resetAngle) * b.speed;
-                                b.vy = Math.sin(resetAngle) * b.speed;
-                                break;
                             }
-                        } else {
-                            // Solid wall bounce (no active player on this side)
-                            const dot = b.vx * nx + b.vy * ny;
-                            if (dot < 0) {
+
+                            if (playerOnSide) {
+                                // Generous paddle hit tolerance: half paddle width + safety margin
+                                const halfW = PADDLE_WIDTH_RATIO / 2;
+                                if (Math.abs(t - playerOnSide.paddlePos) <= halfW + 0.08) {
+                                    // HIT PADDLE! Deflect cleanly back inward
+                                    const hitOffset = Math.max(-1, Math.min(1, (t - playerOnSide.paddlePos) / halfW));
+                                    const inwardNormalAngle = Math.atan2(ny, nx);
+                                    const deflectAngle = inwardNormalAngle + hitOffset * 0.70;
+
+                                    b.speed = Math.min(BALL_MAX_SPEED, b.speed * 1.05);
+                                    b.vx = Math.cos(deflectAngle) * b.speed;
+                                    b.vy = Math.sin(deflectAngle) * b.speed;
+
+                                    // Position ball safely inside court on paddle face
+                                    b.x = p1.x + t * dx + nx * (BALL_RADIUS + 4);
+                                    b.y = p1.y + t * dy + ny * (BALL_RADIUS + 4);
+
+                                    if (window.soundFX) window.soundFX.playClick();
+                                    break;
+                                } else if (distToLine <= 0) {
+                                    // GOAL! Ball passed paddle completely
+                                    playerOnSide.lives--;
+                                    this.spawnGoalExplosion(b.x, b.y, playerOnSide.color);
+                                    if (window.soundFX) window.soundFX.playDie();
+
+                                    if (playerOnSide.lives <= 0) {
+                                        playerOnSide.alive = false;
+                                    }
+
+                                    // Reset ball to center
+                                    b.x = PONG_CENTER_X;
+                                    b.y = PONG_CENTER_Y;
+                                    const resetAngle = Math.random() * Math.PI * 2;
+                                    b.speed = BALL_INITIAL_SPEED;
+                                    b.vx = Math.cos(resetAngle) * b.speed;
+                                    b.vy = Math.sin(resetAngle) * b.speed;
+                                    break;
+                                }
+                            } else {
+                                // Solid wall bounce (no active player on this side)
                                 b.vx -= 2 * dot * nx;
                                 b.vy -= 2 * dot * ny;
-                                b.x += nx * 4;
-                                b.y += ny * 4;
-                                bounced = true;
+                                b.x = p1.x + t * dx + nx * (BALL_RADIUS + 4);
+                                b.y = p1.y + t * dy + ny * (BALL_RADIUS + 4);
                                 if (window.soundFX) window.soundFX.playClick();
+                                break;
                             }
                         }
                     }

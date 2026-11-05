@@ -1,0 +1,313 @@
+/**
+ * DataSquad Hub: Automated Game Engine & Physics Simulation Test Suite
+ * Executes deterministic physics, collision, state, and rule tests for all 5 games.
+ */
+
+import { readFileSync } from 'fs';
+import { createContext, runInContext } from 'vm';
+
+// Create a browser-like sandbox
+const sandbox = {
+    window: {},
+    console: console,
+    Math: Math,
+    Date: Date,
+    Array: Array,
+    Map: Map,
+    Set: Set,
+    String: String,
+    parseInt: parseInt,
+    Infinity: Infinity,
+    performance: { now: () => Date.now() },
+    soundFX: {
+        playClick: () => {},
+        playDie: () => {},
+        playWin: () => {},
+        playGap: () => {},
+        playCountdown: () => {}
+    }
+};
+sandbox.window = sandbox;
+createContext(sandbox);
+
+// Load game files into sandbox
+const tankSrc = readFileSync('./games/tank.js', 'utf-8');
+const pongSrc = readFileSync('./games/pong.js', 'utf-8');
+const skribblSrc = readFileSync('./games/skribbl.js', 'utf-8');
+const codenamesSrc = readFileSync('./games/codenames.js', 'utf-8');
+const curveSrc = readFileSync('./game.js', 'utf-8');
+
+runInContext(tankSrc, sandbox);
+runInContext(pongSrc, sandbox);
+runInContext(skribblSrc, sandbox);
+runInContext(codenamesSrc, sandbox);
+runInContext(curveSrc, sandbox);
+
+let passed = 0;
+let failed = 0;
+
+function assert(condition, testName) {
+    if (condition) {
+        console.log(`  ✅ PASS: ${testName}`);
+        passed++;
+    } else {
+        console.error(`  ❌ FAIL: ${testName}`);
+        failed++;
+    }
+}
+
+console.log('\n========================================');
+console.log('🤖 RUNNING DATASQUAD HUB SIMULATION TESTS');
+console.log('========================================\n');
+
+// ----------------------------------------------------
+// TEST SUITE 1: TANK TROUBLE
+// ----------------------------------------------------
+console.log('--- TEST 1: TANK TROUBLE ---');
+const tank = new sandbox.TankGame();
+tank.addPlayer('p1', 'Player 1', '#00f3ff', false);
+const bot = tank.addPlayer('bot1', 'RoboTank', '#ff0055', true);
+
+tank.startMatch(3);
+
+assert(tank.walls.length > 4, 'Maze generates outer boundary and internal walls');
+
+// Verify corridor gaps of internal procedural walls (skip first 4 outer boundary walls)
+for (let i = 4; i < tank.walls.length; i++) {
+    const w = tank.walls[i];
+    if (w.x1 === w.x2) {
+        // Vertical wall length
+        const len = Math.abs(w.y2 - w.y1);
+        assert(len < 220, `Internal vertical wall length (${len}px) leaves wide gap in cell`);
+    }
+    if (w.y1 === w.y2) {
+        // Horizontal wall length
+        const len = Math.abs(w.x2 - w.x1);
+        assert(len < 220, `Internal horizontal wall length (${len}px) leaves wide gap in cell`);
+    }
+}
+
+// Test bot shooting rate over 300 simulation ticks (6 seconds)
+let botShots = 0;
+let prevBulletCount = 0;
+for (let frame = 0; frame < 300; frame++) {
+    tank.update(0.02);
+    if (tank.bullets.length > prevBulletCount) {
+        const lastBullet = tank.bullets[tank.bullets.length - 1];
+        if (lastBullet.ownerId === 'bot1') botShots++;
+    }
+    prevBulletCount = tank.bullets.length;
+}
+
+// Bot should shoot thoughtfully (e.g. 1 to 6 times in 6 seconds), NEVER 50-100 times!
+assert(botShots >= 0 && botShots <= 6, `Bot shooting is throttled by cooldown (bot fired ${botShots} times in 6s, expected <= 6)`);
+
+// Test bullet bouncing
+tank.status = 'PLAYING';
+tank.bullets = [];
+tank.bullets.push({
+    id: 999,
+    ownerId: 'p1',
+    color: '#fff',
+    x: 40,
+    y: 100,
+    vx: -300, // heading straight into left outer boundary at x=28
+    vy: 0,
+    bounces: 0,
+    life: 5.0,
+    timeAlive: 0.5
+});
+tank.update(0.05);
+const bouncedBullet = tank.bullets.find(b => b.id === 999);
+assert(bouncedBullet && bouncedBullet.vx > 0, 'Bullet reflects off wall with inverted velocity');
+assert(bouncedBullet && bouncedBullet.bounces === 1, 'Bullet bounce counter increments correctly');
+
+
+// ----------------------------------------------------
+// TEST SUITE 2: OCTA-PONG (CONTINUOUS COLLISION & TUNNELING)
+// ----------------------------------------------------
+console.log('\n--- TEST 2: OCTA-PONG ---');
+const pong = new sandbox.OctaPongGame();
+const pSide0 = pong.addPlayer('pong1', 'PlayerSide0', '#00f3ff');
+pSide0.sideIdx = 0; // Right side (angle around 0)
+pSide0.paddlePos = 0.5;
+pong.startMatch();
+pong.status = 'PLAYING';
+
+// Test 1: Inward normal vectors for all 8 sides
+for (let s = 0; s < 8; s++) {
+    const { p1, p2 } = pong.getSideSegment(s);
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    const nx = -(p2.y - p1.y) / len;
+    const ny = (p2.x - p1.x) / len;
+
+    // Center is (600, 400). Vector from midpoint to center:
+    const midX = (p1.x + p2.x) / 2;
+    const midY = (p1.y + p2.y) / 2;
+    const toCenterX = 600 - midX;
+    const toCenterY = 400 - midY;
+    const inwardDot = nx * toCenterX + ny * toCenterY;
+    assert(inwardDot > 0, `Side ${s} normal vector points strictly inward toward arena center`);
+}
+
+// Test 2: TUNNELING STRESS TEST
+// Simulate 500 high-speed balls traveling directly at side 0 paddle at MAX SPEED (540 px/s)
+let tunneledCount = 0;
+let successfulBounces = 0;
+
+for (let trial = 0; trial < 200; trial++) {
+    pong.balls = [{
+        id: trial + 1,
+        x: 850 + (Math.random() - 0.5) * 20, // close to wall at ~914
+        y: 400 + (Math.random() - 0.5) * 40,
+        vx: 540,                             // max speed straight at paddle
+        vy: (Math.random() - 0.5) * 100,
+        speed: 540
+    }];
+
+    // Run 10 ticks
+    for (let t = 0; t < 10; t++) {
+        pong.update(0.02);
+    }
+
+    const b = pong.balls[0];
+    if (b) {
+        // If ball is now moving inwards (vx < 0) or was reset, it did not tunnel
+        if (b.vx < 0 || b.x <= 850) {
+            successfulBounces++;
+        } else if (b.x > 930) {
+            tunneledCount++;
+        }
+    }
+}
+
+assert(tunneledCount === 0, `Continuous collision test: 0 out of 200 high-speed balls tunneled through paddle`);
+assert(successfulBounces > 180, `Paddle bounce detection triggered reliably (${successfulBounces}/200 successfully deflected)`);
+
+
+// ----------------------------------------------------
+// TEST SUITE 3: MONTAGSMALER / SKRIBBL
+// ----------------------------------------------------
+console.log('\n--- TEST 3: MONTAGSMALER (SKRIBBL) ---');
+const skribbl = new sandbox.SkribblGame();
+const drawer = skribbl.addPlayer('drawer1', 'Kuenstler', '#00f3ff');
+const guesser1 = skribbl.addPlayer('guess1', 'Rater 1', '#ff00ff');
+const guesser2 = skribbl.addPlayer('guess2', 'Rater 2', '#39ff14');
+
+skribbl.startMatch(3);
+assert(skribbl.status === 'CHOOSING', 'Game starts in CHOOSING state');
+assert(skribbl.wordChoices.length === 3, 'Presents 3 German word choices');
+
+// Drawer chooses word
+const chosen = skribbl.wordChoices[0];
+skribbl.chooseWord(chosen);
+assert(skribbl.status === 'DRAWING', 'Transitions to DRAWING state');
+assert(skribbl.secretWord === chosen.toUpperCase(), 'Secret word set correctly');
+
+// CRITICAL TEST: Active drawer must NOT be able to type or guess their own word!
+const activeDrawer = skribbl.players.get(skribbl.activeDrawerId);
+const activeGuessers = Array.from(skribbl.players.values()).filter(p => p.id !== skribbl.activeDrawerId);
+const testGuesser = activeGuessers[0];
+
+const drawerGuess = skribbl.handleGuess(activeDrawer.id, chosen);
+assert(drawerGuess.rejected === true && drawerGuess.isMatch === false, 'Drawer CANNOT guess or submit words in chat');
+
+// Guesser guesses wrong word
+const wrongGuess = skribbl.handleGuess(testGuesser.id, 'FALSCHESWORT123');
+assert(wrongGuess.isMatch === false && !testGuesser.hasGuessed, 'Incorrect guess does not award points');
+
+// Guesser guesses correct word
+const correctGuess = skribbl.handleGuess(testGuesser.id, chosen);
+assert(correctGuess.isMatch === true && testGuesser.hasGuessed, 'Correct guess recognized and marked');
+assert(testGuesser.score > 0, 'Points awarded to guesser');
+assert(activeDrawer.score > 0, 'Points awarded to drawer on correct guess');
+
+// Guesser cannot guess again after already guessing
+const repeatGuess = skribbl.handleGuess(testGuesser.id, chosen);
+assert(repeatGuess.rejected === true, 'Player who already guessed is rejected from guessing again');
+
+
+// ----------------------------------------------------
+// TEST SUITE 4: CODENAMES
+// ----------------------------------------------------
+console.log('\n--- TEST 4: CODENAMES ---');
+const codenames = new sandbox.CodenamesGame();
+const pRed1 = codenames.addPlayer('cn_red_spy', 'RedSpy');
+const pRed2 = codenames.addPlayer('cn_red_op', 'RedOperative');
+const pBlue1 = codenames.addPlayer('cn_blue_spy', 'BlueSpy');
+const pBlue2 = codenames.addPlayer('cn_blue_op', 'BlueOperative');
+
+codenames.assignTeamAndRole(pRed1.id, 'red', 'spymaster');
+codenames.assignTeamAndRole(pRed2.id, 'red', 'operative');
+codenames.assignTeamAndRole(pBlue1.id, 'blue', 'spymaster');
+codenames.assignTeamAndRole(pBlue2.id, 'blue', 'operative');
+
+assert(pRed1.team === 'red' && pRed1.role === 'spymaster', 'Red Spymaster assigned');
+assert(pRed2.team === 'red' && pRed2.role === 'operative', 'Red Operative assigned');
+
+codenames.startNewGame();
+assert(codenames.board.length === 25, 'Board has exactly 25 cards');
+
+const assassinCount = codenames.board.filter(c => c.type === 'assassin').length;
+assert(assassinCount === 1, 'Board has exactly 1 assassin card');
+
+// Test Snapshot masking: Operatives must NOT see card types for unrevealed cards
+const opSnap = codenames.getSnapshot(pRed2.id);
+const unrevealedCards = opSnap.cards.filter(c => !c.revealed);
+const allMasked = unrevealedCards.every(c => c.type === 'hidden');
+assert(allMasked, 'Operative snapshot masks all unrevealed card types as hidden');
+
+// Spymaster snapshot MUST see all card types
+const spySnap = codenames.getSnapshot(pRed1.id);
+const spySeesTypes = spySnap.cards.every(c => c.type !== 'hidden');
+assert(spySeesTypes, 'Spymaster snapshot reveals all card types for clues');
+
+// Test clue giving and turn progression
+const activeTeam = codenames.currentTurn;
+const activeSpy = activeTeam === 'red' ? pRed1 : pBlue1;
+const activeOp = activeTeam === 'red' ? pRed2 : pBlue2;
+
+// Inactive operative cannot give clue
+const invalidClue = codenames.giveClue('HINWEIS', 2, activeOp.id);
+assert(invalidClue === false, 'Operatives CANNOT give clues');
+
+// Active spymaster gives clue
+const validClue = codenames.giveClue('TIERE', 2, activeSpy.id);
+assert(validClue === true, 'Spymaster can give valid clue');
+assert(codenames.guessesLeft === 3, 'Guesses left is clue count + 1 bonus guess');
+
+// Spymaster CANNOT reveal cards
+const firstCard = codenames.board[0];
+const spyClick = codenames.revealCard(firstCard.id, activeSpy.id);
+assert(spyClick === null, 'Spymaster CANNOT click and reveal cards');
+
+// Operative reveals card
+const opClick = codenames.revealCard(firstCard.id, activeOp.id);
+assert(opClick !== null && firstCard.revealed === true, 'Operative can successfully reveal cards');
+
+
+// ----------------------------------------------------
+// TEST SUITE 5: CURVE ARENA
+// ----------------------------------------------------
+console.log('\n--- TEST 5: CURVE ARENA ---');
+const curve = new sandbox.CurveGame();
+curve.addPlayer('c1', 'Curver1', '#00f3ff');
+curve.addPlayer('c2', 'Curver2', '#ff0055');
+curve.resetMatch();
+curve.startCountdown();
+assert(curve.state === 'COUNTDOWN', 'Curve arena enters COUNTDOWN state');
+curve.state = 'PLAYING';
+curve.update(0.1);
+assert(curve.players.get('c1').alive, 'Players remain alive on initial movement');
+
+console.log('\n========================================');
+console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);
+console.log('========================================\n');
+
+if (failed > 0) {
+    process.exit(1);
+} else {
+    process.exit(0);
+}

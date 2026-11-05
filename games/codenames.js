@@ -119,8 +119,25 @@ class CodenamesGame {
         this.logs = [`Das Spiel beginnt! Team ${this.startingTeam === 'red' ? 'Rot' : 'Blau'} fängt an.`];
     }
 
-    giveClue(clue, count) {
+    assignTeamAndRole(id, team, role) {
+        const p = this.players.get(id);
+        if (p) {
+            if (team && ['red', 'blue', 'spectator'].includes(team)) p.team = team;
+            if (role && ['spymaster', 'operative'].includes(role)) p.role = role;
+            const teamLabel = p.team === 'red' ? 'Team Rot' : (p.team === 'blue' ? 'Team Blau' : 'Zuschauer');
+            const roleLabel = p.role === 'spymaster' ? 'Spionchef 🕵️' : 'Ermittler 👥';
+            this.logs.unshift(`${p.name} ist jetzt ${teamLabel} (${roleLabel})`);
+            return true;
+        }
+        return false;
+    }
+
+    giveClue(clue, count, playerId = null) {
         if (this.gameStatus !== 'PLAYING') return false;
+        if (playerId) {
+            const p = this.players.get(playerId);
+            if (!p || p.team !== this.currentTurn || p.role !== 'spymaster') return false;
+        }
         this.clueWord = String(clue).trim().toUpperCase();
         this.clueCount = parseInt(count, 10) || 1;
         this.guessesLeft = this.clueCount + 1; // standard rules: count + 1 bonus guess
@@ -129,8 +146,15 @@ class CodenamesGame {
         return true;
     }
 
-    revealCard(cardId) {
+    revealCard(cardId, playerId = null) {
         if (this.gameStatus !== 'PLAYING') return null;
+        if (playerId) {
+            const p = this.players.get(playerId);
+            // Only operatives of the active team can guess cards, after a clue is given
+            if (!p || p.team !== this.currentTurn || p.role !== 'operative' || this.guessesLeft <= 0) {
+                return null;
+            }
+        }
         const card = this.board.find(c => c.id === cardId);
         if (!card || card.revealed) return null;
 

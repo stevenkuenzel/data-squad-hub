@@ -206,8 +206,28 @@
                         <span class="cn-score-tag blue">Blau: <strong id="cn-score-blue">8</strong></span>
                     </div>
                     <div class="hud-right">
-                        <button class="btn btn-secondary btn-sm" id="btn-toggle-spymaster">Rolle: Agent</button>
+                        <div class="hud-pill"><span id="cn-my-role-badge" style="color: var(--cyan); font-weight: bold;">Team Rot (Ermittler)</span></div>
                         <button class="icon-btn btn-mute-toggle">🔊</button>
+                    </div>
+                </div>
+
+                <!-- Team & Role Selector Bar -->
+                <div class="codenames-roster-bar">
+                    <div class="cn-team-group red">
+                        <span class="cn-team-title">🔴 TEAM ROT</span>
+                        <div id="cn-roster-red" class="cn-roster-list"></div>
+                        <div class="cn-btn-group">
+                            <button id="btn-join-red-op" class="btn-outline-red">Ermittler beitreten 👥</button>
+                            <button id="btn-join-red-spy" class="btn-outline-red">Spionchef werden 🕵️</button>
+                        </div>
+                    </div>
+                    <div class="cn-team-group blue">
+                        <span class="cn-team-title">🔵 TEAM BLAU</span>
+                        <div id="cn-roster-blue" class="cn-roster-list"></div>
+                        <div class="cn-btn-group">
+                            <button id="btn-join-blue-op" class="btn-outline-blue">Ermittler beitreten 👥</button>
+                            <button id="btn-join-blue-spy" class="btn-outline-blue">Spionchef werden 🕵️</button>
+                        </div>
                     </div>
                 </div>
 

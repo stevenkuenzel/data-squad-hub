@@ -612,6 +612,102 @@ canvas {
 }
 
 /* ================= 4. CODENAMES SPECIFIC ================= */
+.codenames-roster-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.cn-team-group {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.75);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cn-team-group.red {
+    border: 1px solid rgba(255, 51, 51, 0.4);
+}
+
+.cn-team-group.blue {
+    border: 1px solid rgba(0, 153, 255, 0.4);
+}
+
+.cn-team-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.cn-team-group.red .cn-team-title {
+    color: #ff6666;
+}
+
+.cn-team-group.blue .cn-team-title {
+    color: #66b3ff;
+}
+
+.cn-roster-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 24px;
+    font-size: 0.82rem;
+}
+
+.cn-player-pill {
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cn-player-pill.spymaster {
+    border: 1px solid rgba(255, 215, 0, 0.6);
+    background: rgba(255, 215, 0, 0.12);
+    color: #ffd700;
+}
+
+.cn-btn-group {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-outline-red {
+    background: transparent;
+    border: 1px solid #ff4d6d;
+    color: #ff6666;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-outline-red:hover {
+    background: rgba(255, 51, 51, 0.2);
+}
+
+.btn-outline-blue {
+    background: transparent;
+    border: 1px solid #00b4d8;
+    color: #66b3ff;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-outline-blue:hover {
+    background: rgba(0, 153, 255, 0.2);
+}
+
 .codenames-container {
     width: 95%;
     max-width: 960px;

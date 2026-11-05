@@ -603,7 +603,13 @@
     const cnScoreRed = document.getElementById('cn-score-red');
     const cnScoreBlue = document.getElementById('cn-score-blue');
     const cnTurnIndicator = document.getElementById('cn-turn-indicator');
-    const btnToggleSpymaster = document.getElementById('btn-toggle-spymaster');
+    const cnMyRoleBadge = document.getElementById('cn-my-role-badge');
+    const cnRosterRed = document.getElementById('cn-roster-red');
+    const cnRosterBlue = document.getElementById('cn-roster-blue');
+    const btnJoinRedOp = document.getElementById('btn-join-red-op');
+    const btnJoinRedSpy = document.getElementById('btn-join-red-spy');
+    const btnJoinBlueOp = document.getElementById('btn-join-blue-op');
+    const btnJoinBlueSpy = document.getElementById('btn-join-blue-spy');
     const cnSpymasterBar = document.getElementById('cn-spymaster-bar');
     const cnOperativeBar = document.getElementById('cn-operative-bar');
     const cnClueWordInput = document.getElementById('cn-clue-word');
@@ -613,21 +619,28 @@
     const cnCurrentClueDisplay = document.getElementById('cn-current-clue-display');
     const codenamesLog = document.getElementById('codenames-log');
 
-    let isSpymasterMode = false;
+    let latestCodenamesSnap = null;
 
-    btnToggleSpymaster.addEventListener('click', () => {
-        isSpymasterMode = !isSpymasterMode;
-        btnToggleSpymaster.textContent = isSpymasterMode ? 'Rolle: Spionchef 🕵️' : 'Rolle: Agent 👥';
-        codenamesBoard.classList.toggle('spymaster-mode', isSpymasterMode);
-        renderCodenamesBoard();
-    });
+    function setCodenamesTeamAndRole(team, role) {
+        if (networkManager.isHost) {
+            codenamesGame.assignTeamAndRole(myPlayerId, team, role);
+            broadcastCodenamesState();
+        } else {
+            networkManager.sendToHost('CN_ASSIGN', { team, role });
+        }
+    }
+
+    if (btnJoinRedOp) btnJoinRedOp.addEventListener('click', () => setCodenamesTeamAndRole('red', 'operative'));
+    if (btnJoinRedSpy) btnJoinRedSpy.addEventListener('click', () => setCodenamesTeamAndRole('red', 'spymaster'));
+    if (btnJoinBlueOp) btnJoinBlueOp.addEventListener('click', () => setCodenamesTeamAndRole('blue', 'operative'));
+    if (btnJoinBlueSpy) btnJoinBlueSpy.addEventListener('click', () => setCodenamesTeamAndRole('blue', 'spymaster'));
 
     btnGiveClue.addEventListener('click', () => {
         const clue = cnClueWordInput.value.trim();
         const count = cnClueCountSelect.value;
         if (!clue) return;
         if (networkManager.isHost) {
-            codenamesGame.giveClue(clue, count);
+            codenamesGame.giveClue(clue, count, myPlayerId);
             broadcastCodenamesState();
         } else {
             networkManager.sendToHost('CN_CLUE', { clue, count });
@@ -644,13 +657,46 @@
         }
     });
 
-    function renderCodenamesBoard() {
-        const snap = codenamesGame.getSnapshot(myPlayerId);
+    function renderCodenamesBoard(remoteSnap = null) {
+        const snap = remoteSnap || codenamesGame.getSnapshot(myPlayerId);
+        latestCodenamesSnap = snap;
+
         cnScoreRed.textContent = snap.scoreRed;
         cnScoreBlue.textContent = snap.scoreBlue;
 
         cnTurnIndicator.textContent = snap.currentTurn === 'red' ? 'TEAM ROT AM ZUG' : 'TEAM BLAU AM ZUG';
         cnTurnIndicator.style.color = snap.currentTurn === 'red' ? '#ff3333' : '#0099ff';
+
+        // Identify local player team and role
+        const playersList = snap.players || [];
+        const myPlayer = playersList.find(p => p.id === myPlayerId) || { team: 'red', role: 'operative' };
+        const myTeam = myPlayer.team;
+        const myRole = myPlayer.role;
+
+        if (cnMyRoleBadge) {
+            cnMyRoleBadge.textContent = `Du: ${myTeam === 'red' ? 'Team Rot' : (myTeam === 'blue' ? 'Team Blau' : 'Zuschauer')} (${myRole === 'spymaster' ? 'Spionchef 🕵️' : 'Ermittler 👥'})`;
+            cnMyRoleBadge.style.color = myTeam === 'red' ? '#ff6666' : (myTeam === 'blue' ? '#66b3ff' : '#aaa');
+        }
+
+        // Render Roster Lists
+        if (cnRosterRed) {
+            cnRosterRed.innerHTML = '';
+            playersList.filter(p => p.team === 'red').forEach(p => {
+                const pill = document.createElement('span');
+                pill.className = `cn-player-pill ${p.role}`;
+                pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}`;
+                cnRosterRed.appendChild(pill);
+            });
+        }
+        if (cnRosterBlue) {
+            cnRosterBlue.innerHTML = '';
+            playersList.filter(p => p.team === 'blue').forEach(p => {
+                const pill = document.createElement('span');
+                pill.className = `cn-player-pill ${p.role}`;
+                pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}`;
+                cnRosterBlue.appendChild(pill);
+            });
+        }
 
         if (snap.clueWord) {
             cnCurrentClueDisplay.textContent = `Hinweis: "${snap.clueWord}" (${snap.clueCount} Wörter, ${snap.guessesLeft} Versuche)`;
@@ -658,7 +704,16 @@
             cnCurrentClueDisplay.textContent = 'Warte auf Spionchef-Hinweis...';
         }
 
-        cnSpymasterBar.style.display = isSpymasterMode ? 'flex' : 'none';
+        // Spymaster controls vs Operative controls
+        const isMyTurn = snap.currentTurn === myTeam;
+        const isSpymaster = myRole === 'spymaster';
+        const hasActiveClue = snap.guessesLeft > 0;
+
+        cnSpymasterBar.style.display = (isSpymaster && isMyTurn && !hasActiveClue) ? 'flex' : 'none';
+        cnOperativeBar.style.display = (!isSpymaster || hasActiveClue || !isMyTurn) ? 'flex' : 'none';
+        btnEndTurn.disabled = !(isMyTurn && !isSpymaster && hasActiveClue);
+
+        codenamesBoard.classList.toggle('spymaster-mode', isSpymaster);
 
         codenamesBoard.innerHTML = '';
         snap.cards.forEach(card => {
@@ -666,10 +721,18 @@
             el.className = `cn-card type-${card.type}` + (card.revealed ? ' revealed' : '');
             el.textContent = card.word;
 
+            // Only operatives on their team's turn with active guesses can click cards
+            const canClick = !isSpymaster && isMyTurn && hasActiveClue && !card.revealed;
+            if (!canClick) {
+                el.style.cursor = 'default';
+            }
+
             el.addEventListener('click', () => {
                 if (card.revealed) return;
+                if (!canClick) return;
+
                 if (networkManager.isHost) {
-                    codenamesGame.revealCard(card.id);
+                    codenamesGame.revealCard(card.id, myPlayerId);
                     broadcastCodenamesState();
                 } else {
                     networkManager.sendToHost('CN_REVEAL', { cardId: card.id });
@@ -678,7 +741,7 @@
             codenamesBoard.appendChild(el);
         });
 
-        codenamesLog.innerHTML = snap.logs.map(l => `<div>• ${l}</div>`).join('');
+        codenamesLog.innerHTML = (snap.logs || []).map(l => `<div>• ${l}</div>`).join('');
     }
 
     function broadcastCodenamesState() {
@@ -814,6 +877,7 @@
 
     skChatForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        if (skGuessInput.disabled) return;
         const text = skGuessInput.value.trim();
         if (!text) return;
         skGuessInput.value = '';
@@ -847,6 +911,29 @@
 
         const isDrawer = snap.activeDrawerId === myPlayerId;
         skDrawTools.style.display = isDrawer ? 'flex' : 'none';
+
+        // Manage Guess Input: Drawer cannot guess, players who already guessed cannot guess again
+        const myPlayer = snap.players.find(p => p.id === myPlayerId);
+        const hasGuessed = myPlayer ? myPlayer.hasGuessed : false;
+        const skSubmitBtn = skChatForm.querySelector('button[type="submit"]');
+
+        if (isDrawer) {
+            skGuessInput.disabled = true;
+            skGuessInput.placeholder = "Du zeichnest gerade! (Kein Raten möglich)";
+            if (skSubmitBtn) skSubmitBtn.disabled = true;
+        } else if (hasGuessed) {
+            skGuessInput.disabled = true;
+            skGuessInput.placeholder = "Richtig erraten! Warte auf die nächste Runde...";
+            if (skSubmitBtn) skSubmitBtn.disabled = true;
+        } else if (snap.status === 'CHOOSING') {
+            skGuessInput.disabled = true;
+            skGuessInput.placeholder = `${snap.activeDrawerName || 'Der Zeichner'} wählt ein Wort...`;
+            if (skSubmitBtn) skSubmitBtn.disabled = true;
+        } else {
+            skGuessInput.disabled = false;
+            skGuessInput.placeholder = "Begriff eingeben & Enter...";
+            if (skSubmitBtn) skSubmitBtn.disabled = false;
+        }
 
         // Word choices modal
         if (isDrawer && snap.status === 'CHOOSING' && snap.wordChoices.length > 0) {
@@ -1132,13 +1219,16 @@
                 octaPongGame.setInput(senderId, payload.left, payload.right);
             }
         } else if (type === 'CN_CLUE') {
-            codenamesGame.giveClue(payload.clue, payload.count);
+            codenamesGame.giveClue(payload.clue, payload.count, senderId);
             broadcastCodenamesState();
         } else if (type === 'CN_REVEAL') {
-            codenamesGame.revealCard(payload.cardId);
+            codenamesGame.revealCard(payload.cardId, senderId);
             broadcastCodenamesState();
         } else if (type === 'CN_END_TURN') {
             codenamesGame.endTurn();
+            broadcastCodenamesState();
+        } else if (type === 'CN_ASSIGN') {
+            codenamesGame.assignTeamAndRole(senderId, payload.team, payload.role);
             broadcastCodenamesState();
         } else if (type === 'SK_STROKE') {
             skribblGame.addStroke(payload);
@@ -1172,7 +1262,7 @@
             codenamesGame.clueCount = payload.clueCount;
             codenamesGame.guessesLeft = payload.guessesLeft;
             codenamesGame.logs = payload.logs;
-            renderCodenamesBoard();
+            renderCodenamesBoard(payload);
         } else if (type === 'SK_STATE') {
             renderSkribblSnapshot(payload);
         } else if (type === 'SK_STROKE') {

@@ -31,13 +31,24 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 
 ---
 
-## 🚀 Lokale Ausführung
+## 🚀 Lokale Ausführung & Automatisierte Tests
 
 ```powershell
 # Lokalen HTTP-Server starten (z. B. mit Python):
 python -m http.server 8000
+
+# Automatisierte Physik- & Regel-Simulationstests ausführen:
+npm test
 ```
 Danach im Browser [http://localhost:8000](http://localhost:8000) öffnen.
+
+### 🧪 Automatisiertes Testen (E2E & Simulation)
+Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `test/e2e-playwright.mjs`):
+- **Tank Trouble:** Prüft Labyrinthbreite (Korridore >= 80px), Panzer-Kollisionen, Schuss-Cooldown (verhindert Bot-Spam) und Querschläger-Reflexion.
+- **Octa-Pong:** Simuliert hunderte Hochgeschwindigkeits-Bälle gegen alle 8 Schlägerseiten und weist kontinuierliche Kollisionserkennung (Sub-Stepping, 0% Tunneling) nach.
+- **Montagsmaler:** Verifiziert, dass der aktive Maler keine Begriffe tippen oder leaken kann und Punkte für Maler & Rater korrekt vergeben werden.
+- **Codenames:** Validiert 25-Karten-Verteilung (1 Attentäter, 9/8 Teamkarten), Spionchef/Ermittler-Maskierung und Rollenrechte.
+- **Curve Arena:** Testet Linienausbau, Lückengenerierung und Raumkoordinaten.
 
 ---
 

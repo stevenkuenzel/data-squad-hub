@@ -121,8 +121,18 @@ class SkribblGame {
 
     handleGuess(playerId, rawText) {
         const p = this.players.get(playerId);
-        if (!p || p.hasGuessed || playerId === this.activeDrawerId || this.status !== 'DRAWING') {
-            return { isMatch: false, chatMsg: { name: p ? p.name : '', text: rawText } };
+        if (!p || this.status !== 'DRAWING') {
+            return { isMatch: false, rejected: true };
+        }
+
+        // Active drawer cannot guess or send guesses to chat
+        if (playerId === this.activeDrawerId) {
+            return { isMatch: false, rejected: true };
+        }
+
+        // Players who already guessed cannot guess again or leak words
+        if (p.hasGuessed) {
+            return { isMatch: false, rejected: true };
         }
 
         const guessClean = rawText.trim().toUpperCase();
@@ -140,7 +150,7 @@ class SkribblGame {
 
             // Check if all guessers are done
             const guessers = Array.from(this.players.values()).filter(pl => pl.id !== this.activeDrawerId);
-            const allGuessed = guessers.every(pl => pl.hasGuessed);
+            const allGuessed = guessers.length > 0 && guessers.every(pl => pl.hasGuessed);
             if (allGuessed) {
                 this.endTurnEarly('Alle haben das Wort erraten!');
             }

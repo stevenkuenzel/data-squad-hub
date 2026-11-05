@@ -40,6 +40,7 @@ class TankGame {
                 y: 0,
                 angle: 0,
                 cooldown: 0,
+                shootCooldown: 1.0 + Math.random() * 1.5,
                 inputFwd: false,
                 inputBack: false,
                 inputLeft: false,
@@ -67,39 +68,46 @@ class TankGame {
 
     generateMaze() {
         this.walls = [];
-        const cols = 8;
-        const rows = 5;
-        const cellW = TANK_ARENA_W / cols;
-        const cellH = TANK_ARENA_H / rows;
+        const margin = 28;
 
         // Outer boundaries
-        this.walls.push({ x1: 20, y1: 20, x2: TANK_ARENA_W - 20, y2: 20 });
-        this.walls.push({ x1: TANK_ARENA_W - 20, y1: 20, x2: TANK_ARENA_W - 20, y2: TANK_ARENA_H - 20 });
-        this.walls.push({ x1: TANK_ARENA_W - 20, y1: TANK_ARENA_H - 20, x2: 20, y2: TANK_ARENA_H - 20 });
-        this.walls.push({ x1: 20, y1: TANK_ARENA_H - 20, x2: 20, y2: 20 });
+        this.walls.push({ x1: margin, y1: margin, x2: TANK_ARENA_W - margin, y2: margin });
+        this.walls.push({ x1: TANK_ARENA_W - margin, y1: margin, x2: TANK_ARENA_W - margin, y2: TANK_ARENA_H - margin });
+        this.walls.push({ x1: TANK_ARENA_W - margin, y1: TANK_ARENA_H - margin, x2: margin, y2: TANK_ARENA_H - margin });
+        this.walls.push({ x1: margin, y1: TANK_ARENA_H - margin, x2: margin, y2: margin });
 
-        // Internal procedural maze walls with open passages
+        // Wide, spacious layout: 5 cols x 3 rows (cells are ~228 x ~248 px)
+        // With large corridor gaps (90px) so tanks (width 32px) have plenty of maneuvering room
+        const cols = 5;
+        const rows = 3;
+        const cellW = (TANK_ARENA_W - 2 * margin) / cols;
+        const cellH = (TANK_ARENA_H - 2 * margin) / rows;
+        const gap = 90;
+
+        // Vertical internal walls with wide openings
         for (let c = 1; c < cols; c++) {
             for (let r = 0; r < rows; r++) {
-                if (Math.random() < 0.45) {
-                    this.walls.push({
-                        x1: c * cellW,
-                        y1: r * cellH + 20,
-                        x2: c * cellW,
-                        y2: (r + 1) * cellH - 20
-                    });
+                if (Math.random() < 0.42) {
+                    const x = margin + c * cellW;
+                    const y1 = margin + r * cellH + gap / 2;
+                    const y2 = margin + (r + 1) * cellH - gap / 2;
+                    if (y2 - y1 > 35) {
+                        this.walls.push({ x1: x, y1, x2: x, y2 });
+                    }
                 }
             }
         }
+
+        // Horizontal internal walls with wide openings
         for (let r = 1; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (Math.random() < 0.45) {
-                    this.walls.push({
-                        x1: c * cellW + 20,
-                        y1: r * cellH,
-                        x2: (c + 1) * cellW - 20,
-                        y2: r * cellH
-                    });
+                if (Math.random() < 0.42) {
+                    const y = margin + r * cellH;
+                    const x1 = margin + c * cellW + gap / 2;
+                    const x2 = margin + (c + 1) * cellW - gap / 2;
+                    if (x2 - x1 > 35) {
+                        this.walls.push({ x1, y1: y, x2, y2: y });
+                    }
                 }
             }
         }
@@ -201,11 +209,12 @@ class TankGame {
                 }
             }
 
-            // Shooting
+            // Shooting (max 5 active bullets per tank to prevent spam)
             if (p.cooldown > 0) p.cooldown -= dt;
-            if (p.inputShoot && p.cooldown <= 0) {
+            const myActiveBullets = this.bullets.filter(b => b.ownerId === p.id).length;
+            if (p.inputShoot && p.cooldown <= 0 && myActiveBullets < 5) {
                 this.shootBullet(p);
-                p.cooldown = 0.35; // fire rate
+                p.cooldown = 0.45; // balanced fire rate
             }
         }
 
@@ -317,7 +326,26 @@ class TankGame {
         return Math.hypot(cx - projX, cy - projY) <= r;
     }
 
+    hasLineOfSight(x1, y1, x2, y2) {
+        for (const w of this.walls) {
+            if (this.checkLineSegmentsIntersect(x1, y1, x2, y2, w.x1, w.y1, w.x2, w.y2)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    checkLineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+        const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        if (denom === 0) return false;
+        const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+        const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+        return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
+    }
+
     updateTankBot(bot, dt) {
+        bot.shootCooldown = Math.max(0, (bot.shootCooldown || 0) - dt);
+
         // Find closest enemy tank
         let target = null;
         let minDist = Infinity;
@@ -332,6 +360,7 @@ class TankGame {
         }
 
         if (target) {
+            const hasSight = this.hasLineOfSight(bot.x, bot.y, target.x, target.y);
             const desiredAngle = Math.atan2(target.y - bot.y, target.x - bot.x);
             let angleDiff = desiredAngle - bot.angle;
             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -339,13 +368,31 @@ class TankGame {
 
             bot.inputLeft = angleDiff < -0.15;
             bot.inputRight = angleDiff > 0.15;
-            bot.inputFwd = Math.abs(angleDiff) < 0.6 && minDist > 120;
-            bot.inputBack = false;
-            bot.inputShoot = Math.abs(angleDiff) < 0.3 && Math.random() < 0.2;
+
+            // Obstacle check directly ahead
+            const lookAheadX = bot.x + Math.cos(bot.angle) * 36;
+            const lookAheadY = bot.y + Math.sin(bot.angle) * 36;
+            const obstacleAhead = this.checkTankWallCollision(lookAheadX, lookAheadY);
+
+            bot.inputFwd = !obstacleAhead && Math.abs(angleDiff) < 0.75 && (minDist > 140 || !hasSight);
+            bot.inputBack = obstacleAhead;
+
+            // Shoot only when:
+            // 1. Aimed directly towards enemy (|angleDiff| < 0.22)
+            // 2. Clear line of sight (no wall in between)
+            // 3. Enemy is within weapon range (< 650px)
+            // 4. Cooldown timer has expired (1.2s - 2.2s between shots, NO spam!)
+            if (hasSight && Math.abs(angleDiff) < 0.22 && minDist < 650 && bot.shootCooldown <= 0) {
+                bot.inputShoot = true;
+                bot.shootCooldown = 1.2 + Math.random() * 1.0;
+            } else {
+                bot.inputShoot = false;
+            }
         } else {
             bot.inputFwd = true;
-            bot.inputLeft = Math.random() < 0.1;
-            bot.inputRight = Math.random() < 0.1;
+            bot.inputLeft = Math.random() < 0.05;
+            bot.inputRight = Math.random() < 0.05;
+            bot.inputShoot = false;
         }
     }
 
