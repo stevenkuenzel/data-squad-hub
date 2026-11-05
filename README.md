@@ -8,6 +8,9 @@ Die Spieler steuern Linien im Cyber-Neon-Design, die Spuren hinterlassen. Durch 
 
 ## ✨ Features
 
+- 🤖 **Smarte KI & Einstellbare Bot-Schwierigkeit**: Raycasting-Raumsuche mit 4 Stufen (**Leicht**, **Mittel**, **Schwer**, **Profi**) – die Bots finden aktiv offene Areale und weichen Fallen aus.
+- 🏢 **Firmennetz-Tarnung & Boss-Key (`B` / `ESC`)**: Perfekt für Teambuilding im Firmennetz! Ein Klick auf *Office-Tarnung* (oder Taste `B`) verwandelt das Spiel optisch in ein diskretes Datadog/Grafana-Cluster-Monitoring-Dashboard ohne Gaming-Begriffe.
+- 🔒 **Proxy- & Filter-Sicher**: Keine externen CDNs (PeerJS ist lokal eingebunden), neutrale Metadaten und SVG-Chart-Favicon, damit Firmen-Firewalls (Zscaler, Fortinet etc.) die Seite nicht als Spiel blockieren.
 - 🌐 **Echter Multiplayer via WebRTC (PeerJS)**: Keine eigenen Server nötig – die Browser der Spieler verbinden sich direkt Peer-to-Peer (P2P).
 - 🔗 **Raum-Codes & Einladungs-Links**: Host erstellt einen Raum (z. B. `K8M2P`), Freunde treten per Code oder direkt per Link (`?room=K8M2P`) bei.
 - 🤖 **Solo-Modus & Bots**: Trainiere alleine gegen KI-Gegner mit Raycasting-Ausweichmanövern oder fülle Lobbys mit Bots auf.
