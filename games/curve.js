@@ -198,6 +198,15 @@ class CurveGame {
         }
     }
 
+    setPowerUpsEnabled(enabled) {
+        this.powerUpsEnabled = !!enabled;
+        if (!this.powerUpsEnabled) {
+            this.powerUps = [];
+            this.activeEffects = [];
+            this.banner = null;
+        }
+    }
+
     addPlayer(id, name, colorHex, isBot = false) {
         if (this.players.has(id)) return this.players.get(id);
 
@@ -849,6 +858,11 @@ class CurveGame {
 
         if (snap.powerUpsEnabled !== undefined) {
             this.powerUpsEnabled = snap.powerUpsEnabled;
+            if (!this.powerUpsEnabled) {
+                this.powerUps = [];
+                this.activeEffects = [];
+                this.banner = null;
+            }
         }
 
         if (snap.powerUps) this.powerUps = snap.powerUps;

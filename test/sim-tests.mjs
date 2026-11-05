@@ -35,7 +35,7 @@ const tankSrc = readFileSync('./games/tank.js', 'utf-8');
 const pongSrc = readFileSync('./games/pong.js', 'utf-8');
 const skribblSrc = readFileSync('./games/skribbl.js', 'utf-8');
 const codenamesSrc = readFileSync('./games/codenames.js', 'utf-8');
-const curveSrc = readFileSync('./game.js', 'utf-8');
+const curveSrc = readFileSync('./games/curve.js', 'utf-8');
 const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
 const rouletteSrc = readFileSync('./games/roulette.js', 'utf-8');
@@ -247,6 +247,14 @@ assert(activeDrawer.score > 0, 'Points awarded to drawer on correct guess');
 const repeatGuess = skribbl.handleGuess(testGuesser.id, chosen);
 assert(repeatGuess.rejected === true, 'Player who already guessed is rejected from guessing again');
 
+// Timer countdown & letter hint reveal
+skribbl.timeLeft = 35;
+skribbl.updateTick(6.0); // 35 -> 29 (passes under 30s mark)
+assert(skribbl.timeLeft <= 29, `Timer counts down correctly (now ${skribbl.timeLeft.toFixed(1)}s)`);
+assert(skribbl.revealedHint.match(/[A-ZÄÖÜß]/), 'Timer crossing 30s reveals random letter hint');
+const snapTime = skribbl.getSnapshot(testGuesser.id).timeLeft;
+assert(snapTime === Math.ceil(skribbl.timeLeft), 'Snapshot correctly serializes rounded countdown seconds for UI');
+
 
 // ----------------------------------------------------
 // TEST SUITE 4: CODENAMES
@@ -374,6 +382,37 @@ const curveSnap = curve.getSnapshot();
 assert(Array.isArray(curveSnap.powerUps), 'Snapshot contains active power-ups array');
 assert(Array.isArray(curveSnap.activeEffects), 'Snapshot contains active effects array');
 assert(curveSnap.banner !== null, 'Snapshot includes active power-up announcement banner');
+
+// 6. Invert Troll Effect directly affects Bots
+const cBot = curve.addPlayer('cBot', 'Bot Curve', '#ffe600', true);
+cBot.alive = true;
+cBot.x = 600;
+cBot.y = 400;
+cBot.angle = 0;
+p1.x = 500;
+p1.y = 500;
+p1.alive = true;
+curve.state = 'PLAYING';
+
+// Place an obstacle ahead/right of the bot
+for (let y = 350; y <= 500; y += 10) {
+    curve.segments.push({ id: 1000 + y, playerId: 'other', color: '#fff', x1: 650, y1: y, x2: 660, y2: y });
+    curve.grid.addSegment(curve.segments[curve.segments.length - 1]);
+}
+
+// Activate invert effect targeting opponents (including cBot)
+curve.activatePowerUp(p1, { type: 'invert', name: 'Invert Controls', icon: '🔀', color: '#ff0055', target: 'others', duration: 4.0 });
+const botAngleBefore = cBot.angle;
+curve.update(0.1);
+assert(cBot.inputLeft === true && cBot.angle > botAngleBefore, 'Invert Troll effect inverts Bot controls (Bot decides Left, but turns Right)');
+
+// 7. Power-Ups disable toggle
+curve.setPowerUpsEnabled(false);
+assert(curve.powerUpsEnabled === false, 'Power-ups can be cleanly toggled off in settings');
+assert(curve.powerUps.length === 0, 'Disabling power-ups immediately clears field orbs');
+assert(curve.activeEffects.length === 0, 'Disabling power-ups immediately cleanses all active effects');
+curve.update(5.0);
+assert(curve.powerUps.length === 0, 'No power-ups spawn when disabled in settings');
 
 // ----------------------------------------------------
 // TEST SUITE 6: UNO (CARD GAME & ANTI-CHEAT ENGINE)

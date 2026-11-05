@@ -242,6 +242,7 @@
                 </div>
                 <div class="hud-scores" id="curve-scores-container"></div>
                 <div class="hud-right">
+                    <button class="icon-btn btn-curve-perks-toggle" id="btn-curve-hud-perks" title="Power-Ups An/Aus">⚡</button>
                     <button class="icon-btn btn-instructions-toggle" data-game="curve" title="Spielanleitung">❓</button>
                     <button class="icon-btn btn-mute-toggle" title="Sound">🔊</button>
                     <button class="icon-btn btn-fullscreen-toggle" title="Vollbild">⛶</button>
@@ -407,12 +408,9 @@
                 </div>
             </div>
             <div class="touch-controls tank-touch">
-                <div class="tank-dpad">
-                    <button class="touch-btn" id="tank-touch-fwd" title="Vorwärts">▲</button>
-                    <div class="tank-dpad-row">
-                        <button class="touch-btn" id="tank-touch-left" title="Links drehen">◀</button>
-                        <button class="touch-btn" id="tank-touch-back" title="Rückwärts">▼</button>
-                        <button class="touch-btn" id="tank-touch-right" title="Rechts drehen">▶</button>
+                <div class="tank-joystick-zone" id="tank-joystick-zone">
+                    <div class="tank-joystick-base" id="tank-joystick-base">
+                        <div class="tank-joystick-knob" id="tank-joystick-knob"></div>
                     </div>
                 </div>
                 <button class="touch-btn shoot-btn" id="tank-touch-shoot" title="Feuer">💥</button>
@@ -678,7 +676,7 @@
     <!-- Scripts (Modular Architecture) -->
     <script src="audio.js"></script>
     <script src="network.js"></script>
-    <script src="game.js"></script>
+    <script src="games/curve.js"></script>
     <script src="games/codenames.js"></script>
     <script src="games/skribbl.js"></script>
     <script src="games/tank.js"></script>

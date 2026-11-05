@@ -415,6 +415,7 @@
 
         if (gameType === 'curve') {
             document.getElementById('curve-room-code').textContent = networkManager.roomCode || 'SOLO';
+            syncCurvePerksUI();
             if (isHost) {
                 curveGame.resetMatch();
                 curveGame.startCountdown();
@@ -519,13 +520,114 @@
 
     bindTouch('curve-touch-left', 'ArrowLeft');
     bindTouch('curve-touch-right', 'ArrowRight');
-    bindTouch('tank-touch-left', 'ArrowLeft');
-    bindTouch('tank-touch-right', 'ArrowRight');
-    bindTouch('tank-touch-fwd', 'ArrowUp');
-    bindTouch('tank-touch-back', 'ArrowDown');
     bindTouch('tank-touch-shoot', 'Space');
     bindTouch('pong-touch-left', 'ArrowLeft');
     bindTouch('pong-touch-right', 'ArrowRight');
+
+    // Virtual Analog Joystick for Tanks
+    const tankJoystickZone = document.getElementById('tank-joystick-zone');
+    const tankJoystickBase = document.getElementById('tank-joystick-base');
+    const tankJoystickKnob = document.getElementById('tank-joystick-knob');
+
+    if (tankJoystickZone && tankJoystickBase && tankJoystickKnob) {
+        let joyActive = false;
+        let joyTouchId = null;
+        const maxDist = 40;
+
+        function handleJoystickMove(clientX, clientY) {
+            const rect = tankJoystickBase.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            let dx = clientX - centerX;
+            let dy = clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > maxDist) {
+                const angle = Math.atan2(dy, dx);
+                dx = Math.cos(angle) * maxDist;
+                dy = Math.sin(angle) * maxDist;
+            }
+
+            tankJoystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // Direction thresholds with deadzone (10px)
+            const deadzone = 10;
+            keys.ArrowUp = dy < -deadzone;
+            keys.ArrowDown = dy > deadzone;
+            keys.ArrowLeft = dx < -deadzone;
+            keys.ArrowRight = dx > deadzone;
+        }
+
+        function resetJoystick() {
+            joyActive = false;
+            joyTouchId = null;
+            tankJoystickKnob.style.transform = 'translate(0px, 0px)';
+            keys.ArrowUp = false;
+            keys.ArrowDown = false;
+            keys.ArrowLeft = false;
+            keys.ArrowRight = false;
+        }
+
+        tankJoystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (joyActive) return;
+            const touch = e.changedTouches[0];
+            joyActive = true;
+            joyTouchId = touch.identifier;
+            handleJoystickMove(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joyActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joyTouchId) {
+                    e.preventDefault();
+                    handleJoystickMove(touch.clientX, touch.clientY);
+                    break;
+                }
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            if (!joyActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) {
+                    resetJoystick();
+                    break;
+                }
+            }
+        });
+
+        window.addEventListener('touchcancel', (e) => {
+            if (!joyActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) {
+                    resetJoystick();
+                    break;
+                }
+            }
+        });
+
+        // Mouse testing fallback
+        tankJoystickZone.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            joyActive = true;
+            handleJoystickMove(e.clientX, e.clientY);
+
+            const onMouseMove = (ev) => {
+                if (joyActive) handleJoystickMove(ev.clientX, ev.clientY);
+            };
+            const onMouseUp = () => {
+                resetJoystick();
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            };
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        });
+    }
 
     // ==========================================
     // GAME INSTRUCTIONS & HELP MODAL SYSTEM
@@ -740,13 +842,35 @@
     }
 
     const btnTogglePowerups = document.getElementById('btn-toggle-powerups');
+    const btnCurveHudPerks = document.getElementById('btn-curve-hud-perks');
+
+    function syncCurvePerksUI() {
+        const isEnabled = curveGame.powerUpsEnabled;
+        if (btnTogglePowerups) {
+            btnTogglePowerups.textContent = isEnabled ? 'AN' : 'AUS';
+            btnTogglePowerups.className = `btn btn-sm ${isEnabled ? 'btn-primary' : 'btn-secondary'}`;
+        }
+        if (btnCurveHudPerks) {
+            btnCurveHudPerks.style.opacity = isEnabled ? '1.0' : '0.35';
+            btnCurveHudPerks.style.borderColor = isEnabled ? 'var(--cyan)' : 'rgba(255,255,255,0.2)';
+            btnCurveHudPerks.title = isEnabled ? 'Power-Ups: AN (Klicken zum Ausschalten)' : 'Power-Ups: AUS (Klicken zum Einschalten)';
+        }
+    }
+
+    function toggleCurvePerks() {
+        curveGame.setPowerUpsEnabled(!curveGame.powerUpsEnabled);
+        syncCurvePerksUI();
+        if (window.soundFX) window.soundFX.playClick();
+        if (networkManager.isHost) {
+            networkManager.broadcast('STATE', curveGame.getSnapshot());
+        }
+    }
+
     if (btnTogglePowerups) {
-        btnTogglePowerups.addEventListener('click', () => {
-            curveGame.powerUpsEnabled = !curveGame.powerUpsEnabled;
-            btnTogglePowerups.textContent = curveGame.powerUpsEnabled ? 'AN' : 'AUS';
-            btnTogglePowerups.className = `btn btn-sm ${curveGame.powerUpsEnabled ? 'btn-primary' : 'btn-secondary'}`;
-            if (window.soundFX) window.soundFX.playClick();
-        });
+        btnTogglePowerups.addEventListener('click', toggleCurvePerks);
+    }
+    if (btnCurveHudPerks) {
+        btnCurveHudPerks.addEventListener('click', toggleCurvePerks);
     }
 
     document.querySelectorAll('#diff-selector .diff-btn').forEach(btn => {
@@ -2400,8 +2524,12 @@
                 curveGame.update(dt);
             } else if (activeGameType === 'skribbl') {
                 const prevStatus = skribblGame.status;
+                const prevSec = Math.ceil(skribblGame.timeLeft);
+                const prevHint = skribblGame.revealedHint;
                 skribblGame.updateTick(dt);
-                if (skribblGame.status !== prevStatus) broadcastSkribblState();
+                if (skribblGame.status !== prevStatus || Math.ceil(skribblGame.timeLeft) !== prevSec || skribblGame.revealedHint !== prevHint) {
+                    broadcastSkribblState();
+                }
             } else if (activeGameType === 'tank') {
                 tankGame.update(dt);
             } else if (activeGameType === 'pong') {
