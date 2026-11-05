@@ -9,7 +9,7 @@ const TURN_SPEED = 3.4;        // Radians per second
 const LINE_RADIUS = 3.5;       // Trail half-width
 const GRID_CELL_SIZE = 50;     // Spatial hash cell size
 
-// Available vibrant player colors
+// Available vibrant player colors (14 distinct high-contrast colors for up to 12 players)
 const PLAYER_COLORS = [
     { name: 'Neon Cyan', hex: '#00f3ff', glow: 'rgba(0, 243, 255, 0.6)' },
     { name: 'Laser Pink', hex: '#ff007f', glow: 'rgba(255, 0, 127, 0.6)' },
@@ -20,8 +20,26 @@ const PLAYER_COLORS = [
     { name: 'Emerald Wave', hex: '#00ffaa', glow: 'rgba(0, 255, 170, 0.6)' },
     { name: 'Sky Azure', hex: '#0099ff', glow: 'rgba(0, 153, 255, 0.6)' },
     { name: 'Hot Magenta', hex: '#ff00aa', glow: 'rgba(255, 0, 170, 0.6)' },
-    { name: 'Bright Gold', hex: '#ffd700', glow: 'rgba(255, 215, 0, 0.6)' }
+    { name: 'Bright Gold', hex: '#ffd700', glow: 'rgba(255, 215, 0, 0.6)' },
+    { name: 'Tangerine', hex: '#ff5500', glow: 'rgba(255, 85, 0, 0.6)' },
+    { name: 'Teal Mint', hex: '#00e5c0', glow: 'rgba(0, 229, 192, 0.6)' },
+    { name: 'Lilac', hex: '#a855f7', glow: 'rgba(168, 85, 247, 0.6)' },
+    { name: 'Rose Glow', hex: '#ff4081', glow: 'rgba(255, 64, 129, 0.6)' }
 ];
+
+function sanitizeName(raw) {
+    if (typeof raw !== 'string') return 'Player';
+    // Remove control characters, HTML tags, trim, and limit to 16 chars
+    const clean = raw.trim().replace(/[<>'"&]/g, '').slice(0, 16);
+    return clean || 'Player';
+}
+
+function sanitizeColor(hex) {
+    if (typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex)) {
+        return hex;
+    }
+    return PLAYER_COLORS[0].hex;
+}
 
 function distToSegmentSquared(px, py, x1, y1, x2, y2) {
     const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
@@ -161,10 +179,14 @@ class CurveGame {
     addPlayer(id, name, colorHex, isBot = false) {
         if (this.players.has(id)) return this.players.get(id);
 
+        const safeId = String(id).slice(0, 40);
+        const safeName = sanitizeName(name);
+        const safeColor = sanitizeColor(colorHex);
+
         const player = {
-            id,
-            name: name.slice(0, 16),
-            color: colorHex,
+            id: safeId,
+            name: safeName,
+            color: safeColor,
             score: 0,
             alive: true,
             isBot,

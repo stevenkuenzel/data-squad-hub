@@ -75,7 +75,20 @@ class NetworkManager {
             this.connections.set(conn.peer, conn);
             this.connectedPeers.add(conn.peer);
 
+            // Rate limiter per peer: max 120 packets / sec
+            let packetCount = 0;
+            let lastReset = performance.now();
+
             conn.on('data', (data) => {
+                const now = performance.now();
+                if (now - lastReset > 1000) {
+                    packetCount = 0;
+                    lastReset = now;
+                }
+                packetCount++;
+                if (packetCount > 120) {
+                    return; // Drop excess packets to protect host performance
+                }
                 this._handleData(data, conn.peer);
             });
 

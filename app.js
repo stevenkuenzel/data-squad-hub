@@ -57,6 +57,7 @@
     const touchRight = document.getElementById('touch-right');
 
     // App State
+    const MAX_PLAYERS = 12;
     const game = new CurveGame();
     let myPlayerId = 'p-local-' + Math.floor(Math.random() * 10000);
 
@@ -182,7 +183,7 @@
         }
 
         playerCount.textContent = count;
-        btnAddBot.disabled = count >= 8;
+        btnAddBot.disabled = count >= MAX_PLAYERS;
     }
 
     // ==========================================
@@ -192,12 +193,21 @@
         // HOST HANDLING
         if (networkManager.isHost) {
             if (type === 'JOIN') {
+                if (game.players.size >= MAX_PLAYERS) {
+                    networkManager.sendTo(senderId, {
+                        type: 'ROOM_FULL',
+                        payload: { message: 'Der Raum ist bereits voll (maximal 12 Spieler).' }
+                    });
+                    return;
+                }
                 const assignedColor = getUnusedColor();
                 game.addPlayer(senderId, payload.name, assignedColor, false);
                 broadcastLobbyUpdate();
                 updateLobbyUI();
             } else if (type === 'INPUT') {
-                game.setPlayerInput(senderId, payload.left, payload.right);
+                if (payload && typeof payload.left === 'boolean' && typeof payload.right === 'boolean') {
+                    game.setPlayerInput(senderId, payload.left, payload.right);
+                }
             } else if (type === 'PEER_DISCONNECTED') {
                 game.removePlayer(senderId);
                 broadcastLobbyUpdate();
@@ -206,7 +216,10 @@
         }
         // CLIENT HANDLING
         else {
-            if (type === 'LOBBY_UPDATE') {
+            if (type === 'ROOM_FULL') {
+                alert(payload.message || 'Der Raum ist bereits voll.');
+                location.reload();
+            } else if (type === 'LOBBY_UPDATE') {
                 game.players.clear();
                 for (const p of payload.players) {
                     game.addPlayer(p.id, p.name, p.color, p.isBot);
@@ -417,11 +430,12 @@
     });
 
     btnAddBot.addEventListener('click', () => {
+        if (game.players.size >= MAX_PLAYERS) return;
         if (window.soundFX) window.soundFX.playClick();
         const botIndex = game.players.size;
         const botId = `bot-${botIndex}`;
         const botColor = getUnusedColor();
-        const botNames = ['Cyber', 'Pulse', 'Shadow', 'Apex', 'Matrix', 'Volt', 'Specter', 'Titan', 'Viper'];
+        const botNames = ['Cyber', 'Pulse', 'Shadow', 'Apex', 'Matrix', 'Volt', 'Specter', 'Titan', 'Viper', 'Nova', 'Echo', 'Phantom', 'Nexus', 'Blaze'];
         const botName = 'Bot ' + botNames[(botIndex - 1) % botNames.length];
 
         game.addPlayer(botId, botName, botColor, true);
@@ -642,10 +656,17 @@
             const badge = document.createElement('div');
             badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
             badge.style.borderLeft = `3px solid ${p.color}`;
-            badge.innerHTML = `
-                <span style="color: ${p.color};">${p.name}</span>
-                <span>${p.score}</span>
-            `;
+
+            // XSS-Safe DOM construction using textContent
+            const nameSpan = document.createElement('span');
+            nameSpan.style.color = p.color;
+            nameSpan.textContent = p.name;
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.textContent = String(p.score);
+
+            badge.appendChild(nameSpan);
+            badge.appendChild(scoreSpan);
             hudScoresContainer.appendChild(badge);
         }
 

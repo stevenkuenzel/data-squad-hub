@@ -322,11 +322,21 @@ input[type="text"]:focus {
     pointer-events: none;
 }
 
-.hud-left, .hud-right, .hud-scores {
+.hud-left, .hud-right {
     pointer-events: auto;
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.hud-scores {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    max-width: 64vw;
+    justify-content: center;
 }
 
 .hud-pill {
@@ -345,13 +355,13 @@ input[type="text"]:focus {
 .score-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
+    gap: 6px;
+    padding: 4px 10px;
     background: rgba(10, 14, 24, 0.85);
     backdrop-filter: blur(10px);
     border: 1px solid var(--border-color);
-    border-radius: 20px;
-    font-size: 0.9rem;
+    border-radius: 14px;
+    font-size: 0.8rem;
     font-weight: bold;
     transition: transform 0.2s ease;
 }
