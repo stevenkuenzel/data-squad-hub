@@ -68,6 +68,10 @@ class DodgeballGame {
         this.powerups = [];        // Pickups auf dem Boden: { id, type, icon, color, x, y, life }
         this.powerupSpawnTimer = 8.0;
         this.nextPowerupId = 1;
+
+        // Spieleabend: Statistiken + Aufholmechanik (id -> 'leader' | 'trailer')
+        this.stats = {};
+        this.handicaps = {};
     }
 
     addPlayer(id, name, color, isBot = false, preferredTeam = null) {
@@ -131,7 +135,19 @@ class DodgeballGame {
         this.scoreSquad = 0;
         this.scoreComN = 0;
         this.winner = null;
+        this.stats = {};
         this.startRound();
+    }
+
+    // Team-Mixer: mix everybody evenly into the two teams (random), or move one player
+    setTeam(playerId, team) {
+        const p = this.players.get(playerId);
+        if (p && (team === 'squad' || team === 'comn')) p.team = team;
+    }
+
+    shuffleTeams() {
+        const ids = shuffleArray(Array.from(this.players.keys()));
+        ids.forEach((id, i) => { this.players.get(id).team = i % 2 === 0 ? 'squad' : 'comn'; });
     }
 
     startRound() {
@@ -154,6 +170,8 @@ class DodgeballGame {
         let cIdx = 0;
         for (const p of this.players.values()) {
             p.alive = true;
+            // Aufholmechanik: Zurückliegende bekommen ein zusätzliches Leben
+            p.maxHp = this.handicaps[p.id] === 'trailer' ? 4 : 3;
             p.hp = p.maxHp;
             p.hasBall = null;
             p.dashCooldown = 0;
@@ -307,7 +325,7 @@ class DodgeballGame {
             // Dash activation
             if (p.inputDash && p.dashCooldown <= 0 && p.dashTimer <= 0) {
                 p.dashTimer = 0.28;
-                p.dashCooldown = 1.4;
+                p.dashCooldown = 1.4 * (this.handicaps[p.id] === 'leader' ? 1.5 : 1);
                 if (window.soundFX) window.soundFX.playGap();
                 // Dash particle trail
                 this.spawnDashTrail(p);
@@ -495,6 +513,7 @@ class DodgeballGame {
                         isCluster: b.isCluster
                     };
                     this.balls.splice(i, 1);
+                    bumpStat(this, enemy.id, 'catches');
                     this.banner = {
                         text: `🎯 GEFANGEN! ${enemy.name} fängt ${b.name} ab!`,
                         color: '#ffd700',
@@ -517,12 +536,14 @@ class DodgeballGame {
                     // Direct Hit!
                     const dmg = b.damage || 1;
                     enemy.hp = Math.max(0, enemy.hp - dmg);
+                    bumpStat(this, b.thrownBy, 'hits');
                     this.spawnHitExplosion(b.x, b.y, b.color);
 
                     // Special Attack: Das große ComN-Paket
                     if (b.isCluster) {
                         this.triggerClusterExplosion(b.x, b.y, b.thrownTeam);
                     } else if (b.leavesRock) {
+                        bumpStat(this, b.thrownBy, 'rocks');
                         this.rocks.push({
                             id: Math.random(),
                             x: b.x,
@@ -716,9 +737,14 @@ class DodgeballGame {
             let minDist = Infinity;
             for (const b of this.balls) {
                 if (b.state === 'FLOOR') {
-                    // Check if ball is on bot's half or accessible near center
-                    const onMyHalf = bot.team === 'squad' ? b.x <= DB_CENTER_X + 20 : b.x >= DB_CENTER_X - 20;
-                    if (onMyHalf) {
+                    // Only balls the bot can actually touch from inside its own half
+                    // (the half-court limit keeps it 16+radius away from the center line)
+                    const limitX = bot.team === 'squad'
+                        ? DB_CENTER_X - 16 - DB_PLAYER_RADIUS
+                        : DB_CENTER_X + 16 + DB_PLAYER_RADIUS;
+                    const reachable = Math.abs(b.x - limitX) < DB_PLAYER_RADIUS + DB_BALL_RADIUS + 2
+                        || (bot.team === 'squad' ? b.x < limitX : b.x > limitX);
+                    if (reachable) {
                         const dist = Math.hypot(bot.x - b.x, bot.y - b.y);
                         if (dist < minDist) {
                             minDist = dist;
@@ -956,6 +982,7 @@ class DodgeballGame {
 
         const ballsList = this.balls.map(b => ({
             id: b.id,
+            name: b.name,
             icon: b.icon,
             color: b.color,
             x: Math.round(b.x),

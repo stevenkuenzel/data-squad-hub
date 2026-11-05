@@ -14,11 +14,30 @@ const gameSettingsPanels = {
 let dodgeballFillBots = true;
 
 function updateGameSettingsVisibility() {
+    const host = networkManager.isHost;
+    // At a Spieleabend the host configures every game up front
     for (const [game, id] of Object.entries(gameSettingsPanels)) {
         const el = document.getElementById(id);
-        if (el) el.style.display = (networkManager.isHost && activeGameType === game) ? 'block' : 'none';
+        if (el) el.style.display = (host && (eveningMode || activeGameType === game)) ? 'block' : 'none';
     }
+    if (eveningMode) curveSettings.style.display = host ? 'block' : 'none';
+    const evPanel = document.getElementById('evening-settings');
+    if (evPanel) evPanel.style.display = (host && eveningMode) ? 'block' : 'none';
+    // Team mixing happens automatically before each team game of an evening
+    document.querySelectorAll('.team-mixer-row').forEach(el => { el.style.display = eveningMode ? 'none' : 'flex'; });
 }
+
+function mixLobbyTeams() {
+    const g = getActiveGameInstance();
+    if (!networkManager.isHost || typeof g.shuffleTeams !== 'function') return;
+    g.shuffleTeams();
+    broadcastLobby();
+    updateLobbyUI();
+}
+const btnCnMix = document.getElementById('btn-cn-mix');
+if (btnCnMix) btnCnMix.addEventListener('click', mixLobbyTeams);
+const btnDbMix = document.getElementById('btn-db-mix');
+if (btnDbMix) btnDbMix.addEventListener('click', mixLobbyTeams);
 
 function bindToggle(id, get, set) {
     const btn = document.getElementById(id);

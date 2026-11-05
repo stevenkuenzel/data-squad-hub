@@ -15,6 +15,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
     <!-- Local PeerJS Library (No external CDN requests, 100% corporate proxy safe) -->
+
     <script src="peerjs.min.js"></script>
 </head>
 <body>
@@ -34,6 +35,10 @@
                         <input type="text" id="player-name" maxlength="15" value="Player 1">
                     </div>
                     <div class="color-picker-mini" id="color-picker" title="Farbkennung wählen"></div>
+                    <div class="avatar-picker" title="Avatar und Hut wählen (Klick wechselt)">
+                        <button id="btn-avatar" class="icon-btn avatar-btn" type="button">😀</button>
+                        <button id="btn-hat" class="icon-btn avatar-btn" type="button">🚫</button>
+                    </div>
                     <div class="join-inline">
                         <input type="text" id="join-code-input" placeholder="CODE (z.B. AB123)" maxlength="6">
                         <button id="btn-join-room" class="btn btn-primary btn-sm">Beitreten</button>
@@ -42,6 +47,19 @@
 
                 <!-- Game Cards Selection Grid -->
                 <div class="hub-games-grid">
+                    <!-- 0. Spieleabend -->
+                    <div class="game-card evening-card">
+                        <div class="game-card-icon">🎉</div>
+                        <div class="game-card-info">
+                            <h3>Spieleabend</h3>
+                            <p>Stelle eine Playlist aus mehreren Spielen zusammen. Punkte zählen über alle Spiele – am Ende gibt es Podium, Awards und Erfolge!</p>
+                            <span class="game-card-meta">2 - 12 Spieler • Gesamtwertung</span>
+                        </div>
+                        <div class="card-btn-row">
+                            <button class="btn btn-primary btn-sm" id="btn-host-evening" type="button">Abend starten</button>
+                        </div>
+                    </div>
+
                     <!-- 1. Curve Arena -->
                     <div class="game-card" data-game="curve">
                         <div class="game-card-icon">🐍</div>
@@ -208,6 +226,20 @@
                     </div>
                 </div>
 
+                <!-- Spieleabend: Playlist -->
+                <div id="evening-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-title" style="margin-bottom: 6px;">🎵 Playlist (Reihenfolge per ▲▼, Haken = dabei)</div>
+                    <ul id="evening-playlist" class="ev-playlist"></ul>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">⚖️ Aufholmechanik</div>
+                            <div class="setting-desc">Führende bekommen kleine Handicaps, Letzte kleine Boni (Curve, Tank, Dodgeball)</div>
+                        </div>
+                        <button id="btn-evening-catchup" class="btn btn-secondary btn-sm" type="button">AUS</button>
+                    </div>
+                    <div class="setting-desc">Die Spiel-Einstellungen unten gelten für den ganzen Abend. Teams werden vor jedem Teamspiel neu gemischt.</div>
+                </div>
+
                 <!-- Codenames Settings -->
                 <div id="codenames-settings" class="game-specific-settings" style="display: none;">
                     <div class="setting-row">
@@ -216,6 +248,13 @@
                             <div class="setting-desc">Zeitlimit pro Phase (Hinweis geben / Raten)</div>
                         </div>
                         <select id="cn-timer-select" class="btn btn-secondary btn-sm"><option value="0">Aus</option><option value="60">60 s</option><option value="90">90 s</option><option value="120">120 s</option></select>
+                    </div>
+                    <div class="setting-row team-mixer-row">
+                        <div>
+                            <div class="setting-title">🔀 Team-Mixer</div>
+                            <div class="setting-desc">Zufällig neu mischen – oder in der Spielerliste auf das Team klicken</div>
+                        </div>
+                        <button id="btn-cn-mix" class="btn btn-secondary btn-sm" type="button">Mischen</button>
                     </div>
                 </div>
 
@@ -259,6 +298,13 @@
                             <div class="setting-desc">Beim Start werden ungleiche Teams mit Bots ausgeglichen</div>
                         </div>
                         <button id="btn-db-fillbots" class="btn btn-primary btn-sm">AN</button>
+                    </div>
+                    <div class="setting-row team-mixer-row">
+                        <div>
+                            <div class="setting-title">🔀 Team-Mixer</div>
+                            <div class="setting-desc">Zufällig neu mischen – oder in der Spielerliste auf das Team klicken</div>
+                        </div>
+                        <button id="btn-db-mix" class="btn btn-secondary btn-sm" type="button">Mischen</button>
                     </div>
                 </div>
 
@@ -761,6 +807,37 @@
     </div>
 
     <!-- Scripts (Modular Architecture) -->
+
+    <!-- ================= SPIELEABEND / SITZUNG OVERLAYS ================= -->
+    <div id="reaction-layer" aria-hidden="true"></div>
+    <div id="reaction-bar" class="reaction-bar" title="Reaktion senden"></div>
+    <div id="toast-box" class="toast-box"></div>
+    <div id="spectator-banner" class="spectator-banner" style="display: none;">👀 Du schaust zu – in der nächsten Partie spielst du mit!</div>
+
+    <div id="reconnect-overlay" class="fullscreen-overlay" style="display: none;">
+        <div class="round-over-box" style="text-align: center;">
+            <div style="font-size: 2.2rem;">📡</div>
+            <h3 id="reconnect-text" style="margin: 8px 0 0;">Verbindung verloren …</h3>
+            <p style="color: var(--text-muted); margin: 6px 0 0;">Dein Punktestand bleibt erhalten. Ein Bot spielt solange für dich.</p>
+        </div>
+    </div>
+
+    <div id="evening-overlay" class="fullscreen-overlay evening-overlay" style="display: none;">
+        <div class="evening-box">
+            <h2 id="evening-title" class="winner-title"></h2>
+            <div id="evening-progress" class="evening-progress"></div>
+            <div id="evening-podium" class="evening-podium" style="display: none;"></div>
+            <ol id="evening-standings" class="ev-standings"></ol>
+            <div id="evening-awards" class="evening-section" style="display: none;"></div>
+            <div id="evening-achievements" class="evening-section" style="display: none;"></div>
+            <div class="evening-actions">
+                <button id="btn-evening-next" class="btn btn-primary" type="button" style="display: none;">Weiter ▶</button>
+                <button id="btn-evening-lobby" class="btn btn-primary" type="button" style="display: none;">Zurück zur Lobby</button>
+                <div id="evening-wait" class="setting-desc" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="audio.js"></script>
     <script src="network.js"></script>
     <script src="games/utils.js"></script>
@@ -772,6 +849,7 @@
     <script src="games/uno.js"></script>
     <script src="games/dodgeball.js"></script>
     <script src="games/roulette.js"></script>
+    <script src="games/evening.js"></script>
     <script src="ui/core.js"></script>
     <script src="ui/lobby.js"></script>
     <script src="ui/curve.js"></script>
@@ -784,6 +862,8 @@
     <script src="ui/dodgeball.js"></script>
     <script src="ui/roulette.js"></script>
     <script src="ui/settings.js"></script>
+    <script src="ui/session.js"></script>
+    <script src="ui/evening.js"></script>
     <script src="ui/routing.js"></script>
     <script src="ui/main.js"></script>
 </body>

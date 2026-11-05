@@ -12,4 +12,14 @@ function shuffleArray(arr) {
     return arr;
 }
 
+// Per-match statistics for the Spieleabend awards/achievements: game.stats[playerId][key].
+// max=true keeps the highest value instead of summing.
+function bumpStat(game, playerId, key, amount = 1, max = false) {
+    if (!playerId) return;
+    if (!game.stats) game.stats = {};
+    const s = game.stats[playerId] || (game.stats[playerId] = {});
+    s[key] = max ? Math.max(s[key] || 0, amount) : (s[key] || 0) + amount;
+}
+
 window.shuffleArray = shuffleArray;
+window.bumpStat = bumpStat;

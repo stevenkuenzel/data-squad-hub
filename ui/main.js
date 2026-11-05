@@ -17,6 +17,7 @@ function masterLoop(now) {
 
     // 1. Host authoritative simulation
     if (networkManager.isHost) {
+        eveningTick(dt);
         if (activeGameType === 'curve') {
             curveGame.update(dt);
         } else if (activeGameType === 'skribbl') {

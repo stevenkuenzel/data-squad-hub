@@ -108,6 +108,10 @@ function handleClientGameEvent(type, payload) {
         clearSkCanvas();
     } else if (type === 'SK_UNDO') {
         undoSkLocal();
+    } else if (type === 'SK_SYNC') {
+        // Full drawing history for someone who joined or reconnected mid-turn
+        clearSkCanvas();
+        if (Array.isArray(payload.strokes)) payload.strokes.forEach(applySkStroke);
     } else if (type === 'SK_CHAT') {
         if (payload.isMatch) {
             addSkChatMsg('', payload.systemMsg, true);

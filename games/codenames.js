@@ -66,6 +66,7 @@ class CodenamesGame {
         this.winner = null;
         this.gameStatus = 'LOBBY'; // LOBBY, PLAYING, GAME_OVER
         this.logs = [];
+        this.stats = {};
         this.timerSeconds = 0;   // 0 = kein Rundentimer (Einstellung des Hosts)
         this.timeLeft = 0;
         this.botTimer = 1.5;
@@ -117,6 +118,20 @@ class CodenamesGame {
         }
     }
 
+    // Team-Mixer: random even split into Rot/Blau (bots take the free spymaster seats)
+    shuffleTeams() {
+        const ids = shuffleArray(Array.from(this.players.keys()).filter(id => this.players.get(id).team !== 'spectator'));
+        ids.forEach((id, i) => {
+            const p = this.players.get(id);
+            p.team = i % 2 === 0 ? 'red' : 'blue';
+            p.role = 'operative';
+        });
+        for (const team of ['red', 'blue']) {
+            const bot = Array.from(this.players.values()).find(p => p.team === team && p.isBot);
+            if (bot) bot.role = 'spymaster';
+        }
+    }
+
     startNewGame() {
         // Pick 25 random unique words
         const shuffledWords = shuffleArray([...new Set(CODENAMES_WORDS)]).slice(0, 25);
@@ -152,6 +167,7 @@ class CodenamesGame {
         this.gameStatus = 'PLAYING';
         this.timeLeft = this.timerSeconds;
         this.botTimer = 1.5;
+        this.stats = {};
         this.logs = [`Das Spiel beginnt! Team ${this.startingTeam === 'red' ? 'Rot' : 'Blau'} fängt an.`];
     }
 
@@ -213,6 +229,8 @@ class CodenamesGame {
 
         card.revealed = true;
         const currentTeam = this.currentTurn;
+        if (card.type === currentTeam) bumpStat(this, playerId, 'found');
+        else if (card.type === 'assassin') bumpStat(this, playerId, 'assassin');
 
         if (card.type === 'red') {
             this.scoreRed--;

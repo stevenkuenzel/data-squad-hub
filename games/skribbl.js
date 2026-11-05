@@ -150,6 +150,7 @@ class SkribblGame {
     startMatch(rounds = 3) {
         this.totalRounds = rounds;
         this.currentRound = 1;
+        this.stats = {};
         for (const p of this.players.values()) {
             p.score = 0;
             p.hasGuessed = false;
@@ -334,6 +335,7 @@ class SkribblGame {
 
         if (guessClean === secretClean) {
             p.hasGuessed = true;
+            bumpStat(this, playerId, 'correct');
             // Scoring based on speed
             const guesserPoints = Math.max(50, Math.round(this.timeLeft * 5));
             const drawerPoints = Math.round(guesserPoints * 0.4);

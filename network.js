@@ -15,6 +15,33 @@ class NetworkManager {
         this.ping = 0;
         this.lastPingSent = 0;
         this.pingInterval = null;
+        this.intentionalClose = false;
+        // Host: connection (peer id) -> stable player id. A returning player gets a new peer id,
+        // but keeps the id the games already know him by.
+        this.peerPlayer = new Map();
+    }
+
+    playerIdOf(peerId) {
+        return this.peerPlayer.get(peerId) || peerId;
+    }
+
+    mapPeer(peerId, playerId) {
+        this.peerPlayer.set(peerId, playerId);
+    }
+
+    // Is a live connection currently mapped to this player id?
+    isPlayerConnected(playerId) {
+        for (const [peerId, conn] of this.connections) {
+            if (conn.open && this.playerIdOf(peerId) === playerId) return true;
+        }
+        return false;
+    }
+
+    // Send to a player by stable player id
+    sendToPlayer(playerId, rawMsg) {
+        for (const [peerId, conn] of this.connections) {
+            if (conn.open && this.playerIdOf(peerId) === playerId) conn.send(rawMsg);
+        }
     }
 
     generateRoomCode() {
@@ -36,6 +63,7 @@ class NetworkManager {
     hostRoom(customCode = null) {
         return new Promise((resolve, reject) => {
             this.isHost = true;
+            this.intentionalClose = false;
             this.roomCode = (customCode || this.generateRoomCode()).toUpperCase();
             const hostPeerId = this.prefixRoomId(this.roomCode);
 
@@ -113,6 +141,7 @@ class NetworkManager {
     joinRoom(roomCode) {
         return new Promise((resolve, reject) => {
             this.isHost = false;
+            this.intentionalClose = false;
             this.roomCode = roomCode.trim().toUpperCase();
             const hostPeerId = this.prefixRoomId(this.roomCode);
 
@@ -144,7 +173,7 @@ class NetworkManager {
 
                 conn.on('close', () => {
                     console.warn('[Net] Connection to host closed.');
-                    if (this.onEvent) {
+                    if (this.onEvent && !this.intentionalClose) {
                         this.onEvent('HOST_DISCONNECTED', {}, hostPeerId);
                     }
                 });
@@ -223,6 +252,8 @@ class NetworkManager {
     }
 
     disconnect() {
+        this.intentionalClose = true;
+        this.peerPlayer.clear();
         this.stopPingInterval();
         if (this.peer) {
             this.peer.destroy();

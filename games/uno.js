@@ -100,6 +100,7 @@ class UnoGame {
 
     startMatch() {
         if (this.players.size < 2) return false;
+        this.stats = {};
         this.drawPile = this.createDeck();
         this.discardPile = [];
         this.direction = 1;
@@ -375,6 +376,7 @@ class UnoGame {
             this.pendingDraw = 0;
             this.pendingType = null;
             this.drawCardsForPlayer(curr, n);
+            bumpStat(this, curr.id, 'draws', n);
             this.logs.unshift(`${curr.name} zieht ${n} Strafkarten!`);
             this.advanceTurn();
             if (window.soundFX) window.soundFX.playClick();
@@ -383,6 +385,7 @@ class UnoGame {
 
         const drawn = this.drawCardFromPile();
         curr.hand.push(drawn);
+        bumpStat(this, curr.id, 'draws');
         curr.calledUno = false;
         this.logs.unshift(`${curr.name} zieht 1 Karte`);
 

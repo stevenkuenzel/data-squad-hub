@@ -127,7 +127,7 @@ function renderTank() {
         const badge = document.createElement('div');
         badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
         badge.style.borderLeft = `3px solid ${safeColor(p.color)}`;
-        badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${esc(p.name)}</span><span>${esc(p.score)}</span>`;
+        badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${avatarHtml(p.id, p.isBot)}${esc(p.name)}</span><span>${esc(p.score)}</span>`;
         tankScoresContainer.appendChild(badge);
     }
 

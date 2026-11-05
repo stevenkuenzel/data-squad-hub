@@ -149,9 +149,15 @@ class CurveGame {
         this.lastUpdateTime = performance.now();
         this.roundWinner = null;
         this.matchWinner = null;
+
+        // Spieleabend: Statistiken + Aufholmechanik (id -> 'leader' | 'trailer')
+        this.stats = {};
+        this.handicaps = {};
+        this.roundElapsed = 0;
     }
 
     resetMatch() {
+        this.stats = {};
         this.roundNumber = 1;
         for (const player of this.players.values()) {
             player.score = 0;
@@ -267,6 +273,16 @@ class CurveGame {
             }
             if (this.countdownTimer <= 0) {
                 this.state = 'PLAYING';
+                this.roundElapsed = 0;
+                // Aufholmechanik: Zurückliegende sind die ersten 3 Sekunden ein Geist
+                for (const p of this.players.values()) {
+                    if (this.handicaps[p.id] === 'trailer') {
+                        this.activeEffects.push({
+                            id: Math.random(), type: 'ghost', targetPlayerId: p.id, remaining: 3,
+                            icon: '👻', label: 'Aufholhilfe', color: '#ffffff'
+                        });
+                    }
+                }
                 if (window.soundFX) window.soundFX.playCountdown(true);
             }
             return;
@@ -305,6 +321,7 @@ class CurveGame {
         }
 
         if (this.state !== 'PLAYING') return;
+        this.roundElapsed += dt;
 
         // Active Banner timer
         if (this.banner) {
@@ -413,6 +430,7 @@ class CurveGame {
 
             if (hit) {
                 p.alive = false;
+                bumpStat(this, p.id, 'survival', this.roundElapsed, true);
                 this.spawnExplosion(p.x, p.y, p.color);
                 if (window.soundFX) window.soundFX.playDie();
 
@@ -478,6 +496,7 @@ class CurveGame {
             this.roundOverTimer = 2.8;
             this.roundWinner = lastAlivePlayer;
             if (lastAlivePlayer) {
+                bumpStat(this, lastAlivePlayer.id, 'survival', this.roundElapsed, true);
                 if (window.soundFX) window.soundFX.playWin();
             }
         }

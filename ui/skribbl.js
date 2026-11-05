@@ -327,7 +327,7 @@ function renderSkribblSnapshot(snap) {
         div.style.marginBottom = '4px';
         div.style.borderRadius = '4px';
         div.style.background = p.hasGuessed ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.03)';
-        div.innerHTML = `<strong>${esc(p.name)}${p.isBot ? ' 🤖' : ''}</strong><br><span style="color: var(--cyan);">${esc(p.score)} Pkt</span>`;
+        div.innerHTML = `${avatarHtml(p.id, p.isBot)}<strong>${esc(p.name)}</strong><br><span style="color: var(--cyan);">${esc(p.score)} Pkt</span>`;
         skPlayersList.appendChild(div);
     });
 }
@@ -337,7 +337,7 @@ function broadcastSkribblState() {
         if (conn.open) {
             conn.send({
                 type: 'SK_STATE',
-                payload: skribblGame.getSnapshot(conn.peer)
+                payload: skribblGame.getSnapshot(networkManager.playerIdOf(conn.peer))
             });
         }
     }

@@ -155,7 +155,7 @@ function renderDodgeball() {
             // Clear mini label below floor balls
             dbCtx.font = 'bold 10px sans-serif';
             dbCtx.fillStyle = b.color || '#fff';
-            const labelText = b.name.replace('Das große ', '');
+            const labelText = String(b.name || '').replace('Das große ', '');
             dbCtx.fillText(labelText, b.x, b.y + r + 11);
 
             dbCtx.restore();
@@ -239,6 +239,21 @@ function renderDodgeball() {
         dbCtx.strokeStyle = p.color;
         dbCtx.lineWidth = 3.5;
         dbCtx.stroke();
+
+        // Avatar inside the player disc, hat on top
+        const avEmoji = avatarText(p.id, p.isBot);
+        if (avEmoji) {
+            dbCtx.font = '20px "Segoe UI Emoji", sans-serif';
+            dbCtx.textAlign = 'center';
+            dbCtx.textBaseline = 'middle';
+            dbCtx.fillStyle = '#ffffff';
+            dbCtx.fillText(avEmoji, p.x, p.y + 1);
+            const prof = playerProfiles.get(p.id);
+            if (prof && prof.hat) {
+                dbCtx.font = '15px "Segoe UI Emoji", sans-serif';
+                dbCtx.fillText(prof.hat, p.x, p.y - DB_PLAYER_RADIUS + 1);
+            }
+        }
 
         // Direction pointer / Aim laser
         const aim = typeof p.aimAngle === 'number' ? p.aimAngle : (isSquad ? 0 : Math.PI);

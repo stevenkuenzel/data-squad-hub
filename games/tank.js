@@ -76,6 +76,10 @@ class TankGame {
         this.lasers = [];               // { points, life, color } – nur zur Darstellung
         this.pickupTimer = 6;
         this.nextItemId = 1;
+
+        // Spieleabend: Statistiken + Aufholmechanik (id -> 'leader' | 'trailer')
+        this.stats = {};
+        this.handicaps = {};
     }
 
     addPlayer(id, name, color, isBot = false) {
@@ -180,6 +184,7 @@ class TankGame {
         this.maxRounds = maxRounds;
         this.round = 1;
         this.matchWinner = null;
+        this.stats = {};
         for (const p of this.players.values()) {
             p.score = 0;
         }
@@ -214,6 +219,8 @@ class TankGame {
             p.alive = true;
             p.cooldown = 0;
             p.weapon = null;
+            // Aufholmechanik: Zurückliegende starten mit einer Spezialwaffe
+            if (this.handicaps[p.id] === 'trailer') p.weapon = Math.random() < 0.5 ? 'laser' : 'mine';
             sIdx++;
         }
     }
@@ -295,7 +302,7 @@ class TankGame {
                 p.cooldown = 0.45;
             } else if (p.inputShoot && p.cooldown <= 0 && myActiveBullets < 5) {
                 this.shootBullet(p);
-                p.cooldown = 0.45; // balanced fire rate
+                p.cooldown = 0.45 * (this.handicaps[p.id] === 'leader' ? 1.4 : 1); // balanced fire rate
             }
         }
 
@@ -333,16 +340,7 @@ class TankGame {
 
                 const dist = Math.hypot(p.x - b.x, p.y - b.y);
                 if (dist < TANK_RADIUS + BULLET_RADIUS) {
-                    p.alive = false;
-                    this.spawnExplosion(p.x, p.y, p.color);
-                    if (window.soundFX) window.soundFX.playDie();
-
-                    // Award point to shooter if not suicide
-                    if (b.ownerId !== p.id) {
-                        const shooter = this.players.get(b.ownerId);
-                        if (shooter) shooter.score++;
-                    }
-
+                    this.killTank(p, b.ownerId);
                     b.life = 0; // destroy bullet
                     break;
                 }
@@ -376,6 +374,9 @@ class TankGame {
         if (killerId && killerId !== victim.id) {
             const shooter = this.players.get(killerId);
             if (shooter) shooter.score++;
+            bumpStat(this, killerId, 'kills');
+        } else if (killerId === victim.id) {
+            bumpStat(this, victim.id, 'selfKills');
         }
     }
 

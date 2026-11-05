@@ -97,7 +97,7 @@ function renderCodenamesBoard(remoteSnap = null) {
         playersList.filter(p => p.team === 'red').forEach(p => {
             const pill = document.createElement('span');
             pill.className = `cn-player-pill ${p.role}`;
-            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}${p.isBot ? ' 🤖' : ''}`;
+            pill.innerHTML = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${avatarHtml(p.id, p.isBot)}${esc(p.name)}`;
             cnRosterRed.appendChild(pill);
         });
     }
@@ -106,7 +106,7 @@ function renderCodenamesBoard(remoteSnap = null) {
         playersList.filter(p => p.team === 'blue').forEach(p => {
             const pill = document.createElement('span');
             pill.className = `cn-player-pill ${p.role}`;
-            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}${p.isBot ? ' 🤖' : ''}`;
+            pill.innerHTML = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${avatarHtml(p.id, p.isBot)}${esc(p.name)}`;
             cnRosterBlue.appendChild(pill);
         });
     }
@@ -162,7 +162,7 @@ function broadcastCodenamesState() {
         if (conn.open) {
             conn.send({
                 type: 'CN_STATE',
-                payload: codenamesGame.getSnapshot(conn.peer)
+                payload: codenamesGame.getSnapshot(networkManager.playerIdOf(conn.peer))
             });
         }
     }

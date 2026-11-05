@@ -223,7 +223,7 @@ function broadcastRouletteState() {
         if (conn.open) {
             conn.send({
                 type: 'ROULETTE_STATE',
-                payload: rouletteGame.getSnapshot(conn.peer)
+                payload: rouletteGame.getSnapshot(networkManager.playerIdOf(conn.peer))
             });
         }
     }

@@ -94,7 +94,7 @@ function renderUnoSnapshot(snap) {
             const b = document.createElement('div');
             b.className = 'uno-opponent-badge' + (p.isCurrentTurn ? ' active-turn' : '');
             b.innerHTML = `
-                <span style="color: ${safeColor(p.color)}; font-weight: bold;">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span>
+                ${avatarHtml(p.id, p.isBot)}<span style="color: ${safeColor(p.color)}; font-weight: bold;">${esc(p.name)}</span>
                 <span class="cards-tag">${esc(p.cardCount)} 🎴</span>
                 ${p.calledUno ? '<span style="color: #f59e0b; font-weight: bold;">UNO!</span>' : ''}
             `;
@@ -179,7 +179,7 @@ function broadcastUnoState() {
         if (conn.open) {
             conn.send({
                 type: 'UNO_STATE',
-                payload: unoGame.getSnapshot(conn.peer)
+                payload: unoGame.getSnapshot(networkManager.playerIdOf(conn.peer))
             });
         }
     }

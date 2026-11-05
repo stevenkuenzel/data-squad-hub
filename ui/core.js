@@ -88,6 +88,75 @@ PLAYER_COLORS.forEach((c, idx) => {
     colorPickerContainer.appendChild(swatch);
 });
 
+// Avatar (Emoji) + Hut/Accessoire, shown in lobby, scoreboards and on the game pieces
+const AVATARS = ['😀', '😎', '🤓', '🥳', '🤠', '🦊', '🐼', '🐸', '🦄', '🐙', '🚀', '🍕'];
+const HATS = ['', '🎩', '👑', '🧢', '🎓', '🎀', '🪖'];
+const playerProfiles = new Map(); // player id -> { avatar, hat }
+
+function readSetting(key, fallback) {
+    try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+}
+function writeSetting(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* storage may be unavailable */ }
+}
+
+let myAvatar = AVATARS.includes(readSetting('dsg_avatar', '')) ? readSetting('dsg_avatar', '') : AVATARS[Math.floor(Math.random() * AVATARS.length)];
+let myHat = HATS.includes(readSetting('dsg_hat', '')) ? readSetting('dsg_hat', '') : '';
+
+// Only whitelisted emoji are accepted from other peers
+function setProfile(id, avatar, hat) {
+    playerProfiles.set(String(id), {
+        avatar: AVATARS.includes(avatar) ? avatar : '',
+        hat: HATS.includes(hat) ? hat : ''
+    });
+}
+
+// Markup for a player's avatar (bots without a profile get a robot)
+function avatarHtml(id, isBot = false) {
+    const pr = playerProfiles.get(id);
+    const av = (pr && pr.avatar) || (isBot ? '🤖' : '');
+    const hat = pr ? pr.hat : '';
+    if (!av && !hat) return '';
+    return `<span class="av">${hat ? `<span class="av-hat">${esc(hat)}</span>` : ''}${esc(av)}</span>`;
+}
+
+// Plain-text version for canvases and chips
+function avatarText(id, isBot = false) {
+    const pr = playerProfiles.get(id);
+    return (pr && pr.avatar) || (isBot ? '🤖' : '');
+}
+
+const btnAvatar = document.getElementById('btn-avatar');
+const btnHat = document.getElementById('btn-hat');
+function paintAvatarButtons() {
+    if (btnAvatar) btnAvatar.textContent = myAvatar;
+    if (btnHat) btnHat.textContent = myHat || '🚫';
+}
+if (btnAvatar) btnAvatar.addEventListener('click', () => {
+    myAvatar = AVATARS[(AVATARS.indexOf(myAvatar) + 1) % AVATARS.length];
+    writeSetting('dsg_avatar', myAvatar);
+    paintAvatarButtons();
+});
+if (btnHat) btnHat.addEventListener('click', () => {
+    myHat = HATS[(HATS.indexOf(myHat) + 1) % HATS.length];
+    writeSetting('dsg_hat', myHat);
+    paintAvatarButtons();
+});
+paintAvatarButtons();
+
+// Secret that lets this browser tab take its seat (and score) back after a connection loss
+function getRejoinKey() {
+    let key = null;
+    try { key = sessionStorage.getItem('dsg_rejoin_key'); } catch { /* ignore */ }
+    if (!key) {
+        const bytes = new Uint8Array(12);
+        crypto.getRandomValues(bytes);
+        key = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+        try { sessionStorage.setItem('dsg_rejoin_key', key); } catch { /* ignore */ }
+    }
+    return key;
+}
+
 const savedName = localStorage.getItem('dsg_player_name');
 if (savedName) playerNameInput.value = savedName;
 
@@ -112,9 +181,12 @@ function showScreen(screenEl) {
     lobbyScreen.classList.remove('active');
     Object.values(gameViews).forEach(v => v.classList.remove('active'));
     if (screenEl) screenEl.classList.add('active');
+    // Reaction bar etc. only make sense inside a room
+    document.body.classList.toggle('in-room', !!screenEl && screenEl !== homeScreen);
 }
 
 function openHub() {
+    resetSessionState();
     if (networkManager.peer) networkManager.disconnect();
     showScreen(homeScreen);
     const url = new URL(window.location.href);

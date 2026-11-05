@@ -1966,3 +1966,93 @@ canvas {
     gap: 8px;
     margin-top: 12px;
 }
+
+/* ==========================================================
+   SPIELEABEND, AVATARE, REAKTIONEN, ZUSCHAUER & WIEDERVERBINDEN
+   ========================================================== */
+.avatar-picker { display: flex; gap: 6px; align-items: center; }
+.avatar-btn { font-size: 1.25rem; min-width: 38px; height: 38px; }
+
+/* Avatar emoji with an optional hat floating above it */
+.av { position: relative; display: inline-block; font-size: 1.15rem; line-height: 1; margin-right: 6px; padding-top: 0.55em; vertical-align: middle; }
+.av-hat { position: absolute; top: -0.15em; left: 50%; transform: translateX(-50%) scale(0.7); line-height: 1; }
+
+.evening-card { border-color: rgba(255, 170, 0, 0.55); box-shadow: 0 0 22px rgba(255, 170, 0, 0.15); }
+
+/* Lobby: team chip + playlist builder */
+.team-chip { border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.06); color: var(--text-main); border-radius: 999px; padding: 2px 10px; font-size: 0.78rem; cursor: pointer; margin-left: auto; margin-right: 8px; }
+.team-chip:disabled { cursor: default; opacity: 0.9; }
+.team-chip.team-a { border-color: rgba(255, 80, 80, 0.7); }
+.team-chip.team-b { border-color: rgba(0, 153, 255, 0.7); }
+.ev-playlist { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ev-pick { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); opacity: 0.6; }
+.ev-pick.on { opacity: 1; background: rgba(0, 243, 255, 0.08); }
+.ev-pick-name { flex: 1; font-size: 0.92rem; }
+
+/* Reactions */
+#reaction-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 900; }
+.reaction-float { position: absolute; bottom: 70px; display: flex; flex-direction: column; align-items: center; animation: reactionRise 2.8s ease-out forwards; }
+.reaction-emoji { font-size: 2.6rem; filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6)); }
+.reaction-name { font-size: 0.72rem; background: rgba(0, 0, 0, 0.55); border-radius: 8px; padding: 1px 7px; color: #fff; }
+@keyframes reactionRise {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    12% { opacity: 1; transform: translateY(-30px) scale(1.15); }
+    100% { transform: translateY(-62vh) scale(1); opacity: 0; }
+}
+.reaction-bar { position: fixed; left: 12px; bottom: 12px; z-index: 910; display: none; gap: 4px; background: rgba(10, 14, 26, 0.82); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 8px; backdrop-filter: blur(8px); }
+body.in-room .reaction-bar { display: flex; }
+.reaction-btn { background: none; border: none; font-size: 1.35rem; cursor: pointer; border-radius: 50%; width: 36px; height: 36px; transition: transform 0.12s; }
+.reaction-btn:hover { transform: scale(1.25); background: rgba(255, 255, 255, 0.1); }
+.reaction-btn:active { transform: scale(0.9); }
+
+/* Toasts, spectator banner, generic full screen overlay */
+.toast-box { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1100; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.toast { background: rgba(10, 14, 26, 0.94); border: 1px solid var(--cyan); color: #fff; padding: 8px 16px; border-radius: 10px; font-size: 0.9rem; box-shadow: 0 0 18px rgba(0, 243, 255, 0.25); animation: toastIn 0.25s ease-out; }
+@keyframes toastIn { from { transform: translateY(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.spectator-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; text-align: center; padding: 6px 10px; font-size: 0.85rem; background: rgba(255, 170, 0, 0.92); color: #1a1000; font-weight: 600; pointer-events: none; }
+.fullscreen-overlay { position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center; background: rgba(4, 6, 12, 0.78); backdrop-filter: blur(6px); padding: 16px; }
+
+/* Spieleabend: Zwischenstand, Podium, Awards */
+.evening-overlay { z-index: 1150; align-items: flex-start; overflow-y: auto; }
+.evening-box { width: min(720px, 100%); margin: auto; background: rgba(10, 14, 26, 0.96); border: 2px solid var(--amber); border-radius: 16px; padding: 22px 24px; box-shadow: 0 0 50px rgba(255, 170, 0, 0.25); }
+.evening-box .winner-title { margin: 0 0 8px; text-align: center; }
+.evening-progress { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.ev-chip { border: 1px solid var(--border-color); border-radius: 999px; padding: 2px 10px; font-size: 0.78rem; color: var(--text-muted); }
+.ev-chip.done { color: var(--lime); border-color: rgba(57, 255, 20, 0.5); }
+.ev-chip.next { color: var(--amber); border-color: var(--amber); }
+.ev-chip.ach { color: var(--text-main); margin: 2px; display: inline-block; }
+.ev-standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ev-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); animation: evRowIn 0.45s ease-out both; }
+.ev-row.rank-1 { background: rgba(255, 215, 0, 0.14); border: 1px solid rgba(255, 215, 0, 0.5); }
+.ev-row.rank-2 { background: rgba(200, 210, 230, 0.1); }
+.ev-row.rank-3 { background: rgba(205, 127, 50, 0.1); }
+@keyframes evRowIn { from { transform: translateX(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ev-rank { width: 1.6em; font-family: var(--font-display); font-weight: 900; color: var(--amber); text-align: center; }
+.ev-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.ev-name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-ach { font-size: 1rem; letter-spacing: 2px; }
+.ev-delta { color: var(--lime); font-size: 0.85rem; font-weight: 700; }
+.ev-total { min-width: 2.4em; text-align: right; font-size: 1.15rem; }
+.evening-podium { align-items: flex-end; justify-content: center; gap: 10px; margin: 10px 0 18px; min-height: 150px; }
+.podium-col { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: evRowIn 0.8s ease-out both; }
+.podium-who { display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: 0.9rem; }
+.podium-block { width: 110px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 8px; border-radius: 10px 10px 0 0; font-size: 1.8rem; background: linear-gradient(180deg, rgba(255, 215, 0, 0.35), rgba(255, 215, 0, 0.08)); }
+.podium-block small { font-size: 0.78rem; color: var(--text-muted); }
+.place-1 .podium-block { height: 120px; }
+.place-2 .podium-block { height: 85px; background: linear-gradient(180deg, rgba(200, 210, 230, 0.3), rgba(200, 210, 230, 0.06)); }
+.place-3 .podium-block { height: 60px; background: linear-gradient(180deg, rgba(205, 127, 50, 0.32), rgba(205, 127, 50, 0.06)); }
+.evening-section { margin-top: 16px; }
+.evening-section h3 { margin: 0 0 8px; font-size: 1rem; color: var(--amber); }
+.award-card { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; background: rgba(255, 170, 0, 0.08); border: 1px solid rgba(255, 170, 0, 0.35); opacity: 0; animation: awardIn 0.6s ease-out forwards; }
+.award-icon { font-size: 1.8rem; }
+.award-title { font-weight: 700; }
+.award-who { color: var(--text-muted); font-size: 0.85rem; }
+@keyframes awardIn { from { transform: scale(0.85) translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.evening-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; }
+
+/* While an evening runs, the games' own "play again" buttons would break the playlist */
+body.evening-active .btn-play-again-curve,
+body.evening-active .btn-play-again-pong,
+body.evening-active .btn-play-again-uno,
+body.evening-active .btn-play-again-db,
+body.evening-active .btn-play-again-roulette { display: none !important; }

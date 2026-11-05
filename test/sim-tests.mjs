@@ -55,6 +55,7 @@ const curveSrc = readFileSync('./games/curve.js', 'utf-8');
 const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
 const rouletteSrc = readFileSync('./games/roulette.js', 'utf-8');
+const eveningSrc = readFileSync('./games/evening.js', 'utf-8');
 
 runInContext(tankSrc, sandbox);
 runInContext(pongSrc, sandbox);
@@ -64,6 +65,7 @@ runInContext(curveSrc, sandbox);
 runInContext(unoSrc, sandbox);
 runInContext(dodgeballSrc, sandbox);
 runInContext(rouletteSrc, sandbox);
+runInContext(eveningSrc, sandbox);
 
 let passed = 0;
 let failed = 0;
@@ -1088,6 +1090,7 @@ console.log('\n--- TEST: DODGEBALL TIMER & POWER-UPS ---');
     pu.update(0.016);
     assert(picker.shieldTimer > 0 && pu.powerups.length === 0, 'Dodgeball: walking over a shield pickup activates it');
     const snap = pu.getSnapshot();
+    assert(pu.getSnapshot().balls.every(b => typeof b.name === 'string'), 'Dodgeball: snapshot balls carry their name (clients render the label)');
     assert(snap.players.find(p => p.id === 's1').shield === true, 'Dodgeball: snapshot exposes the shield state');
 }
 
@@ -1160,6 +1163,193 @@ console.log('\n--- TEST: TANK LAYOUTS, LASER & MINES ---');
     pick.t.pickups[0].y = pick.a.y;
     pick.t.update(0.016);
     assert(pick.a.weapon === 'laser' && pick.t.pickups.length === 0, 'Tank: driving over a pickup arms the tank');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: SPIELEABEND (scoring, awards, achievements, catch-up, stats, team mixer)
+// ----------------------------------------------------
+console.log('\n--- TEST: SPIELEABEND ENGINE ---');
+{
+    const mkPlayers = ids => ids.map(id => ({ id, name: id.toUpperCase(), color: '#fff', isBot: false, avatar: '😎', hat: '' }));
+    const ev = new sandbox.EveningSession();
+    ev.start(['tank', 'uno', 'dodgeball'], mkPlayers(['a', 'b', 'c']));
+    assert(ev.phase === 'PLAYING' && ev.currentGame === 'tank' && !ev.isLastGame, 'Evening: starts on the first game of the playlist');
+
+    // Ties share a place and the points of that place
+    let res = ev.recordResult('tank', { ranking: [['a', 'b'], ['c']], teams: false, stats: { a: { kills: 5 }, b: { selfKills: 2 }, c: {} } });
+    assert(res.points.a === 10 && res.points.b === 10 && res.points.c === 7, 'Evening: tied players share the points of their place');
+    assert(ev.phase === 'STANDINGS' && ev.totals.a.wins === 1 && ev.totals.c.wins === 0, 'Evening: standings phase after a game, wins counted for place 1');
+    assert(res.unlocked.some(u => u.playerId === 'a' && u.id === 'sharp'), 'Evening: achievement "Scharfschütze" unlocked from stats');
+    assert(res.unlocked.some(u => u.playerId === 'b' && u.id === 'friendlyfire'), 'Evening: achievement for repeated self-kills unlocked');
+    assert(ev.next() === 'uno' && ev.phase === 'PLAYING', 'Evening: next() moves on to the following game');
+
+    res = ev.recordResult('uno', { ranking: [['c'], ['a'], ['b']], teams: false, stats: { c: { draws: 0 }, a: { draws: 14 }, b: {} } });
+    assert(res.unlocked.some(u => u.playerId === 'c' && u.id === 'cleanwin'), 'Evening: "UNO without drawing" needs a win and zero draws');
+    assert(res.unlocked.some(u => u.playerId === 'a' && u.id === 'collector'), 'Evening: heavy drawer gets the collector badge');
+    ev.next();
+    res = ev.recordResult('dodgeball', { ranking: [['a', 'c'], ['b']], teams: true, stats: { a: { catches: 3, rocks: 4 }, c: { catches: 1 } } });
+    assert(res.points.a === 8 && res.points.c === 8 && res.points.b === 3, 'Evening: team games award winner/loser team points');
+    assert(ev.phase === 'FINISHED' && ev.isLastGame, 'Evening: last game finishes the evening');
+
+    const standings = ev.standings();
+    assert(standings[0].id === 'a' && standings[0].points === 10 + 7 + 8, 'Evening: totals add up across games');
+    assert(standings[0].rank === 1 && standings.every((t, i) => i === 0 || t.rank >= standings[i - 1].rank), 'Evening: ranks are ordered');
+
+    const awards = ev.computeAwards();
+    const award = id => awards.find(a => a.id === id);
+    assert(award('catches') && award('catches').playerId === 'a' && award('catches').value === 3, 'Evening: "Meister des Fangens" sums catches over the evening');
+    assert(award('rocks') && award('rocks').playerId === 'a', 'Evening: rock award goes to the rock layer');
+    assert(award('selfKills') && award('selfKills').playerId === 'b', 'Evening: Friendly-Fire-Champion is the one with the most self-kills');
+    assert(award('wins') && award('wins').playerId === 'a', 'Evening: most game wins is awarded');
+    assert(!award('survival'), 'Evening: awards without any data are not handed out');
+
+    const snap = ev.getSnapshot();
+    assert(snap.phase === 'FINISHED' && snap.awards.length === awards.length && snap.standings.length === 3, 'Evening: snapshot carries standings and awards at the end');
+
+    // Survival keeps the best single value instead of summing
+    const ev2 = new sandbox.EveningSession();
+    ev2.start(['curve', 'curve'], mkPlayers(['x', 'y']));
+    ev2.recordResult('curve', { ranking: [['x'], ['y']], teams: false, stats: { x: { survival: 30 } } });
+    ev2.next();
+    ev2.recordResult('curve', { ranking: [['x'], ['y']], teams: false, stats: { x: { survival: 20 } } });
+    assert(ev2.totals.x.stats.survival === 30, 'Evening: survival keeps the best round, not the sum');
+}
+
+console.log('\n--- TEST: SPIELEABEND CATCH-UP & RESULT EXTRACTION ---');
+{
+    const mkPlayers = ids => ids.map(id => ({ id, name: id, color: '#fff' }));
+    const ev = new sandbox.EveningSession();
+    ev.start(['tank', 'tank'], mkPlayers(['a', 'b', 'c', 'd']));
+    ev.catchUpEnabled = true;
+    assert(Object.keys(ev.catchUpMap()).length === 0, 'Catch-up: nothing before the first game');
+    ev.recordResult('tank', { ranking: [['a'], ['b'], ['c'], ['d']], teams: false, stats: {} });
+    const map = ev.catchUpMap();
+    assert(map.a === 'leader' && map.d === 'trailer' && !map.b && !map.c, 'Catch-up: leader and last place are marked, the middle field is left alone');
+    ev.catchUpEnabled = false;
+    assert(Object.keys(ev.catchUpMap()).length === 0, 'Catch-up: switched off means no handicaps');
+
+    const flat = new sandbox.EveningSession();
+    flat.start(['tank', 'tank'], mkPlayers(['a', 'b']));
+    flat.catchUpEnabled = true;
+    flat.recordResult('tank', { ranking: [['a', 'b']], teams: false, stats: {} });
+    assert(Object.keys(flat.catchUpMap()).length === 0, 'Catch-up: a tie at the top gives nobody a handicap');
+
+    // extractGameResult reads finished games and ignores running ones
+    const t = new sandbox.TankGame();
+    t.addPlayer('p1', 'P1', '#fff');
+    t.addPlayer('p2', 'P2', '#fff');
+    t.startMatch(3);
+    assert(sandbox.extractGameResult('tank', t) === null, 'Result: running game gives no result');
+    t.status = 'MATCH_OVER';
+    t.players.get('p1').score = 2;
+    t.players.get('p2').score = 4;
+    const tr = sandbox.extractGameResult('tank', t);
+    assert(tr.ranking[0][0] === 'p2' && tr.ranking[1][0] === 'p1' && !tr.teams, 'Result: tank ranking follows the score');
+
+    const d = new sandbox.DodgeballGame();
+    d.addPlayer('s', 'S', '#fff', false, 'squad');
+    d.addPlayer('c', 'C', '#fff', false, 'comn');
+    d.status = 'MATCH_OVER';
+    d.winner = 'ComN';
+    const dr = sandbox.extractGameResult('dodgeball', d);
+    assert(dr.teams && dr.ranking[0][0] === 'c' && dr.ranking[1][0] === 's', 'Result: dodgeball winner team ranks first');
+
+    const cn = new sandbox.CodenamesGame();
+    cn.addPlayer('r', 'R');
+    cn.addPlayer('b', 'B');
+    cn.setPlayerTeam('r', 'red');
+    cn.setPlayerTeam('b', 'blue');
+    cn.gameStatus = 'GAME_OVER';
+    cn.winner = 'blue';
+    const cr = sandbox.extractGameResult('codenames', cn);
+    assert(cr.teams && cr.ranking[0][0] === 'b' && cr.ranking[1][0] === 'r', 'Result: codenames winner team ranks first');
+
+    const u = new sandbox.UnoGame();
+    ['u1', 'u2', 'u3'].forEach(id => u.addPlayer(id, id, '#fff'));
+    u.startMatch();
+    u.players.get('u2').hand = [];
+    u.players.get('u1').hand = u.players.get('u1').hand.slice(0, 2);
+    u.winner = u.players.get('u2');
+    u.status = 'GAME_OVER';
+    const ur = sandbox.extractGameResult('uno', u);
+    assert(ur.ranking[0][0] === 'u2' && ur.ranking[1][0] === 'u1' && ur.ranking[2][0] === 'u3', 'Result: UNO ranks the winner first, then by fewest cards');
+}
+
+console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
+{
+    const g = {};
+    sandbox.bumpStat(g, 'p', 'k');
+    sandbox.bumpStat(g, 'p', 'k', 2);
+    sandbox.bumpStat(g, 'p', 'best', 5, true);
+    sandbox.bumpStat(g, 'p', 'best', 3, true);
+    assert(g.stats.p.k === 3 && g.stats.p.best === 5, 'Stats: bumpStat adds, or keeps the maximum');
+
+    const mkTank = () => {
+        const t = new sandbox.TankGame();
+        t.addPlayer('A', 'A', '#00f3ff');
+        t.addPlayer('B', 'B', '#ff0055');
+        t.pickupsEnabled = false;
+        t.startMatch(3);
+        t.walls = [];
+        const a = t.players.get('A');
+        const b = t.players.get('B');
+        a.x = 200; a.y = 400; a.angle = 0;
+        b.x = 800; b.y = 400; b.angle = Math.PI;
+        return { t, a, b };
+    };
+    const kill = mkTank();
+    kill.a.weapon = 'laser';
+    kill.a.inputShoot = true;
+    kill.t.update(0.016);
+    assert(kill.t.stats.A && kill.t.stats.A.kills === 1, 'Stats: tank kills are counted');
+    const own = mkTank();
+    own.a.weapon = 'mine';
+    own.a.inputShoot = true;
+    own.t.update(0.016);
+    own.a.inputShoot = false;
+    own.b.x = 900; own.b.y = 700;
+    own.t.update(2); // mine is armed and the owner stands on it
+    assert(own.t.stats.A && own.t.stats.A.selfKills === 1, 'Stats: stepping on your own mine counts as a self-kill');
+
+    const hc = new sandbox.TankGame();
+    hc.addPlayer('A', 'A', '#fff');
+    hc.addPlayer('B', 'B', '#fff');
+    hc.handicaps = { A: 'trailer' };
+    hc.startMatch(3);
+    assert(hc.players.get('A').weapon !== null && hc.players.get('B').weapon === null, 'Catch-up: tank trailer starts the round armed');
+    hc.handicaps = { B: 'leader' };
+    const lead = hc.players.get('B');
+    lead.weapon = null;
+    lead.inputShoot = true;
+    lead.cooldown = 0;
+    hc.update(0.016);
+    assert(Math.abs(lead.cooldown - 0.45 * 1.4) < 0.05, 'Catch-up: tank leader reloads slower');
+
+    const db = new sandbox.DodgeballGame();
+    db.addPlayer('s', 'S', '#fff', false, 'squad');
+    db.addPlayer('c', 'C', '#fff', false, 'comn');
+    db.handicaps = { s: 'trailer' };
+    db.startMatch(3);
+    assert(db.players.get('s').hp === 4 && db.players.get('c').hp === 3, 'Catch-up: dodgeball trailer gets an extra life');
+
+    // Team mixer
+    const mixDb = new sandbox.DodgeballGame();
+    for (let i = 0; i < 6; i++) mixDb.addPlayer('p' + i, 'P' + i, '#fff', false, 'squad');
+    mixDb.shuffleTeams();
+    const squad = Array.from(mixDb.players.values()).filter(p => p.team === 'squad').length;
+    assert(squad === 3, 'Team mixer: dodgeball teams are split evenly');
+    mixDb.setTeam('p0', 'comn');
+    assert(mixDb.players.get('p0').team === 'comn', 'Team mixer: a player can be moved by hand');
+
+    const mixCn = new sandbox.CodenamesGame();
+    for (let i = 0; i < 5; i++) mixCn.addPlayer('c' + i, 'C' + i);
+    mixCn.addPlayer('bot', 'Bot', '#fff', true);
+    mixCn.shuffleTeams();
+    const red = Array.from(mixCn.players.values()).filter(p => p.team === 'red').length;
+    const blue = Array.from(mixCn.players.values()).filter(p => p.team === 'blue').length;
+    assert(red === 3 && blue === 3, 'Team mixer: codenames teams are split evenly');
+    const botP = mixCn.players.get('bot');
+    assert(botP.role === 'spymaster', 'Team mixer: the bot keeps a spymaster seat');
 }
 
 console.log('\n========================================');

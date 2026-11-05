@@ -389,8 +389,8 @@ function renderCurve() {
         badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
         badge.style.borderLeft = `3px solid ${p.color}`;
         const sName = document.createElement('span');
-        sName.style.color = p.color;
-        sName.textContent = p.name;
+        sName.style.color = safeColor(p.color);
+        sName.innerHTML = `${avatarHtml(p.id, p.isBot)}${esc(p.name)}`;
         const sScore = document.createElement('span');
         sScore.textContent = String(p.score);
         badge.appendChild(sName);

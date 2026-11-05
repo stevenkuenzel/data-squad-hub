@@ -5,10 +5,11 @@ import globals from 'globals';
 // Keep in sync when adding shared classes/constants (see index.html load order).
 const sharedScriptGlobals = Object.fromEntries([
     // network.js / games/utils.js
-    'networkManager', 'shuffleArray',
+    'networkManager', 'shuffleArray', 'bumpStat',
     // game classes
     'CurveGame', 'CodenamesGame', 'SkribblGame', 'TankGame', 'OctaPongGame',
     'UnoGame', 'DodgeballGame', 'FreigabeRouletteGame',
+    'EveningSession', 'extractGameResult', 'EVENING_GAMES',
     // constants used by the renderer in app.js
     'PLAYER_COLORS', 'ARENA_WIDTH', 'ARENA_HEIGHT', 'LINE_RADIUS',
     'TANK_ARENA_W', 'TANK_ARENA_H', 'BULLET_RADIUS', 'TANK_RADIUS',

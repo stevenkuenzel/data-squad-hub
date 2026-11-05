@@ -111,7 +111,7 @@ function renderPong() {
         badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
         badge.style.borderLeft = `3px solid ${safeColor(p.color)}`;
         const hearts = '❤️'.repeat(Math.min(10, Math.max(0, Number(p.lives) || 0)));
-        badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${esc(p.name)}</span><span>${hearts || '💀'}</span>`;
+        badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${avatarHtml(p.id, p.isBot)}${esc(p.name)}</span><span>${hearts || '💀'}</span>`;
         pongScoresContainer.appendChild(badge);
     }
 
