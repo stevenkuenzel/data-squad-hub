@@ -17,6 +17,9 @@
 - [x] Spezialangriff: "Das große ComN-Paket" -> Erledigt: Goldenes Riesen-Paket (📦) spawnt periodisch. Bei Einschlag explodiert es in einen Cluster-Schwall aus 1x Stein im Weg, 1x Agentur-Rechnung & 1x Aktenordner!
 - [x] Icons auf Bälle schwer zu erkennen -> Erledigt: Bälle vergrößert, mit kontraststarkem dunklem Kreis-Kern, leuchtendem Neon-Ring und vergrößerten 22-30px Emojis + Namens-Tag unter Bodenbällen versehen.
 
+# uno
+- [ ] **UNO auf dem Handy: eigene Karten nicht sichtbar, kein Scrollen.** Im Querformat (möglicherweise auch hochkant, je nach Gerät) sind die eigenen Handkarten nicht zu sehen und der Bereich lässt sich nicht scrollen. Das Querformat hat kein eigenes Layout (das Handy-Layout gilt nur für Hochformat bis 640 px Breite); `.uno-container` hat feste Höhe (`100dvh`), die Handkarten liegen unten und werden abgeschnitten. Auf echten Geräten prüfen, Hand sichtbar/scrollbar machen, ggf. Quer-Layout (Tisch links, Hand rechts oder oben kompakt).
+
 # comn kartenspiel
 - [x] Text auf Karten ragt unten hinaus -> Erledigt: Kartengröße auf `124px x 176px` erweitert, `overflow: hidden`, Textgrößen und Abstände optimiert, sodass alle Beschreibungen sauber und vollständig hineinpassen.
 - [x] Irgendwie zu wenige Karten -> Erledigt: Deck von 54 auf 99 Karten und von 12 auf 18 einzigartige satirische Kartentypen erweitert (neu: KI ins Dashboard gebaut, Stiller Feature-Flag, Doppelter Espresso, Datenschutz-Bedenken, Corporate Wording, Vorstandspräsentation).
