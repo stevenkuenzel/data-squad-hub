@@ -2278,3 +2278,84 @@ body.pad-active .reaction-bar { display: none !important; }
     .pad-tank, .pad-dodgeball { flex-direction: column; }
     .pad-actions { flex-direction: row; }
 }
+
+/* ================= MOBIL: KARTEN- & RATE-SPIELE (Hochformat-Handys) ================= */
+.reaction-toggle { display: none; }
+
+@media (max-width: 640px) {
+    /* Reaktionen: eingeklappt hinter einem kleinen Knopf, damit sie keine Handkarten verdecken */
+    body.in-room .reaction-bar { display: none; left: auto; right: 40px; bottom: 36%; }
+    body.in-room .reaction-bar.open { display: flex; }
+    body.in-room:not(.pad-active):not(.beamer-mode) .reaction-toggle {
+        display: flex;
+        position: fixed;
+        right: 3px;
+        bottom: 36%;
+        z-index: 911;
+        width: 32px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid var(--border-color);
+        background: rgba(10, 14, 26, 0.82);
+        font-size: 1.1rem;
+        opacity: 0.65;
+    }
+    .hud-pill { white-space: nowrap; }
+
+    /* ---------- UNO ---------- */
+    .uno-container { width: 100%; height: 100dvh; padding: 6px; gap: 4px; }
+    .uno-header { flex-wrap: wrap; gap: 6px; margin-bottom: 2px; }
+    .uno-header .hud-left { flex-wrap: wrap; gap: 6px; }
+    .uno-opponents-bar { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; min-height: 38px; margin-bottom: 2px; padding-bottom: 2px; }
+    .uno-opponent-badge { flex: 0 0 auto; white-space: nowrap; padding: 3px 10px; }
+    .uno-table { margin: 2px 0; min-height: 0; }
+    .uno-pile-container { gap: 22px; }
+    .uno-deck { width: 74px; height: 110px; }
+    .uno-card { width: 72px; height: 108px; padding: 4px; border-width: 2px; }
+    .uno-player-section { padding: 6px 8px; gap: 4px; }
+    .uno-hand-container { flex-wrap: wrap; justify-content: center; max-height: 42dvh; overflow-x: hidden; overflow-y: auto; padding: 6px 2px 8px; gap: 6px; -webkit-overflow-scrolling: touch; }
+    .uno-hand-container .uno-card { width: 62px; height: 94px; }
+
+    /* ---------- FREIGABE-ROULETTE ---------- */
+    #game-roulette { justify-content: flex-start; height: 100dvh; }
+    #game-roulette .hud-bar { position: static; width: 100%; flex-wrap: wrap; gap: 6px; padding: 6px 8px 0; }
+    #game-roulette .hud-left { flex-wrap: wrap; gap: 6px; }
+    #game-roulette .hud-scores { order: 3; }
+    .roulette-container { width: 100%; height: auto; flex: 1; min-height: 0; padding: 6px; gap: 6px; }
+    .roulette-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); flex: 0 1 auto; min-height: 70px; max-height: 150px; padding: 6px 8px; align-content: start; }
+    .roulette-player-card { padding: 4px 6px; }
+    .roulette-player-info { font-size: 0.7rem; gap: 4px; }
+    .roulette-table-center { flex: 1 1 auto; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; padding: 8px; min-height: 0; }
+    .roulette-piles { gap: 14px; justify-content: center; }
+    .roulette-card { width: 100px; height: 162px; padding: 6px 5px; }
+    .roulette-card-desc { font-size: 0.56rem; max-height: 40px; }
+    .roulette-log-feed { max-width: none; height: auto; max-height: 84px; padding: 6px 10px; }
+    .roulette-player-zone { padding: 6px 8px; gap: 4px; }
+    .roulette-hand-carousel { padding: 6px 2px 8px; gap: 8px; -webkit-overflow-scrolling: touch; }
+
+    /* ---------- CODENAMES ---------- */
+    .codenames-container { width: 100%; height: 100dvh; padding: 6px; gap: 6px; justify-content: flex-start; overflow-y: auto; }
+    .codenames-header { flex-wrap: wrap; gap: 6px; margin-bottom: 0; }
+    .codenames-scores { gap: 6px; }
+    .cn-score-tag { padding: 4px 10px; font-size: 0.8rem; }
+    .codenames-roster-bar { gap: 4px; }
+    .cn-team-group { padding: 6px 8px; }
+    .cn-player-pill { font-size: 0.72rem; padding: 3px 8px; }
+    .codenames-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; flex: none; max-height: none; }
+    .cn-card { min-height: 58px; font-size: clamp(0.5rem, 2.35vw, 0.72rem); letter-spacing: -0.3px; padding: 2px; overflow-wrap: break-word; }
+    .codenames-controls { margin: 2px 0; padding: 8px 10px; }
+
+    /* ---------- MONTAGSMALER ---------- */
+    .skribbl-layout { width: 100%; height: 100dvh; min-height: 0; padding: 6px; overflow-y: auto; justify-content: flex-start; gap: 6px; }
+    .skribbl-header { flex-wrap: wrap; gap: 6px; margin-bottom: 0; }
+    .skribbl-word-hint { font-size: 1.05rem; letter-spacing: 3px; overflow-wrap: anywhere; }
+    .skribbl-players-panel { flex-wrap: nowrap; max-height: none; flex: 0 0 auto; }
+    .skribbl-players-panel > * { flex: 0 0 auto; white-space: nowrap; }
+    .skribbl-canvas-wrapper { min-height: 0; flex: none; }
+    #skribblCanvas { height: auto; aspect-ratio: 4 / 3; touch-action: none; }
+    .skribbl-tools { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
+    .sk-color-btn { width: 30px; height: 30px; }
+    .skribbl-chat-panel { min-height: 130px; max-height: 30vh; flex: none; }
+}

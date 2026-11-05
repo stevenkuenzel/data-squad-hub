@@ -311,6 +311,12 @@ function sendReaction(emoji) {
 }
 
 const reactionBar = document.getElementById('reaction-bar');
+const reactionToggle = document.getElementById('reaction-toggle');
+// Auf dem Handy ist die Leiste eingeklappt und schließt sich nach dem Senden wieder
+if (reactionBar && reactionToggle) {
+    reactionToggle.addEventListener('click', () => reactionBar.classList.toggle('open'));
+    reactionBar.addEventListener('click', () => reactionBar.classList.remove('open'));
+}
 if (reactionBar) {
     REACTIONS.forEach(emoji => {
         const b = document.createElement('button');
