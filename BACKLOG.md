@@ -3,6 +3,7 @@
 
 # Tanks:
 - [x] steuerkreuz bei tanks ist erst durch scrollen sichtbar. besser so ein virtueller analog stick? -> Erledigt: Steuerkreuz durch einen ergonomischen virtuellen Analog-Joystick mit Touch-/Maus-Erkennung ersetzt. Viewport auf `100dvh` fixiert (kein Scrollen mehr nötig).
+- [ ] ⭐ **Tank-Steuerung mit zwei Analog-Sticks (Handy-Controller):** Linker Stick fährt (Richtung = Fahrtrichtung), rechter Stick zielt und feuert beim Loslassen bzw. Auslenken. Mit nur einem Stick plus Feuer-Taste ist das Spiel auf dem Handy kaum spielbar. Braucht Anpassung in `games/tank.js` (Fahr- und Zielrichtung getrennt, Host prüft die Eingaben) und `ui/pad.js`.
 
 # montagsmaler:
 - [x] zeit läuft nicht runter? -> Erledigt: Der Timer-Countdown wird nun jede Sekunde (`Math.ceil(timeLeft)`) und bei Buchstaben-Hinweisen autoritativ synchronisiert und im UI aktualisiert.
