@@ -139,6 +139,20 @@
                             <button class="icon-btn btn-card-help" data-game="dodgeball" title="Anleitung">❓</button>
                         </div>
                     </div>
+
+                    <!-- 8. ComM: Freigabe-Roulette -->
+                    <div class="game-card" data-game="roulette">
+                        <div class="game-card-icon">🎲</div>
+                        <div class="game-card-info">
+                            <h3>Freigabe-Roulette</h3>
+                            <p>Das satirische Büro-Kartenspiel! Erreiche 100% Go-Live, weiche Steinen im Weg aus und blockiere gegnerische Releases!</p>
+                            <span class="game-card-meta">2 - 8 Spieler • Kartenspiel & Bots</span>
+                        </div>
+                        <div class="card-btn-row">
+                            <button class="btn btn-secondary btn-sm btn-host-game" data-game="roulette">Hosten</button>
+                            <button class="icon-btn btn-card-help" data-game="roulette" title="Anleitung">❓</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -563,9 +577,83 @@
                 </div>
             </div>
         </div>
+
+        <!-- ================= 9. GAME VIEW: FREIGABE-ROULETTE ================= -->
+        <div id="game-roulette" class="game-view">
+            <div class="hud-bar">
+                <div class="hud-left">
+                    <button class="btn-hub-back icon-btn" title="Zurück zum Hub">◂</button>
+                    <div class="hud-pill"><span>ROULETTE:</span><strong id="roulette-status-text">Am Zug...</strong></div>
+                    <div class="hud-pill" id="roulette-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="roulette-room-code">-----</strong></div>
+                </div>
+                <div class="hud-scores" id="roulette-hud-info">
+                    <div class="hud-pill"><span>KARTEN:</span><strong id="roulette-turn-cards">0 / 2</strong></div>
+                </div>
+                <div class="hud-right">
+                    <button class="icon-btn btn-instructions-toggle" data-game="roulette" title="Spielanleitung">❓</button>
+                    <button class="icon-btn btn-mute-toggle" title="Sound">🔊</button>
+                </div>
+            </div>
+
+            <div class="roulette-container">
+                <!-- Top: Project Progress Dashboard of all Players -->
+                <div class="roulette-dashboard" id="roulette-roster"></div>
+
+                <!-- Center Table: Draw Pile, Discard Pile & Log Feed -->
+                <div class="roulette-table-center">
+                    <div class="roulette-piles">
+                        <div class="roulette-deck-box" id="roulette-draw-pile">
+                            <div class="roulette-card card-back">
+                                <span style="font-size: 1.8rem;">📁</span>
+                                <span style="font-size: 0.75rem; font-weight: bold; margin-top: 4px;">ZIEHEN</span>
+                                <span class="pile-count" id="roulette-draw-count">30</span>
+                            </div>
+                        </div>
+                        <div class="roulette-discard-box">
+                            <div class="roulette-card-slot" id="roulette-discard-slot">
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">Ablagestapel</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="roulette-log-feed">
+                        <div class="log-title">📋 BÜRO-LOG & COMPLIANCE-FEED:</div>
+                        <div class="log-list" id="roulette-log-list"></div>
+                    </div>
+                </div>
+
+                <!-- Bottom: Player Hand & Turn Controls -->
+                <div class="roulette-player-zone">
+                    <div class="roulette-action-header">
+                        <div style="font-weight: 800; font-size: 0.95rem; color: #fff;">
+                            Deine Handkarten (<span id="roulette-hand-count">0</span>):
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="btn-roulette-end-turn">Zug beenden ➔</button>
+                    </div>
+                    <div class="roulette-hand-carousel" id="roulette-hand-cards"></div>
+                </div>
+
+                <!-- Target Selection Modal -->
+                <div class="overlay-center" id="roulette-target-modal" style="display: none;">
+                    <div class="round-over-box" style="padding: 24px; max-width: 440px;">
+                        <h3 style="margin-top: 0; color: #fff; font-size: 1.25rem;">Wähle das Ziel für den Stein im Weg:</h3>
+                        <div class="roulette-target-list" id="roulette-target-buttons"></div>
+                        <button class="btn btn-secondary btn-sm" id="btn-cancel-target" style="margin-top: 15px; width: 100%;">Abbrechen</button>
+                    </div>
+                </div>
+
+                <!-- Winner Overlay -->
+                <div class="overlay-center" id="roulette-winner-overlay" style="display: none;">
+                    <div class="round-over-box">
+                        <h2 class="winner-title" id="roulette-winner-text">🚀 GO-LIVE ERREICHT!</h2>
+                        <button class="btn btn-primary btn-play-again-roulette" style="margin-top: 15px; width: 100%;">Nochmal spielen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ================= 9. INSTRUCTIONS MODAL ================= -->
+    <!-- ================= 10. INSTRUCTIONS MODAL ================= -->
     <div id="modal-instructions" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
@@ -581,6 +669,7 @@
                 <button class="inst-tab" data-game="pong">🏓 Octa-Pong</button>
                 <button class="inst-tab" data-game="uno">🎴 UNO</button>
                 <button class="inst-tab" data-game="dodgeball">🤾 Dodgeball</button>
+                <button class="inst-tab" data-game="roulette">🎲 Freigabe-Roulette</button>
             </div>
             <div class="instructions-body" id="instructions-body"></div>
         </div>
@@ -596,6 +685,7 @@
     <script src="games/pong.js"></script>
     <script src="games/uno.js"></script>
     <script src="games/dodgeball.js"></script>
+    <script src="games/roulette.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

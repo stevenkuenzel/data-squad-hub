@@ -18,6 +18,7 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 | **🏓 Octa-Pong** | 2 – 8 Spieler | 8-Spieler-Achteck-Pong mit Diagonalen | `◀` / `▶` oder `A` / `D` |
 | **🃏 UNO** | 2 – 8 Spieler | Klassisches Kartenspiel mit 108 Karten, Farbwahl & Aussetzen | Maus / Touch (Klick) |
 | **🤾 Corporate Dodgeball** | 2 – 8 Spieler | Data Squad vs. ComM! Büro-Völkerball mit Steinen, Akten & Releases | `WASD` / Pfeile + `Leertaste` / `Shift` |
+| **🎲 Freigabe-Roulette** | 2 – 8 Spieler | Satirisches Bürokratie-Kartenspiel: Go-Live vs. Steine im Weg & 4h-Meetings | Maus / Touch (Klick) |
 
 ---
 
@@ -53,6 +54,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **UNO:** Prüft Standard-Deck (108 Karten), Aktionskarten (+2, Farbwahl, +4, Richtungswechsel), Bot-Entscheidungsfindung und Anti-Cheat Hand-Maskierung.
 - **Corporate Dodgeball:** Validiert Team-Aufteilung (Data Squad vs. ComM), Halbfeld-Grenzschutz, Ball-Pickups, Wurf- und Flugphysik, Hechtsprung-Fangen (Catch-Mechanik) und Erzeugung von Fels-Hindernissen ("Steine im Weg").
 - **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
+- **Freigabe-Roulette:** Prüft 54-Karten-Deck (Fortschritt, ComM-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
 
 ---
 

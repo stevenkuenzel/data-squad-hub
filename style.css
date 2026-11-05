@@ -1692,3 +1692,229 @@ canvas {
         display: flex;
     }
 }
+
+/* ================= 12. FREIGABE-ROULETTE SPECIFIC ================= */
+.roulette-container {
+    width: 96%;
+    max-width: 1040px;
+    height: 94vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.roulette-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+.roulette-player-card {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 0.2s;
+}
+
+.roulette-player-card.active-turn {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.3);
+}
+
+.roulette-player-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.roulette-progress-wrapper {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.roulette-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00f3ff, #39ff14);
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+.roulette-table-center {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+    border: 2px solid rgba(0, 243, 255, 0.2);
+    border-radius: 16px;
+    padding: 16px 24px;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+}
+
+.roulette-piles {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.roulette-card {
+    width: 105px;
+    height: 150px;
+    border-radius: 10px;
+    border: 2px solid #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    position: relative;
+    user-select: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.roulette-card.cat-progress {
+    background: linear-gradient(135deg, #0369a1, #0891b2);
+    border-color: #38bdf8;
+}
+
+.roulette-card.cat-blocker {
+    background: linear-gradient(135deg, #991b1b, #e11d48);
+    border-color: #fb7185;
+}
+
+.roulette-card.cat-reaction {
+    background: linear-gradient(135deg, #4c1d95, #7c3aed);
+    border-color: #c084fc;
+}
+
+.roulette-card.cat-action {
+    background: linear-gradient(135deg, #b45309, #d97706);
+    border-color: #fbbf24;
+}
+
+.roulette-card.card-back {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-color: var(--cyan);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.roulette-card-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.roulette-card-center-icon {
+    font-size: 2.2rem;
+    text-align: center;
+    margin: 4px 0;
+}
+
+.roulette-card-title {
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.1;
+    color: #fff;
+}
+
+.roulette-card-desc {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: center;
+    line-height: 1.15;
+    margin-top: 2px;
+}
+
+.roulette-card.playable {
+    cursor: pointer;
+}
+
+.roulette-card.playable:hover {
+    transform: translateY(-12px) scale(1.05);
+    box-shadow: 0 12px 30px rgba(0, 243, 255, 0.4);
+    z-index: 20;
+}
+
+.roulette-log-feed {
+    flex: 1;
+    max-width: 520px;
+    height: 100%;
+    background: rgba(10, 15, 28, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.roulette-log-feed .log-title {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: var(--cyan);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.roulette-log-feed .log-list {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #cbd5e1;
+}
+
+.roulette-player-zone {
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.roulette-action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.roulette-hand-carousel {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 8px 4px 14px 4px;
+    scrollbar-width: thin;
+}
+
+.roulette-target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}

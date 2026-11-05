@@ -38,6 +38,7 @@ const codenamesSrc = readFileSync('./games/codenames.js', 'utf-8');
 const curveSrc = readFileSync('./game.js', 'utf-8');
 const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
+const rouletteSrc = readFileSync('./games/roulette.js', 'utf-8');
 
 runInContext(tankSrc, sandbox);
 runInContext(pongSrc, sandbox);
@@ -46,6 +47,7 @@ runInContext(codenamesSrc, sandbox);
 runInContext(curveSrc, sandbox);
 runInContext(unoSrc, sandbox);
 runInContext(dodgeballSrc, sandbox);
+runInContext(rouletteSrc, sandbox);
 
 let passed = 0;
 let failed = 0;
@@ -615,6 +617,112 @@ const dbSnap = db.getSnapshot();
 assert(Array.isArray(dbSnap.players) && dbSnap.players.length === 3, 'Snapshot serializes full team roster');
 assert(Array.isArray(dbSnap.balls), 'Snapshot serializes arena balls');
 assert(Array.isArray(dbSnap.rocks), 'Snapshot serializes floor rocks');
+
+
+// ----------------------------------------------------
+// TEST SUITE 8: COMM: FREIGABE-ROULETTE
+// ----------------------------------------------------
+console.log('\n--- TEST 8: FREIGABE-ROULETTE ENGINE ---');
+const rGame = new sandbox.FreigabeRouletteGame();
+const rP1 = rGame.addPlayer('r1', 'Alice', '#00f3ff', false);
+const rP2 = rGame.addPlayer('r2', 'Bob', '#ff0055', false);
+const rBot = rGame.addPlayer('rBot', 'Bot ComM', '#f59e0b', true);
+
+// 1. Deck generation & card structure
+const rDeck = rGame.createDeck();
+const expectedCards = sandbox.ROULETTE_CARDS.reduce((sum, t) => sum + t.count, 0);
+assert(rDeck.length === expectedCards, `Roulette deck contains all ${expectedCards} cards across categories`);
+assert(rDeck.every(c => c.uid && c.id && c.category && c.title), 'Every card has valid UID, category, title, and metadata');
+
+// 2. Match start & initial hand deal
+rGame.startMatch();
+assert(rGame.status === 'PLAYING', 'Freigabe-Roulette match enters PLAYING status');
+assert(rP1.progress === 0 && rP2.progress === 0 && rBot.progress === 0, 'All players start with 0% progress');
+assert(rP1.hand.length === 6, 'First player dealt 5 initial cards + 1 turn opening card');
+assert(rP2.hand.length === 5, 'Second player dealt 5 initial cards');
+assert(rBot.hand.length === 5, 'Bot dealt 5 initial cards');
+
+// 3. Progress card play
+const firstP = rGame.getCurrentPlayer();
+const deployCard = {
+    uid: 9901,
+    id: 'deploy_20',
+    category: 'progress',
+    title: 'Code-Deploy',
+    icon: '🚀',
+    value: 20
+};
+firstP.hand.unshift(deployCard);
+const playRes1 = rGame.playCard(firstP.id, deployCard.uid);
+assert(playRes1.success === true, 'Player can legally play progress card');
+assert(firstP.progress === 20, 'Progress card increases player progress by +20% (now 20%)');
+assert(rGame.discardPile[rGame.discardPile.length - 1].uid === deployCard.uid, 'Played card moved to discard pile');
+
+// 4. Blocker card play & Stein im Weg
+const blockerCard = {
+    uid: 9902,
+    id: 'stein_weg',
+    category: 'blocker',
+    title: 'Stein im Weg',
+    icon: '🪨',
+    target: 'enemy',
+    penalty: 15
+};
+firstP.hand.unshift(blockerCard);
+rP2.progress = 30;
+const playRes2 = rGame.playCard(firstP.id, blockerCard.uid, rP2.id);
+assert(playRes2.success === true, 'Player can throw Blocker card at opponent');
+assert(rP2.progress === 15, 'Stein im Weg reduces target opponent progress by -15%');
+
+// 5. Chef-Bypass protection shield
+const nextActive = rGame.getCurrentPlayer();
+nextActive.shielded = true;
+const attackCard = {
+    uid: 9903,
+    id: 'agentur',
+    category: 'blocker',
+    title: 'Externe Agentur beauftragen',
+    icon: '💸',
+    target: 'enemy',
+    penalty: 20
+};
+// Try attacking shielded player
+const progBefore = nextActive.progress;
+const dummyAttacker = { id: 'dummy', name: 'Saboteur', hand: [attackCard] };
+rGame.players.set('dummy', dummyAttacker);
+rGame.turnIndex = rGame.playerOrder.indexOf('dummy');
+rGame.cardsPlayedThisTurn = 0;
+rGame.playCard('dummy', attackCard.uid, nextActive.id);
+assert(nextActive.progress === progBefore, 'Chef-Bypass shield successfully deflects ComM blocker attack without progress loss');
+rGame.players.delete('dummy');
+
+// 6. Bot AI Turn execution
+rGame.turnIndex = rGame.playerOrder.indexOf('rBot');
+rGame.cardsPlayedThisTurn = 0;
+rBot.hand = [
+    { uid: 9904, id: 'pipeline_30', category: 'progress', title: 'Automatisierte Pipeline', icon: '⚡', value: 30 }
+];
+rGame.botActionTimer = 0.05;
+rGame.update(0.1);
+assert(rBot.progress === 30, 'Bot AI automatically identifies and plays best progress card in its turn');
+
+// 7. Win Condition (100% Go-Live)
+rP1.progress = 85;
+rGame.turnIndex = rGame.playerOrder.indexOf(rP1.id);
+rGame.cardsPlayedThisTurn = 0;
+rP1.hand = [
+    { uid: 9905, id: 'deploy_20', category: 'progress', title: 'Code-Deploy', icon: '🚀', value: 20 }
+];
+rGame.playCard(rP1.id, 9905);
+assert(rGame.status === 'GAME_OVER', 'Reaching 100% progress triggers GAME_OVER status');
+assert(rGame.winner && rGame.winner.id === rP1.id, 'Player reaching 100% progress is crowned match winner');
+
+// 8. Anti-cheat snapshot validation
+const p1Snap = rGame.getSnapshot(rP1.id);
+assert(Array.isArray(p1Snap.players), 'Snapshot contains player list');
+assert(Array.isArray(p1Snap.myHand), 'Snapshot contains recipient player hand');
+assert(p1Snap.players.every(p => !p.hand), 'Snapshot hides opponent hand cards (anti-cheat)');
+assert(typeof p1Snap.drawPileCount === 'number', 'Snapshot contains draw pile count');
 
 
 console.log('\n========================================');

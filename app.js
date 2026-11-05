@@ -36,7 +36,8 @@
         tank: document.getElementById('game-tank'),
         pong: document.getElementById('game-pong'),
         uno: document.getElementById('game-uno'),
-        dodgeball: document.getElementById('game-dodgeball')
+        dodgeball: document.getElementById('game-dodgeball'),
+        roulette: document.getElementById('game-roulette')
     };
 
     // State
@@ -140,6 +141,7 @@
     const octaPongGame = new OctaPongGame();
     const unoGame = new UnoGame();
     const dodgeballGame = new DodgeballGame();
+    const rouletteGame = new FreigabeRouletteGame();
 
     function getActiveGameInstance() {
         switch (activeGameType) {
@@ -150,6 +152,7 @@
             case 'pong': return octaPongGame;
             case 'uno': return unoGame;
             case 'dodgeball': return dodgeballGame;
+            case 'roulette': return rouletteGame;
             default: return curveGame;
         }
     }
@@ -219,12 +222,13 @@
             tank: 'Tank Trouble',
             pong: 'Octa-Pong',
             uno: 'UNO',
-            dodgeball: 'Corporate Dodgeball (Data Squad vs. ComM)'
+            dodgeball: 'Corporate Dodgeball (Data Squad vs. ComM)',
+            roulette: 'ComM: Freigabe-Roulette'
         };
         lobbyGameTitle.textContent = titles[gameType] || 'Lobby';
         curveSettings.style.display = gameType === 'curve' ? 'block' : 'none';
         btnAddBot.style.display = (gameType === 'codenames' || gameType === 'skribbl') ? 'none' : 'block';
-        lobbyMaxPlayers.textContent = (gameType === 'tank' || gameType === 'pong' || gameType === 'uno' || gameType === 'dodgeball') ? '8' : '12';
+        lobbyMaxPlayers.textContent = (gameType === 'tank' || gameType === 'pong' || gameType === 'uno' || gameType === 'dodgeball' || gameType === 'roulette') ? '8' : '12';
         updateLobbyInstructions(gameType);
     }
 
@@ -450,6 +454,13 @@
             if (isHost) {
                 dodgeballGame.startMatch(3);
             }
+        } else if (gameType === 'roulette') {
+            document.getElementById('roulette-room-code').textContent = networkManager.roomCode || 'SOLO';
+            if (isHost) {
+                rouletteGame.startMatch();
+                broadcastRouletteState();
+            }
+            renderRouletteSnapshot(rouletteGame.getSnapshot(myPlayerId));
         }
     }
 
@@ -599,6 +610,22 @@
                 '📱 <strong>Mobile:</strong> Virtuelles D-Pad links + <code>WURF</code> & <code>DASH</code> Knöpfe rechts.'
             ],
             tip: '🎯 <strong>Catch-Mechanik:</strong> Wenn du im Dash / Hechtsprung in einen gegnerischen Wurf rollst, fängst du den Ball direkt aus der Luft! Vorsicht: 🪨 Steine im Weg bleiben nach dem Aufprall als echte Hindernisse auf dem Boden liegen!'
+        },
+        roulette: {
+            title: '🎲 ComM: Freigabe-Roulette',
+            goal: 'Bürokratie-Survival! Erreiche als Erster 100% Projektfortschritt mit Code-Deploys und CI/CD, während ComM versucht, das Projekt mit Steinen im Weg, externen Agenturen und 4-Stunden-Meetings zu sabotieren.',
+            roles: [
+                '🚀 <strong>Fortschritt (Data Squad):</strong> Deploys (+20%), Automatisierte Pipelines (+30%), Quick-Fixes (+15%), Nachtschichten (+25%).',
+                '🪨 <strong>ComM-Blocker:</strong> Stein im Weg (-15%), Externe Agentur (-20%), CI-Handbuch 2018 (-10% für alle), 4-Stunden-Alignment (Aussetzen).',
+                '👔 <strong>Reaktionen & Schutz:</strong> Chef-Bypass (Schützt vor Angriffen).'
+            ],
+            controls: [
+                'Pro Zug kannst du bis zu 2 Karten ausspielen.',
+                'Klicke auf eine Handkarte, um sie zu spielen.',
+                'Verlangt eine Blocker-Karte ein Ziel, wähle einen gegnerischen Spieler im Popup.',
+                'Klicke auf "Zug beenden ➔", wenn du fertig bist.'
+            ],
+            tip: '💡 <strong>Taktik:</strong> Spiele Blocker gezielt gegen Spieler, die kurz vor 100% Go-Live stehen, und spare dir den Chef-Bypass für kritische Momente auf!'
         }
     };
 
@@ -2016,6 +2043,234 @@
     }
 
     // ==========================================
+    // GAME 8: FREIGABE-ROULETTE
+    // ==========================================
+    const rouletteStatusText = document.getElementById('roulette-status-text');
+    const rouletteRoomPill = document.getElementById('roulette-room-pill');
+    const rouletteTurnCards = document.getElementById('roulette-turn-cards');
+    const rouletteRoster = document.getElementById('roulette-roster');
+    const rouletteDrawPile = document.getElementById('roulette-draw-pile');
+    const rouletteDrawCount = document.getElementById('roulette-draw-count');
+    const rouletteDiscardSlot = document.getElementById('roulette-discard-slot');
+    const rouletteLogList = document.getElementById('roulette-log-list');
+    const rouletteHandCount = document.getElementById('roulette-hand-count');
+    const btnRouletteEndTurn = document.getElementById('btn-roulette-end-turn');
+    const rouletteHandCards = document.getElementById('roulette-hand-cards');
+    const rouletteTargetModal = document.getElementById('roulette-target-modal');
+    const rouletteTargetButtons = document.getElementById('roulette-target-buttons');
+    const btnRouletteCancelTarget = document.getElementById('btn-roulette-cancel-target');
+    const rouletteWinnerOverlay = document.getElementById('roulette-winner-overlay');
+    const rouletteWinnerText = document.getElementById('roulette-winner-text');
+    const btnPlayAgainRoulette = document.querySelector('.btn-play-again-roulette');
+
+    let pendingRouletteCardUid = null;
+    let latestRouletteSnapshot = null;
+
+    if (rouletteRoomPill) {
+        rouletteRoomPill.addEventListener('click', () => {
+            if (!networkManager.roomCode) return;
+            const link = getShareableLink('roulette', networkManager.roomCode);
+            navigator.clipboard.writeText(link).then(() => {
+                const strong = rouletteRoomPill.querySelector('strong');
+                const orig = strong ? strong.textContent : '';
+                if (strong) strong.textContent = 'KOPIERT!';
+                setTimeout(() => { if (strong) strong.textContent = orig; }, 1500);
+            });
+        });
+    }
+
+    function renderRouletteCardElement(card, isPlayable = false) {
+        const div = document.createElement('div');
+        div.className = `roulette-card cat-${card.category}` + (isPlayable ? ' playable' : '');
+        div.setAttribute('data-card-uid', card.uid);
+
+        const catLabel = {
+            progress: 'FORTSCHRITT',
+            blocker: 'COMM-BLOCK',
+            reaction: 'REAKTION',
+            action: 'AKTION'
+        }[card.category] || card.category.toUpperCase();
+
+        const valBadge = card.value > 0 ? `+${card.value}%` : (card.penalty > 0 ? `-${card.penalty}%` : '');
+
+        div.innerHTML = `
+            <div class="roulette-card-header">
+                <span>${catLabel}</span>
+                <span>${valBadge}</span>
+            </div>
+            <div class="roulette-card-center-icon">${card.icon}</div>
+            <div class="roulette-card-title">${card.title}</div>
+            <div class="roulette-card-desc">${card.desc}</div>
+        `;
+        return div;
+    }
+
+    function handleRouletteCardClick(card) {
+        const snap = latestRouletteSnapshot || rouletteGame.getSnapshot(myPlayerId);
+        if (!snap || snap.status !== 'PLAYING') return;
+        if (snap.currentTurnPlayerId !== myPlayerId) return;
+        if (snap.cardsPlayedThisTurn >= snap.maxCardsPerTurn) return;
+
+        if (card.target === 'enemy') {
+            pendingRouletteCardUid = card.uid;
+            if (rouletteTargetButtons) {
+                rouletteTargetButtons.innerHTML = '';
+                const enemies = (snap.players || []).filter(p => p.id !== myPlayerId);
+                if (enemies.length === 0) return;
+                enemies.forEach(player => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-secondary';
+                    btn.style.width = '100%';
+                    btn.style.textAlign = 'left';
+                    btn.style.display = 'flex';
+                    btn.style.justifyContent = 'space-between';
+                    btn.innerHTML = `<span style="color:${player.color}">● ${player.name}</span><span>${player.progress}% Fortschritt</span>`;
+                    btn.addEventListener('click', () => {
+                        if (rouletteTargetModal) rouletteTargetModal.style.display = 'none';
+                        executeRoulettePlay(pendingRouletteCardUid, player.id);
+                        pendingRouletteCardUid = null;
+                    });
+                    rouletteTargetButtons.appendChild(btn);
+                });
+            }
+            if (rouletteTargetModal) rouletteTargetModal.style.display = 'flex';
+        } else {
+            executeRoulettePlay(card.uid, null);
+        }
+    }
+
+    function executeRoulettePlay(cardUid, targetId) {
+        if (networkManager.isHost) {
+            rouletteGame.playCard(myPlayerId, cardUid, targetId);
+            broadcastRouletteState();
+        } else {
+            networkManager.sendToHost('ROULETTE_PLAY', { cardUid, targetId });
+        }
+    }
+
+    if (btnRouletteCancelTarget) {
+        btnRouletteCancelTarget.addEventListener('click', () => {
+            if (rouletteTargetModal) rouletteTargetModal.style.display = 'none';
+            pendingRouletteCardUid = null;
+        });
+    }
+
+    if (btnRouletteEndTurn) {
+        btnRouletteEndTurn.addEventListener('click', () => {
+            const snap = latestRouletteSnapshot || rouletteGame.getSnapshot(myPlayerId);
+            if (snap && snap.status === 'PLAYING' && snap.currentTurnPlayerId === myPlayerId) {
+                if (networkManager.isHost) {
+                    rouletteGame.endTurn();
+                    broadcastRouletteState();
+                } else {
+                    networkManager.sendToHost('ROULETTE_END_TURN', {});
+                }
+            }
+        });
+    }
+
+    if (btnPlayAgainRoulette) {
+        btnPlayAgainRoulette.addEventListener('click', () => {
+            if (rouletteWinnerOverlay) rouletteWinnerOverlay.style.display = 'none';
+            if (networkManager.isHost) {
+                rouletteGame.startMatch();
+                broadcastRouletteState();
+            }
+        });
+    }
+
+    function renderRouletteSnapshot(snap) {
+        if (!snap) return;
+        latestRouletteSnapshot = snap;
+
+        const isMyTurn = snap.currentTurnPlayerId === myPlayerId;
+        if (rouletteStatusText) {
+            rouletteStatusText.textContent = isMyTurn ? 'AM ZUG: DU' : (snap.currentTurnName ? `AM ZUG: ${snap.currentTurnName}` : 'Warten...');
+            rouletteStatusText.style.color = isMyTurn ? 'var(--cyan)' : '#f59e0b';
+        }
+
+        if (rouletteTurnCards) {
+            rouletteTurnCards.textContent = `${snap.cardsPlayedThisTurn} / ${snap.maxCardsPerTurn}`;
+        }
+
+        if (rouletteRoster) {
+            rouletteRoster.innerHTML = '';
+            (snap.players || []).forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'roulette-player-card' + (p.isCurrentTurn ? ' active-turn' : '');
+                const shieldIcon = p.shielded ? ' 🛡️' : '';
+                const skipIcon = p.skipped ? ' 🗣️' : '';
+                card.innerHTML = `
+                    <div class="roulette-player-info">
+                        <strong style="color: ${p.color};">${p.name}${shieldIcon}${skipIcon}</strong>
+                        <span>${p.progress}% (${p.cardCount} Karten)</span>
+                    </div>
+                    <div class="roulette-progress-wrapper">
+                        <div class="roulette-progress-bar" style="width: ${p.progress}%; background: ${p.color};"></div>
+                    </div>
+                `;
+                rouletteRoster.appendChild(card);
+            });
+        }
+
+        if (rouletteDrawCount) {
+            rouletteDrawCount.textContent = snap.drawPileCount;
+        }
+
+        if (rouletteDiscardSlot) {
+            rouletteDiscardSlot.innerHTML = '';
+            if (snap.discardTop) {
+                rouletteDiscardSlot.appendChild(renderRouletteCardElement(snap.discardTop, false));
+            } else {
+                rouletteDiscardSlot.innerHTML = '<span class="discard-placeholder" style="color:rgba(255,255,255,0.4); font-size:0.8rem;">Ablagestapel</span>';
+            }
+        }
+
+        if (rouletteLogList) {
+            rouletteLogList.innerHTML = (snap.logs || []).map(log => `<div>${log}</div>`).join('');
+        }
+
+        if (rouletteHandCards) {
+            rouletteHandCards.innerHTML = '';
+            if (rouletteHandCount) rouletteHandCount.textContent = snap.myHand ? snap.myHand.length : 0;
+
+            const canPlay = isMyTurn && snap.cardsPlayedThisTurn < snap.maxCardsPerTurn && snap.status === 'PLAYING';
+            if (snap.myHand) {
+                snap.myHand.forEach(card => {
+                    const el = renderRouletteCardElement(card, canPlay);
+                    if (canPlay) {
+                        el.addEventListener('click', () => handleRouletteCardClick(card));
+                    }
+                    rouletteHandCards.appendChild(el);
+                });
+            }
+        }
+
+        if (rouletteWinnerOverlay) {
+            if (snap.status === 'GAME_OVER' && snap.winner) {
+                rouletteWinnerOverlay.style.display = 'block';
+                if (rouletteWinnerText) {
+                    rouletteWinnerText.textContent = `🎉 ${snap.winner.toUpperCase()} ERREICHT 100% GO-LIVE!`;
+                }
+            } else {
+                rouletteWinnerOverlay.style.display = 'none';
+            }
+        }
+    }
+
+    function broadcastRouletteState() {
+        for (const conn of networkManager.connections.values()) {
+            if (conn.open) {
+                conn.send({
+                    type: 'ROULETTE_STATE',
+                    payload: rouletteGame.getSnapshot(conn.peer)
+                });
+            }
+        }
+        renderRouletteSnapshot(rouletteGame.getSnapshot(myPlayerId));
+    }
+
+    // ==========================================
     // ROUTE GAME-SPECIFIC NETWORKING
     // ==========================================
     function handleHostGameEvent(type, payload, senderId) {
@@ -2077,6 +2332,15 @@
                 payload.dash,
                 payload.aimAngle
             );
+        } else if (type === 'ROULETTE_PLAY') {
+            rouletteGame.playCard(senderId, payload.cardUid, payload.targetId);
+            broadcastRouletteState();
+        } else if (type === 'ROULETTE_END_TURN') {
+            const curr = rouletteGame.getCurrentPlayer();
+            if (curr && curr.id === senderId) {
+                rouletteGame.endTurn();
+                broadcastRouletteState();
+            }
         }
     }
 
@@ -2113,6 +2377,8 @@
             renderUnoSnapshot(payload);
         } else if (type === 'DB_STATE') {
             dodgeballGame.applySnapshot(payload);
+        } else if (type === 'ROULETTE_STATE') {
+            renderRouletteSnapshot(payload);
         }
     }
 
@@ -2149,6 +2415,14 @@
                 }
             } else if (activeGameType === 'dodgeball') {
                 dodgeballGame.update(dt);
+            } else if (activeGameType === 'roulette') {
+                const prevTurn = rouletteGame.turnIndex;
+                const prevStatus = rouletteGame.status;
+                const prevCards = rouletteGame.cardsPlayedThisTurn;
+                rouletteGame.update(dt);
+                if (rouletteGame.turnIndex !== prevTurn || rouletteGame.status !== prevStatus || rouletteGame.cardsPlayedThisTurn !== prevCards) {
+                    broadcastRouletteState();
+                }
             }
 
             // Broadcast states at ~35Hz
