@@ -476,6 +476,207 @@ input[type="text"]:focus {
     box-shadow: 0 0 20px var(--cyan);
 }
 
+/* Corporate Stealth Navbar */
+.corporate-navbar {
+    width: 100vw;
+    height: 44px;
+    background: #0d1117;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    font-size: 0.85rem;
+    font-family: var(--font-stack);
+}
+
+.corp-left, .corp-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.corp-logo {
+    font-weight: 700;
+    color: #58a6ff;
+    letter-spacing: 0.5px;
+}
+
+.corp-badge {
+    background: #21262d;
+    color: #8b949e;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #30363d;
+}
+
+.corp-nav-tabs {
+    display: flex;
+    gap: 16px;
+    margin-left: 12px;
+}
+
+.corp-tab {
+    color: #8b949e;
+    cursor: default;
+    padding: 4px 0;
+}
+
+.corp-tab.active {
+    color: #f0f6fc;
+    border-bottom: 2px solid #58a6ff;
+    font-weight: 600;
+}
+
+.corp-status-pill {
+    color: #3fb950;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(63, 185, 80, 0.1);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(63, 185, 80, 0.3);
+}
+
+.btn-corp-stealth {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-corp-stealth:hover {
+    background: #30363d;
+    color: #fff;
+    border-color: #8b949e;
+}
+
+/* Adjust app top margin for navbar */
+#app {
+    padding-top: 44px;
+}
+
+/* Difficulty Button Group */
+.diff-btn {
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+}
+
+.diff-btn.active {
+    background: rgba(0, 243, 255, 0.2) !important;
+    border-color: var(--cyan) !important;
+    color: var(--cyan) !important;
+    font-weight: bold;
+}
+
+/* ===================================================
+   OFFICE CAMOUFLAGE / STEALTH MODE (BOSS KEY B / ESC)
+   Transforms the look into an enterprise Datadog/Grafana monitor
+   =================================================== */
+body.stealth-mode {
+    background-color: #0b0e14;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body.stealth-mode::before {
+    display: none;
+}
+
+body.stealth-mode .title {
+    font-family: inherit;
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: #f0f6fc;
+    color: #f0f6fc;
+    text-shadow: none;
+    letter-spacing: 0;
+}
+
+body.stealth-mode .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+body.stealth-mode #gameCanvas {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    box-shadow: none;
+    border-radius: 6px;
+}
+
+body.stealth-mode .btn-primary {
+    background: #238636;
+    color: #ffffff;
+    box-shadow: none;
+    border: 1px solid rgba(240, 246, 252, 0.1);
+    font-family: inherit;
+}
+
+body.stealth-mode .btn-primary:hover {
+    background: #2ea043;
+    transform: none;
+    box-shadow: none;
+}
+
+body.stealth-mode .btn-secondary {
+    background: #21262d;
+    border-color: #30363d;
+    color: #c9d1d9;
+    font-family: inherit;
+}
+
+body.stealth-mode .btn-secondary:hover {
+    background: #30363d;
+    color: #fff;
+}
+
+body.stealth-mode .hud-pill,
+body.stealth-mode .score-badge {
+    background: #161b22;
+    border-color: #30363d;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 0.8rem;
+}
+
+body.stealth-mode .countdown-display {
+    font-family: inherit;
+    color: #58a6ff;
+    text-shadow: none;
+    font-size: 3.5rem;
+}
+
+body.stealth-mode .round-over-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+body.stealth-mode .winner-title {
+    font-family: inherit;
+    color: #58a6ff !important;
+    font-size: 1.6rem;
+}
+
 @media (pointer: coarse) {
     .touch-controls {
         display: flex;

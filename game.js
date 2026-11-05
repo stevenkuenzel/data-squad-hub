@@ -104,6 +104,7 @@ class CurveGame {
         this.roundOverTimer = 0;
         this.enableGaps = true;           // Option: true for Curve Fever gaps, false for solid Tron lines
         this.clearSegmentsOnClients = false; // Flag to instruct clients to wipe old trails
+        this.botDifficulty = 'medium';    // 'easy', 'medium', 'hard', 'insane'
 
         this.lastUpdateTime = performance.now();
         this.roundWinner = null;
@@ -388,45 +389,102 @@ class CurveGame {
         return false;
     }
 
-    updateBotAI(bot, dt) {
-        // Lookahead probe rays: Straight, Slight Left, Slight Right
-        const lookahead = 42;
-        const checkAngles = [
-            { angle: bot.angle, steer: 'none' },
-            { angle: bot.angle - 0.45, steer: 'left' },
-            { angle: bot.angle + 0.45, steer: 'right' },
-            { angle: bot.angle - 0.9, steer: 'hard-left' },
-            { angle: bot.angle + 0.9, steer: 'hard-right' }
-        ];
+    getRayClearance(bot, originX, originY, angle, maxDist, step = 14) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        let dist = 0;
 
-        let straightDanger = false;
+        while (dist < maxDist) {
+            dist += step;
+            const px = originX + cos * dist;
+            const py = originY + sin * dist;
+            if (this.checkCollision(bot, px, py)) {
+                return Math.max(0, dist - step);
+            }
+        }
+        return maxDist;
+    }
+
+    updateBotAI(bot, dt) {
+        const profiles = {
+            easy: {
+                lookahead: 55,
+                emergencyDist: 28,
+                angles: [0.35, 0.75, 1.25],
+                jitter: 0.12,
+                step: 18
+            },
+            medium: {
+                lookahead: 95,
+                emergencyDist: 38,
+                angles: [0.25, 0.55, 0.90, 1.35],
+                jitter: 0.04,
+                step: 16
+            },
+            hard: {
+                lookahead: 140,
+                emergencyDist: 50,
+                angles: [0.20, 0.45, 0.75, 1.10, 1.50],
+                jitter: 0.01,
+                step: 14
+            },
+            insane: {
+                lookahead: 195,
+                emergencyDist: 65,
+                angles: [0.15, 0.35, 0.60, 0.90, 1.25, 1.65],
+                jitter: 0.00,
+                step: 12
+            }
+        };
+
+        const prof = profiles[this.botDifficulty] || profiles.medium;
+
+        // 1. Immediate frontal clearance check
+        const frontClearance = this.getRayClearance(bot, bot.x, bot.y, bot.angle, prof.emergencyDist, prof.step);
+        const inEmergency = frontClearance < prof.emergencyDist;
+
+        // 2. Spatial fan clearance calculation (Left vs Right)
         let leftScore = 0;
         let rightScore = 0;
 
-        for (const probe of checkAngles) {
-            const px = bot.x + Math.cos(probe.angle) * lookahead;
-            const py = bot.y + Math.sin(probe.angle) * lookahead;
+        prof.angles.forEach((offset, idx) => {
+            const weight = 1.0 / (1.0 + idx * 0.2); // slight preference for forward-diagonal rays
 
-            const hit = this.checkCollision(bot, px, py);
-            if (probe.steer === 'none' && hit) {
-                straightDanger = true;
-            }
+            // Left probe
+            const lDist = this.getRayClearance(bot, bot.x, bot.y, bot.angle - offset, prof.lookahead, prof.step);
+            leftScore += (lDist * lDist) * weight;
 
-            if (hit) {
-                if (probe.steer.includes('left')) leftScore += 10;
-                if (probe.steer.includes('right')) rightScore += 10;
-            }
+            // Right probe
+            const rDist = this.getRayClearance(bot, bot.x, bot.y, bot.angle + offset, prof.lookahead, prof.step);
+            rightScore += (rDist * rDist) * weight;
+        });
+
+        // 3. Wall awareness buffer
+        const wallBuffer = 70;
+        if (bot.x < wallBuffer) {
+            // Wall on the left/west: penalize turning left if facing towards it
+            const westward = Math.cos(bot.angle);
+            if (westward < 0) leftScore *= 0.3;
+        }
+        if (bot.x > ARENA_WIDTH - wallBuffer) {
+            const eastward = Math.cos(bot.angle);
+            if (eastward > 0) rightScore *= 0.3;
+        }
+        if (bot.y < wallBuffer) {
+            const northward = Math.sin(bot.angle);
+            if (northward < 0) leftScore *= 0.3;
+        }
+        if (bot.y > ARENA_HEIGHT - wallBuffer) {
+            const southward = Math.sin(bot.angle);
+            if (southward > 0) rightScore *= 0.3;
         }
 
-        // Wall closeness penalty
-        const margin = 50;
-        if (bot.x < margin) rightScore += (margin - bot.x);
-        if (bot.x > ARENA_WIDTH - margin) leftScore += (bot.x - (ARENA_WIDTH - margin));
-        if (bot.y < margin) rightScore += (margin - bot.y);
-        if (bot.y > ARENA_HEIGHT - margin) leftScore += (bot.y - (ARENA_HEIGHT - margin));
+        // 4. Decision logic
+        const maxScore = Math.max(leftScore, rightScore, 1);
+        const diffRatio = Math.abs(leftScore - rightScore) / maxScore;
 
-        if (straightDanger || leftScore > 0 || rightScore > 0) {
-            if (leftScore < rightScore) {
+        if (inEmergency || diffRatio > 0.06) {
+            if (leftScore > rightScore) {
                 bot.inputLeft = true;
                 bot.inputRight = false;
             } else {
@@ -434,11 +492,15 @@ class CurveGame {
                 bot.inputRight = true;
             }
         } else {
-            // Slight wander
-            if (Math.random() < 0.05) {
-                const turn = Math.random();
-                bot.inputLeft = turn < 0.3;
-                bot.inputRight = turn > 0.7;
+            // Front is clear and sides are balanced
+            bot.inputLeft = false;
+            bot.inputRight = false;
+
+            // Occasional wander based on difficulty jitter
+            if (Math.random() < prof.jitter) {
+                const wander = Math.random();
+                bot.inputLeft = wander < 0.45;
+                bot.inputRight = wander > 0.55;
             }
         }
     }
@@ -517,6 +579,7 @@ class CurveGame {
             matchWinner: this.matchWinner ? this.matchWinner.name : null,
             clearSegments: clearSegs,
             enableGaps: this.enableGaps,
+            botDifficulty: this.botDifficulty,
             heads,
             newSegs
         };
@@ -533,6 +596,10 @@ class CurveGame {
 
         if (snap.enableGaps !== undefined) {
             this.enableGaps = snap.enableGaps;
+        }
+
+        if (snap.botDifficulty !== undefined) {
+            this.botDifficulty = snap.botDifficulty;
         }
 
         this.state = snap.state;

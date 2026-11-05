@@ -201,6 +201,9 @@
                 if (payload.enableGaps !== undefined) {
                     game.enableGaps = payload.enableGaps;
                 }
+                if (payload.botDifficulty !== undefined) {
+                    game.botDifficulty = payload.botDifficulty;
+                }
                 switchScreen(gameScreen);
             } else if (type === 'STATE') {
                 game.applySnapshot(payload);
@@ -235,6 +238,55 @@
             btnToggleGaps.style.borderColor = game.enableGaps ? 'var(--cyan)' : 'var(--border-color)';
         });
     }
+
+    // Bot Difficulty Selector (Host setting)
+    document.querySelectorAll('#diff-selector .diff-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#diff-selector .diff-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.borderColor = 'var(--border-color)';
+                b.style.color = 'var(--text-muted)';
+            });
+            btn.classList.add('active');
+            btn.style.borderColor = 'var(--cyan)';
+            btn.style.color = 'var(--cyan)';
+            game.botDifficulty = btn.getAttribute('data-diff');
+            if (window.soundFX) window.soundFX.playClick();
+        });
+    });
+
+    // Office Camouflage (Boss-Key B)
+    const btnToggleCamouflage = document.getElementById('btn-toggle-camouflage');
+    const camouflageBtnLabel = document.getElementById('camouflage-btn-label');
+    let isStealthMode = localStorage.getItem('curve_office_stealth') === 'true';
+
+    function applyStealthMode(active) {
+        isStealthMode = active;
+        localStorage.setItem('curve_office_stealth', active ? 'true' : 'false');
+
+        if (active) {
+            document.body.classList.add('stealth-mode');
+            if (camouflageBtnLabel) camouflageBtnLabel.textContent = 'Arcade-Modus (B)';
+            document.title = 'DataSquad Flow | Cluster Latency & Stream Matrix';
+
+            if (window.soundFX && !window.soundFX.muted) {
+                window.soundFX.muted = true;
+                btnMute.textContent = '🔇';
+            }
+        } else {
+            document.body.classList.remove('stealth-mode');
+            if (camouflageBtnLabel) camouflageBtnLabel.textContent = 'Office-Tarnung (B)';
+            document.title = 'DataSquad Flow';
+        }
+    }
+
+    if (btnToggleCamouflage) {
+        btnToggleCamouflage.addEventListener('click', () => {
+            applyStealthMode(!isStealthMode);
+        });
+    }
+
+    applyStealthMode(isStealthMode);
 
     // 1. Host Game
     btnHostRoom.addEventListener('click', async () => {
@@ -394,7 +446,8 @@
         networkManager.broadcast('START_GAME', {
             players: playersList,
             maxRounds: game.maxRounds,
-            enableGaps: game.enableGaps
+            enableGaps: game.enableGaps,
+            botDifficulty: game.botDifficulty
         });
 
         switchScreen(gameScreen);
@@ -428,7 +481,8 @@
             networkManager.broadcast('START_GAME', {
                 players: playersList,
                 maxRounds: game.maxRounds,
-                enableGaps: game.enableGaps
+                enableGaps: game.enableGaps,
+                botDifficulty: game.botDifficulty
             });
 
             game.resetMatch();
@@ -481,6 +535,13 @@
     }
 
     window.addEventListener('keydown', (e) => {
+        // Boss Key (B or Escape when not typing in text field)
+        if ((e.code === 'KeyB' || e.key === 'b' || e.key === 'B' || e.code === 'Escape') &&
+            document.activeElement.tagName !== 'INPUT') {
+            applyStealthMode(!isStealthMode);
+            return;
+        }
+
         let changed = false;
         const code = e.code;
         const key = e.key;
