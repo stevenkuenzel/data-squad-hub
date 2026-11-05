@@ -1,4 +1,4 @@
-# DataSquad Flow
+# DataSquad Hub
 
 > **Erstellt von Jimmy**  
 > *Real-Time Distributed Stream Synchronization & Interactive Team Velocity Tool*
