@@ -249,6 +249,22 @@ function renderDodgeball() {
         dbCtx.lineTo(p.x + Math.cos(aim) * (DB_PLAYER_RADIUS + 12), p.y + Math.sin(aim) * (DB_PLAYER_RADIUS + 12));
         dbCtx.stroke();
 
+        // Shield bubble
+        if (p.shieldTimer > 0) {
+            dbCtx.strokeStyle = 'rgba(0, 243, 255, 0.9)';
+            dbCtx.fillStyle = 'rgba(0, 243, 255, 0.15)';
+            dbCtx.lineWidth = 3;
+            dbCtx.beginPath();
+            dbCtx.arc(p.x, p.y, DB_PLAYER_RADIUS + 9, 0, Math.PI * 2);
+            dbCtx.fill();
+            dbCtx.stroke();
+        }
+        if (p.doubleThrow) {
+            dbCtx.font = '14px "Segoe UI Emoji", sans-serif';
+            dbCtx.textAlign = 'center';
+            dbCtx.fillText('✌️', p.x + DB_PLAYER_RADIUS, p.y - DB_PLAYER_RADIUS);
+        }
+
         // Held Ball Icon
         if (p.hasBall) {
             dbCtx.font = '16px "Segoe UI Emoji", sans-serif';
@@ -279,6 +295,24 @@ function renderDodgeball() {
         dbCtx.restore();
     }
 
+    // Power-up pickups (pulsing)
+    const puPulse = 1 + Math.sin(performance.now() / 180) * 0.12;
+    for (const pu of dodgeballGame.powerups) {
+        dbCtx.save();
+        dbCtx.shadowColor = pu.color;
+        dbCtx.shadowBlur = 18;
+        dbCtx.strokeStyle = pu.color;
+        dbCtx.lineWidth = 3;
+        dbCtx.beginPath();
+        dbCtx.arc(pu.x, pu.y, 20 * puPulse, 0, Math.PI * 2);
+        dbCtx.stroke();
+        dbCtx.font = '22px "Segoe UI Emoji", sans-serif';
+        dbCtx.textAlign = 'center';
+        dbCtx.textBaseline = 'middle';
+        dbCtx.fillText(pu.icon, pu.x, pu.y + 1);
+        dbCtx.restore();
+    }
+
     // Particles
     for (const pt of dodgeballGame.particles) {
         dbCtx.save();
@@ -292,7 +326,11 @@ function renderDodgeball() {
 
     // HUD Updates
     const roundDisp = document.getElementById('db-round-display');
-    if (roundDisp) roundDisp.textContent = `${dodgeballGame.round} / ${dodgeballGame.maxRounds}`;
+    if (roundDisp) {
+        const timerText = (dodgeballGame.roundTimeLimit > 0 && dodgeballGame.status === 'PLAYING')
+            ? ` · ⏱ ${Math.max(0, Math.ceil(dodgeballGame.roundTimeLeft))}s` : '';
+        roundDisp.textContent = `${dodgeballGame.round} / ${dodgeballGame.maxRounds}${timerText}`;
+    }
 
     const scoreSquadEl = document.getElementById('db-score-squad');
     if (scoreSquadEl) scoreSquadEl.textContent = String(dodgeballGame.scoreSquad);

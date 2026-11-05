@@ -28,6 +28,13 @@ class UnoGame {
         this.botActionTimer = 0;
         this.logs = [];
         this.nextCardId = 1;
+
+        // Hausregeln (Einstellung des Hosts in der Lobby)
+        this.rules = { stack: false, sevenZero: false };
+        this.pendingDraw = 0;          // Strafkarten-Stapel (nur mit Stapel-Regel)
+        this.pendingType = null;       // 'draw2' | 'wild4'
+        this.awaitingSwap = false;     // 7-0-Regel: Spieler wählt Tauschpartner
+        this.swapChooserId = null;
     }
 
     addPlayer(id, name, color, isBot = false) {
@@ -99,6 +106,10 @@ class UnoGame {
         this.winner = null;
         this.awaitingColorChoice = false;
         this.colorChooserPlayerId = null;
+        this.pendingDraw = 0;
+        this.pendingType = null;
+        this.awaitingSwap = false;
+        this.swapChooserId = null;
         this.logs = ['Das UNO-Match beginnt!'];
 
         // Deal 7 cards to each player
@@ -154,7 +165,14 @@ class UnoGame {
     }
 
     isCardPlayable(card) {
-        if (this.awaitingColorChoice) return false;
+        if (this.awaitingColorChoice || this.awaitingSwap) return false;
+
+        // Stapel-Regel: auf eine offene Strafe darf nur mit +2/+4 geantwortet werden
+        if (this.pendingDraw > 0) {
+            if (this.pendingType === 'wild4') return card.value === 'wild4';
+            return card.value === 'draw2' || card.value === 'wild4';
+        }
+
         const top = this.getTopCard();
         if (!top) return true;
 
@@ -175,6 +193,7 @@ class UnoGame {
         if (this.awaitingColorChoice && playerId !== this.colorChooserPlayerId) {
             return { success: false, msg: 'Warte auf Farbwahl' };
         }
+        if (this.awaitingSwap) return { success: false, msg: 'Warte auf Tauschpartner' };
 
         const player = this.players.get(playerId);
         const curr = this.getCurrentPlayer();
@@ -227,8 +246,21 @@ class UnoGame {
             }
         } else {
             this.activeColor = card.color;
-            this.handleActionCardEffects(card);
-            this.advanceTurn();
+            // 7-0-Regel: die 7 verlangt eine Spielerwahl, die 0 dreht alle Hände
+            if (this.rules.sevenZero && card.value === '7') {
+                if (this.playerOrder.length === 2) {
+                    this.swapHands(playerId, this.getNextPlayer(1).id);
+                    this.advanceTurn();
+                } else {
+                    this.awaitingSwap = true;
+                    this.swapChooserId = playerId;
+                    return { success: true, awaitSwap: true };
+                }
+            } else {
+                if (this.rules.sevenZero && card.value === '0') this.rotateHands();
+                this.handleActionCardEffects(card);
+                this.advanceTurn();
+            }
         }
 
         if (window.soundFX) window.soundFX.playClick();
@@ -250,8 +282,48 @@ class UnoGame {
         return true;
     }
 
+    // 7-0-Regel: Hände mit einem anderen Spieler tauschen
+    chooseSwapTarget(playerId, targetId) {
+        if (!this.awaitingSwap || playerId !== this.swapChooserId) return false;
+        if (targetId === playerId || !this.players.has(targetId)) return false;
+        this.awaitingSwap = false;
+        this.swapChooserId = null;
+        this.swapHands(playerId, targetId);
+        this.advanceTurn();
+        return true;
+    }
+
+    swapHands(aId, bId) {
+        const a = this.players.get(aId);
+        const b = this.players.get(bId);
+        if (!a || !b) return;
+        [a.hand, b.hand] = [b.hand, a.hand];
+        a.calledUno = false;
+        b.calledUno = false;
+        this.logs.unshift(`🔁 ${a.name} tauscht die Hand mit ${b.name}!`);
+    }
+
+    // 7-0-Regel: alle geben ihre Hand in Spielrichtung weiter
+    rotateHands() {
+        const ids = this.playerOrder;
+        if (ids.length < 2) return;
+        const hands = ids.map(id => this.players.get(id).hand);
+        ids.forEach((id, i) => {
+            const from = (i - this.direction + ids.length) % ids.length;
+            const p = this.players.get(id);
+            p.hand = hands[from];
+            p.calledUno = false;
+        });
+        this.logs.unshift('🔄 Alle Hände wandern weiter!');
+    }
+
     finishWildPlay(card) {
-        if (card.value === 'wild4') {
+        if (card.value === 'wild4' && this.rules.stack) {
+            this.pendingDraw += 4;
+            this.pendingType = 'wild4';
+            const nextP = this.getNextPlayer(1);
+            this.logs.unshift(`➕4 gestapelt! ${nextP ? nextP.name : 'Der Nächste'} muss kontern oder ${this.pendingDraw} Karten ziehen.`);
+        } else if (card.value === 'wild4') {
             const nextP = this.getNextPlayer(1);
             if (nextP) {
                 this.drawCardsForPlayer(nextP, 4);
@@ -276,6 +348,11 @@ class UnoGame {
                 this.direction = -this.direction;
                 this.logs.unshift(`🔄 Richtungswechsel!`);
             }
+        } else if (card.value === 'draw2' && this.rules.stack) {
+            this.pendingDraw += 2;
+            this.pendingType = 'draw2';
+            const nextP = this.getNextPlayer(1);
+            this.logs.unshift(`➕2 gestapelt! ${nextP ? nextP.name : 'Der Nächste'} muss kontern oder ${this.pendingDraw} Karten ziehen.`);
         } else if (card.value === 'draw2') {
             const nextP = this.getNextPlayer(1);
             if (nextP) {
@@ -290,6 +367,19 @@ class UnoGame {
         if (this.status !== 'PLAYING') return null;
         const curr = this.getCurrentPlayer();
         if (!curr || curr.id !== playerId) return null;
+        if (this.awaitingColorChoice || this.awaitingSwap) return null;
+
+        // Offene Strafe: alle gestapelten Karten ziehen und aussetzen
+        if (this.pendingDraw > 0) {
+            const n = this.pendingDraw;
+            this.pendingDraw = 0;
+            this.pendingType = null;
+            this.drawCardsForPlayer(curr, n);
+            this.logs.unshift(`${curr.name} zieht ${n} Strafkarten!`);
+            this.advanceTurn();
+            if (window.soundFX) window.soundFX.playClick();
+            return null;
+        }
 
         const drawn = this.drawCardFromPile();
         curr.hand.push(drawn);
@@ -348,6 +438,13 @@ class UnoGame {
     }
 
     runBotTurn(bot) {
+        if (this.awaitingSwap && this.swapChooserId === bot.id) {
+            // Swap with the player holding the fewest cards (but never a winner-in-waiting trick)
+            const others = this.playerOrder.filter(id => id !== bot.id).map(id => this.players.get(id));
+            others.sort((a, b) => a.hand.length - b.hand.length);
+            this.chooseSwapTarget(bot.id, others[0].id);
+            return;
+        }
         if (this.awaitingColorChoice && this.colorChooserPlayerId === bot.id) {
             // Pick most frequent color in bot's hand
             const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
@@ -450,6 +547,11 @@ class UnoGame {
             drawPileCount: this.drawPile.length,
             awaitingColorChoice: this.awaitingColorChoice,
             colorChooserPlayerId: this.colorChooserPlayerId,
+            awaitingSwap: this.awaitingSwap,
+            swapChooserId: this.swapChooserId,
+            pendingDraw: this.pendingDraw,
+            pendingType: this.pendingType,
+            rules: this.rules,
             winner: this.winner ? this.winner.name : null,
             players: playersList,
             myHand: myPlayer ? myPlayer.hand : [],

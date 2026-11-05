@@ -26,7 +26,8 @@ const GAME_INSTRUCTIONS = {
         controls: [
             'Ermittler am Zug tippen auf die vermuteten Wortkarten.',
             'Spionchefs tragen Wort & Anzahl in die Hinweis-Leiste ein und klicken "Hinweis geben".',
-            'Klicke "Zug beenden", wenn ihr keine weiteren Versuche wagen möchtet.'
+            'Klicke "Zug beenden", wenn ihr keine weiteren Versuche wagen möchtet.',
+            '⏱ Mit aktiviertem Rundentimer (Host-Einstellung) endet der Zug automatisch, wenn die Zeit abläuft. Bots 🤖 geben Hinweise wie "TIERE 3" und raten mit.'
         ],
         tip: '⚠️ <strong>Attentäter-Warnung:</strong> Wer die schwarze Karte aufdeckt, verliert das gesamte Spiel auf der Stelle!'
     },
@@ -41,7 +42,7 @@ const GAME_INSTRUCTIONS = {
             '🎨 <strong>Maler:</strong> Mit Maus oder Finger auf der Leinwand zeichnen. Farbpalette und Pinselgröße wählbar.',
             '💡 <strong>Rater:</strong> Textfeld nutzen & Absenden / Enter drücken.'
         ],
-        tip: '⚡ <strong>Punktevergabe:</strong> Je schneller das Wort erraten wird, desto mehr Punkte erhalten Rater und Maler!'
+        tip: '⚡ <strong>Punktevergabe:</strong> Je schneller das Wort erraten wird, desto mehr Punkte erhalten Rater und Maler! Werkzeuge: ✏️ Stift, 🧽 Radierer, 🪣 Füllen und ↶ Zurück für den letzten Strich.'
     },
     tank: {
         title: '💥 Tank Trouble (2D Panzer-Schlacht)',
@@ -50,7 +51,7 @@ const GAME_INSTRUCTIONS = {
             '💻 <strong>Desktop:</strong> <code>W</code> / <code>S</code> oder <code>▲</code> / <code>▼</code> (Fahren), <code>A</code> / <code>D</code> oder <code>◀</code> / <code>▶</code> (Drehen), <code>Leertaste</code> (Feuer).',
             '📱 <strong>Mobile:</strong> Virtuelles Steuerkreuz links (Vor, Zurück, Drehen) & 💥 Feuer-Knopf rechts.'
         ],
-        tip: '💥 <strong>Querschläger:</strong> Schüsse prallen bis zu 5-mal an Wänden ab. Pass auf, dass du dich nicht selbst abschießt! Maximal 5 Kugeln gleichzeitig aktiv.'
+        tip: '💥 <strong>Querschläger:</strong> Schüsse prallen bis zu 5-mal an Wänden ab. Pass auf, dass du dich nicht selbst abschießt! Maximal 5 Kugeln gleichzeitig aktiv. Eingesammelte Pickups ersetzen deinen nächsten Schuss: 🔦 Laser (prallt 2-mal ab, trifft sofort) oder 💣 Mine (nach 1,5 s scharf).'
     },
     pong: {
         title: '🏓 Octa-Pong (8-Spieler Achteck-Pong)',
@@ -76,7 +77,7 @@ const GAME_INSTRUCTIONS = {
             'Tippe auf den Nachziehstapel ("ZIEHEN"), falls du keine passende Karte hast.',
             'Klicke rechtzeitig auf "🔔 UNO!", wenn du nur noch 1 oder 2 Karten hast!'
         ],
-        tip: '💡 <strong>Taktik:</strong> Hebe dir Farbwahl- und +4-Karten für den perfekten Moment auf, um das Spielgeschehen abrupt zu drehen!'
+        tip: '💡 <strong>Taktik:</strong> Hebe dir Farbwahl- und +4-Karten für den perfekten Moment auf, um das Spielgeschehen abrupt zu drehen! Hausregeln (Host-Einstellung): ➕ Strafen stapeln (+2 auf +2, +4 auf +4) und 🔁 7-0-Tauschen (7 = Hand tauschen, 0 = alle Hände wandern weiter).'
     },
     dodgeball: {
         title: '🤾 Corporate Dodgeball: Data Squad vs. ComN',
@@ -85,7 +86,7 @@ const GAME_INSTRUCTIONS = {
             '💻 <strong>Desktop:</strong> <code>WASD</code> / Pfeile = Bewegen | <code>Leertaste</code> / Linksklick = Werfen | <code>Shift</code> / <code>Rechtsklick</code> / <code>C</code> = Hechtsprung & Fangen.',
             '📱 <strong>Mobile:</strong> Virtuelles D-Pad links + <code>WURF</code> & <code>FANGEN / DASH</code> Knöpfe rechts.'
         ],
-        tip: '🎯 <strong>Catch-Mechanik:</strong> Drücke <code>Shift</code>, <code>Rechtsklick</code>, <code>C</code> oder den <code>FANGEN</code>-Knopf, wenn ein gegnerischer Ball auf dich zufliegt, um ihn direkt aus der Luft zu schnappen! Vorsicht vor dem <strong>"Großen ComN-Paket"</strong> (📦), das bei Einschlag in 3 neue Blocker explodiert!'
+        tip: '🎯 <strong>Catch-Mechanik:</strong> Drücke <code>Shift</code>, <code>Rechtsklick</code>, <code>C</code> oder den <code>FANGEN</code>-Knopf, wenn ein gegnerischer Ball auf dich zufliegt, um ihn direkt aus der Luft zu schnappen! Vorsicht vor dem <strong>"Großen ComN-Paket"</strong> (📦), das bei Einschlag in 3 neue Blocker explodiert! Power-Ups: 🛡️ Schild (6 s unverwundbar) und ✌️ Doppelwurf. Mit Rundentimer gewinnt bei Zeitablauf das Team mit mehr Lebenspunkten.'
     },
     roulette: {
         title: '🎲 ComN: Freigabe-Roulette',

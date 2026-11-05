@@ -208,6 +208,78 @@
                     </div>
                 </div>
 
+                <!-- Codenames Settings -->
+                <div id="codenames-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">⏱ Rundentimer</div>
+                            <div class="setting-desc">Zeitlimit pro Phase (Hinweis geben / Raten)</div>
+                        </div>
+                        <select id="cn-timer-select" class="btn btn-secondary btn-sm"><option value="0">Aus</option><option value="60">60 s</option><option value="90">90 s</option><option value="120">120 s</option></select>
+                    </div>
+                </div>
+
+                <!-- UNO Settings -->
+                <div id="uno-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">➕ Strafen stapeln</div>
+                            <div class="setting-desc">+2 auf +2, +4 auf +4 – die Strafe wandert weiter</div>
+                        </div>
+                        <button id="btn-uno-stack" class="btn btn-secondary btn-sm">AUS</button>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">🔁 7-0-Tauschen</div>
+                            <div class="setting-desc">7: Hand tauschen · 0: alle Hände wandern weiter</div>
+                        </div>
+                        <button id="btn-uno-sevenzero" class="btn btn-secondary btn-sm">AUS</button>
+                    </div>
+                </div>
+
+                <!-- Dodgeball Settings -->
+                <div id="dodgeball-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">⏱ Rundentimer</div>
+                            <div class="setting-desc">Bei Zeitablauf gewinnt das Team mit mehr Lebenspunkten</div>
+                        </div>
+                        <select id="db-timer-select" class="btn btn-secondary btn-sm"><option value="0">Aus</option><option value="60">60 s</option><option value="90">90 s</option><option value="120">120 s</option></select>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">🛡️ Power-Ups</div>
+                            <div class="setting-desc">Compliance-Schild und Doppelwurf</div>
+                        </div>
+                        <button id="btn-db-powerups" class="btn btn-primary btn-sm">AN</button>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">🤖 Lücken mit Bots füllen</div>
+                            <div class="setting-desc">Beim Start werden ungleiche Teams mit Bots ausgeglichen</div>
+                        </div>
+                        <button id="btn-db-fillbots" class="btn btn-primary btn-sm">AN</button>
+                    </div>
+                </div>
+
+                <!-- Tank Settings -->
+                <div id="tank-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">🗺️ Labyrinth</div>
+                            <div class="setting-desc">Layout der Arena</div>
+                        </div>
+                        <select id="tank-layout-select" class="btn btn-secondary btn-sm"><option value="maze">Zufälliges Labyrinth</option><option value="mix">Gemischt (jede Runde anders)</option><option value="cross">Kreuz</option><option value="pillars">Pfeiler</option><option value="chambers">Kammern</option><option value="zigzag">Zickzack</option><option value="arena">Arena</option></select>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title">🔦 Laser & Minen</div>
+                            <div class="setting-desc">Waffen-Pickups auf der Karte</div>
+                        </div>
+                        <button id="btn-tank-pickups" class="btn btn-primary btn-sm">AN</button>
+                    </div>
+                </div>
+
                 <!-- Quick Rules & Controls in Lobby -->
                 <div class="lobby-rules-card" id="lobby-rules-card">
                     <div class="lobby-rules-header">
@@ -360,6 +432,12 @@
                                 <button class="size-btn" data-size="8">●</button>
                                 <button class="size-btn" data-size="16">⬤</button>
                             </div>
+                            <div class="sk-sizes" id="sk-tools">
+                                <button class="size-btn active" id="btn-sk-pen" data-tool="pen" title="Stift">✏️</button>
+                                <button class="size-btn" id="btn-sk-eraser" data-tool="eraser" title="Radiergummi">🧽</button>
+                                <button class="size-btn" id="btn-sk-fill" data-tool="fill" title="Füllen">🪣</button>
+                            </div>
+                            <button id="btn-sk-undo" class="btn btn-secondary btn-sm" title="Letzten Strich rückgängig">↶ Zurück</button>
                             <button id="btn-sk-clear" class="btn btn-secondary btn-sm">Löschen</button>
                         </div>
                     </div>
@@ -509,6 +587,14 @@
                             <button class="color-pick-btn color-green" data-color="green">🟢 Grün</button>
                             <button class="color-pick-btn color-yellow" data-color="yellow">🟡 Gelb</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 7-0 house rule: pick a swap partner -->
+                <div class="overlay-center" id="uno-swap-modal" style="display: none;">
+                    <div class="round-over-box" style="padding: 24px;">
+                        <h3 style="margin-top: 0; color: #fff; font-size: 1.3rem;">🔁 Mit wem tauschst du die Hand?</h3>
+                        <div id="uno-swap-options" class="uno-color-picker"></div>
                     </div>
                 </div>
 
@@ -697,6 +783,7 @@
     <script src="ui/uno.js"></script>
     <script src="ui/dodgeball.js"></script>
     <script src="ui/roulette.js"></script>
+    <script src="ui/settings.js"></script>
     <script src="ui/routing.js"></script>
     <script src="ui/main.js"></script>
 </body>

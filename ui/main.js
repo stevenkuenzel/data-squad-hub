@@ -24,9 +24,17 @@ function masterLoop(now) {
             const prevSec = Math.ceil(skribblGame.timeLeft);
             const prevHint = skribblGame.revealedHint;
             skribblGame.updateTick(dt);
+            // Bot drawers/guessers produce strokes and guesses that must be shown and synced
+            for (const stroke of skribblGame.drainStrokes()) {
+                applySkStroke(stroke);
+                networkManager.broadcast('SK_STROKE', stroke);
+            }
+            for (const res of skribblGame.drainEvents()) handleSkribblGuessResult(res);
             if (skribblGame.status !== prevStatus || Math.ceil(skribblGame.timeLeft) !== prevSec || skribblGame.revealedHint !== prevHint) {
                 broadcastSkribblState();
             }
+        } else if (activeGameType === 'codenames') {
+            if (codenamesGame.update(dt)) broadcastCodenamesState();
         } else if (activeGameType === 'tank') {
             tankGame.update(dt);
         } else if (activeGameType === 'pong') {

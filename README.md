@@ -31,7 +31,8 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 - 🔗 **Smartes Direkt-Routing:** 
   - Einladungs-Links führen Gäste **direkt zum richtigen Spiel** (z. B. `?game=uno&room=K8M2P`), ohne dass der Gast das Spiel manuell auswählen muss.
   - Auch bei bloßer Eingabe des Raum-Codes im Hub erkennt der Client automatisch das gehostete Spiel.
-- 🤖 **Integrierte Simulations-Nodes (KI):** Für Curve, Tank, Octa-Pong und UNO können leere Slots jederzeit mit intelligenten Bots aufgefüllt werden.
+- 🤖 **Integrierte Simulations-Nodes (KI):** In allen Spielen können leere Slots mit Bots aufgefüllt werden – auch bei Codenames (Bots spielen Spionchef und Ermittler anhand von Themenwelten), Montagsmaler (Bots zeichnen einfache Motive und raten mit) und Dodgeball (ungleiche Teams werden beim Start automatisch ausgeglichen).
+- ⚙️ **Host-Einstellungen in der Lobby:** Codenames-Rundentimer, UNO-Hausregeln (Strafen stapeln, 7-0-Tauschen), Dodgeball-Rundentimer/Power-Ups/Bot-Auffüllung sowie Tank-Layouts und Waffen-Pickups (Laser, Minen).
 - 🔒 **Firmennetz-Optimiert:** Keine externen CDNs (alle Abhängigkeiten liegen lokal im Repository), neutrale Metadaten gegen automatische Inhaltsfilter.
 
 ---

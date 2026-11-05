@@ -857,6 +857,311 @@ secDb.setInput('dbx', false, false, false, false, false, false, NaN);
 assert(secDbP.aimAngle === aimBefore, 'Dodgeball: NaN aim angle is ignored');
 }
 
+// ----------------------------------------------------
+// TEST SUITE: GAME IMPROVEMENTS (timers, bots, house rules, power-ups, layouts)
+// ----------------------------------------------------
+console.log('\n--- TEST: CODENAMES TIMER & BOTS ---');
+{
+    const categories = runInContext('CODENAMES_CATEGORIES', sandbox);
+    const allWords = new Set(runInContext('CODENAMES_WORDS', sandbox));
+    const allKnown = categories.every(c => c.words.every(w => allWords.has(w)));
+    assert(allKnown, 'Codenames: every bot category word exists in the word list');
+    assert(categories.every(c => !allWords.has(c.clue[0] + c.clue.slice(1).toLowerCase())), 'Codenames: no category clue equals a board word');
+
+    const dedupe = new sandbox.CodenamesGame();
+    dedupe.startNewGame();
+    assert(new Set(dedupe.board.map(c => c.word)).size === 25, 'Codenames: board never contains duplicate words');
+
+    const timed = new sandbox.CodenamesGame();
+    timed.addPlayer('a', 'A');
+    timed.addPlayer('b', 'B');
+    timed.timerSeconds = 10;
+    timed.startNewGame();
+    const firstTurn = timed.currentTurn;
+    timed.update(5);
+    assert(timed.currentTurn === firstTurn && timed.getSnapshot('a').timeLeft === 5, 'Codenames: timer counts down within the turn');
+    timed.update(6);
+    assert(timed.currentTurn !== firstTurn, 'Codenames: turn passes when the timer runs out');
+    assert(timed.timeLeft === 10, 'Codenames: timer restarts for the next turn');
+
+    // Four bots (spymaster + operative per team) play a full game on their own
+    const botGame = new sandbox.CodenamesGame();
+    ['b1', 'b2', 'b3', 'b4'].forEach(id => botGame.addPlayer(id, id, '#fff', true));
+    const spies = Array.from(botGame.players.values()).filter(p => p.role === 'spymaster');
+    assert(spies.length === 2 && spies[0].team !== spies[1].team, 'Codenames: bots take one spymaster seat per team');
+    botGame.startNewGame();
+    let ticks = 0;
+    let assassinClue = false;
+    while (botGame.gameStatus === 'PLAYING' && ticks < 6000) {
+        const before = botGame.clueWord;
+        botGame.update(1);
+        if (!before && botGame.clueWord) {
+            const cat = categories.find(c => c.clue === botGame.clueWord);
+            const assassin = botGame.board.find(c => c.type === 'assassin' && !c.revealed);
+            if (cat && assassin && cat.words.includes(assassin.word)) assassinClue = true;
+        }
+        ticks++;
+    }
+    assert(botGame.gameStatus === 'GAME_OVER' && botGame.winner, 'Codenames: bot-only game reaches a winner');
+    assert(!assassinClue, 'Codenames: bot spymasters never give a clue that covers the assassin');
+}
+
+console.log('\n--- TEST: SKRIBBL TOOLS & BOTS ---');
+{
+    const sk = new sandbox.SkribblGame();
+    sk.addPlayer('h', 'Human', '#fff');
+    sk.addPlayer('x', 'Guesser', '#fff');
+    sk.startMatch(1);
+    sk.activeDrawerId = 'h';
+    sk.status = 'CHOOSING';
+    sk.wordChoices = ['Haus', 'Baum', 'Sonne'];
+    sk.chooseWord('Haus', 'h');
+    sk.addStroke({ g: 1, x1: 1, y1: 1, x2: 5, y2: 5, color: '#000000', size: 4 }, 'h');
+    sk.addStroke({ g: 1, x1: 5, y1: 5, x2: 9, y2: 9, color: '#000000', size: 4 }, 'h');
+    sk.addStroke({ g: 2, fill: true, x1: 50, y1: 50, x2: 50, y2: 50, color: '#ff0000', size: 1 }, 'h');
+    assert(sk.strokes.length === 3 && sk.strokes[2].fill === true, 'Skribbl: fill stroke is accepted and flagged');
+    assert(sk.undoLast('x') === false, 'Skribbl: only the drawer can undo');
+    sk.undoLast('h');
+    assert(sk.strokes.length === 2, 'Skribbl: undo removes the whole last stroke group (the fill)');
+    sk.undoLast('h');
+    assert(sk.strokes.length === 0, 'Skribbl: undo removes a multi-segment stroke as one');
+
+    // Bot guesser finds the word after its delay
+    const g2 = new sandbox.SkribblGame();
+    g2.addPlayer('h', 'Human', '#fff');
+    g2.addPlayer('bg', 'Bot', '#fff', true);
+    g2.startMatch(1);
+    g2.activeDrawerId = 'h';
+    g2.status = 'CHOOSING';
+    g2.wordChoices = ['Haus', 'Baum', 'Sonne'];
+    g2.chooseWord('Haus', 'h');
+    g2.players.get('bg').guessAt = 10;
+    for (let i = 0; i < 12; i++) g2.updateTick(1);
+    assert(g2.players.get('bg').hasGuessed, 'Skribbl: bot guesser solves the word');
+    assert(g2.drainEvents().some(e => e.isMatch), 'Skribbl: bot guess is reported to the host loop');
+
+    // Bot drawer paints a prepared drawing
+    const g3 = new sandbox.SkribblGame();
+    g3.addPlayer('bd', 'Bot', '#fff', true);
+    g3.addPlayer('h', 'Human', '#fff');
+    g3.startMatch(1);
+    g3.activeDrawerId = 'bd';
+    g3.status = 'CHOOSING';
+    g3.wordChoices = ['Haus', 'Baum', 'Sonne'];
+    g3.timeLeft = 15;
+    g3.updateTick(2.5); // bots choose quickly
+    assert(g3.status === 'DRAWING', 'Skribbl: bot drawer picks a word quickly');
+    let drawn = 0;
+    for (let i = 0; i < 40; i++) {
+        g3.updateTick(1);
+        drawn += g3.drainStrokes().length;
+    }
+    assert(drawn > 10 && g3.strokes.length === drawn, 'Skribbl: bot drawer produces strokes for the host to sync');
+    const botWords = Object.keys(runInContext('SKRIBBL_BOT_DRAWINGS', sandbox));
+    const skWords = runInContext('SKRIBBL_WORDS', sandbox);
+    assert(botWords.every(w => skWords.includes(w)), 'Skribbl: every bot drawing is a real word');
+}
+
+console.log('\n--- TEST: UNO HOUSE RULES ---');
+{
+    const mkUno = (rules) => {
+        const u = new sandbox.UnoGame();
+        ['a', 'b', 'c'].forEach(id => u.addPlayer(id, id, '#fff'));
+        Object.assign(u.rules, rules);
+        u.startMatch();
+        u.turnIndex = 0;
+        u.direction = 1;
+        u.discardPile = [{ id: 800, color: 'red', value: '5' }];
+        u.activeColor = 'red';
+        return u;
+    };
+    const card = (id, color, value) => ({ id, color, value });
+
+    const plain = mkUno({});
+    plain.players.get('a').hand = [card(900, 'red', 'draw2'), card(901, 'blue', '1')];
+    const bBefore = plain.players.get('b').hand.length;
+    plain.playCard('a', 900);
+    assert(plain.players.get('b').hand.length === bBefore + 2 && plain.getCurrentPlayer().id === 'c', 'UNO: without stacking +2 hits and skips the next player');
+
+    const st = mkUno({ stack: true });
+    st.players.get('a').hand = [card(900, 'red', 'draw2'), card(901, 'blue', '1')];
+    st.players.get('b').hand = [card(902, 'green', 'draw2'), card(903, 'blue', '2')];
+    st.players.get('c').hand = [card(904, 'red', '3'), card(905, 'blue', '4')];
+    st.playCard('a', 900);
+    assert(st.pendingDraw === 2 && st.getCurrentPlayer().id === 'b', 'UNO: stacking passes the +2 on without drawing');
+    assert(!st.isCardPlayable(card(903, 'blue', '2')), 'UNO: ordinary cards cannot answer an open penalty');
+    st.playCard('b', 902);
+    assert(st.pendingDraw === 4 && st.getCurrentPlayer().id === 'c', 'UNO: +2 stacks on +2');
+    const cBefore = st.players.get('c').hand.length;
+    st.playerDrawCard('c');
+    assert(st.players.get('c').hand.length === cBefore + 4 && st.pendingDraw === 0 && st.getCurrentPlayer().id === 'a', 'UNO: player without a counter draws the whole stack and is skipped');
+
+    const sz = mkUno({ sevenZero: true });
+    sz.players.get('a').hand = [card(910, 'red', '0'), card(911, 'blue', '1')];
+    sz.players.get('b').hand = [card(912, 'blue', '2'), card(913, 'blue', '3'), card(914, 'blue', '4')];
+    sz.players.get('c').hand = [card(915, 'green', '5')];
+    sz.playCard('a', 910);
+    assert(sz.players.get('a').hand.length === 1 && sz.players.get('b').hand.length === 1 && sz.players.get('c').hand.length === 3,
+        'UNO: playing a 0 passes every hand along');
+
+    const sv = mkUno({ sevenZero: true });
+    sv.players.get('a').hand = [card(920, 'red', '7'), card(921, 'blue', '1'), card(922, 'blue', '2')];
+    sv.players.get('b').hand = [card(923, 'blue', '3')];
+    sv.players.get('c').hand = [card(924, 'green', '5'), card(925, 'green', '6')];
+    const res = sv.playCard('a', 920);
+    assert(res.awaitSwap && sv.awaitingSwap, 'UNO: playing a 7 asks for a swap partner');
+    assert(sv.playCard('b', 923).success === false, 'UNO: nobody can play while the swap is pending');
+    assert(sv.chooseSwapTarget('b', 'c') === false, 'UNO: only the 7-player chooses the partner');
+    sv.chooseSwapTarget('a', 'b');
+    assert(sv.players.get('a').hand.length === 1 && sv.players.get('b').hand.length === 2 && sv.getCurrentPlayer().id === 'b',
+        'UNO: swap exchanges hands and passes the turn');
+
+    // Bots can resolve a 7 and a stacked penalty on their own
+    const bots = new sandbox.UnoGame();
+    bots.rules.stack = true;
+    bots.rules.sevenZero = true;
+    ['x', 'y', 'z'].forEach(id => bots.addPlayer(id, id, '#fff', true));
+    bots.startMatch();
+    let uTicks = 0;
+    while (bots.status === 'PLAYING' && uTicks < 20000) {
+        bots.update(0.5);
+        uTicks++;
+    }
+    assert(bots.status === 'GAME_OVER', 'UNO: bot-only game with all house rules finishes');
+}
+
+console.log('\n--- TEST: DODGEBALL TIMER & POWER-UPS ---');
+{
+    const mkDb = () => {
+        const d = new sandbox.DodgeballGame();
+        d.addPlayer('s1', 'Squad', '#00f3ff', false, 'squad');
+        d.addPlayer('c1', 'ComN', '#ff0055', false, 'comn');
+        d.powerupsEnabled = false;
+        d.startMatch(3);
+        d.update(3.5); // countdown
+        return d;
+    };
+
+    const timed = mkDb();
+    timed.roundTimeLimit = 5;
+    timed.roundTimeLeft = 5;
+    timed.players.get('c1').hp = 1;
+    timed.update(2);
+    assert(timed.status === 'PLAYING', 'Dodgeball: round keeps running before the timer expires');
+    timed.update(4);
+    assert(timed.status === 'ROUND_OVER' && timed.scoreSquad === 1, 'Dodgeball: time-out awards the round to the team with more HP');
+    const tie = mkDb();
+    tie.roundTimeLimit = 1;
+    tie.roundTimeLeft = 1;
+    tie.update(2);
+    assert(tie.status === 'ROUND_OVER' && tie.scoreSquad === 0 && tie.scoreComN === 0, 'Dodgeball: time-out on equal HP is a draw');
+
+    const shield = mkDb();
+    const target = shield.players.get('c1');
+    target.shieldTimer = 5;
+    shield.balls.push({
+        id: 999, type: 'release', name: 'Test', icon: '📦', color: '#fff', x: target.x, y: target.y, vx: 0, vy: 0,
+        state: 'FLYING', thrownBy: 's1', thrownTeam: 'squad', bouncesLeft: 0
+    });
+    shield.update(0.016);
+    assert(target.hp === target.maxHp && !shield.balls.some(b => b.id === 999), 'Dodgeball: shield absorbs the hit and the ball is consumed');
+
+    const dbl = mkDb();
+    const thrower = dbl.players.get('s1');
+    dbl.balls = [];
+    thrower.hasBall = { type: 'release', name: 'T', icon: '📦', color: '#fff' };
+    thrower.doubleThrow = true;
+    thrower.inputThrow = true;
+    thrower.aimAngle = 0;
+    dbl.update(0.016);
+    assert(dbl.balls.filter(b => b.state === 'FLYING').length === 2 && thrower.doubleThrow === false, 'Dodgeball: double throw releases two balls and is used up');
+
+    const pu = mkDb();
+    pu.powerupsEnabled = true;
+    pu.powerupSpawnTimer = 0;
+    pu.update(0.016);
+    assert(pu.powerups.length === 1, 'Dodgeball: power-up pickups spawn');
+    const picker = pu.players.get('s1');
+    pu.powerups[0].type = 'shield';
+    pu.powerups[0].x = picker.x;
+    pu.powerups[0].y = picker.y;
+    pu.update(0.016);
+    assert(picker.shieldTimer > 0 && pu.powerups.length === 0, 'Dodgeball: walking over a shield pickup activates it');
+    const snap = pu.getSnapshot();
+    assert(snap.players.find(p => p.id === 's1').shield === true, 'Dodgeball: snapshot exposes the shield state');
+}
+
+console.log('\n--- TEST: TANK LAYOUTS, LASER & MINES ---');
+{
+    const layoutKeys = runInContext('Object.keys(TANK_LAYOUTS)', sandbox);
+    const spawns = [[100, 100], [1100, 100], [100, 700], [1100, 700], [600, 100], [600, 700], [100, 400], [1100, 400]];
+    for (const key of layoutKeys) {
+        const t = new sandbox.TankGame();
+        t.layout = key;
+        t.generateMaze();
+        const inBounds = t.walls.every(w => [w.x1, w.x2].every(x => x >= 28 && x <= 1172) && [w.y1, w.y2].every(y => y >= 28 && y <= 772));
+        assert(t.walls.length > 4 && inBounds, `Tank layout "${key}" has walls inside the arena`);
+        assert(spawns.every(([x, y]) => !t.checkTankWallCollision(x, y)), `Tank layout "${key}" leaves every spawn point free`);
+    }
+    const mix = new sandbox.TankGame();
+    mix.layout = 'mix';
+    mix.generateMaze();
+    assert(mix.walls.length > 4, 'Tank: mixed layout mode builds a maze');
+
+    const mkTank = () => {
+        const t = new sandbox.TankGame();
+        t.addPlayer('A', 'A', '#00f3ff');
+        t.addPlayer('B', 'B', '#ff0055');
+        t.pickupsEnabled = false;
+        t.startMatch(3);
+        t.walls = [];
+        const a = t.players.get('A');
+        const b = t.players.get('B');
+        a.x = 200; a.y = 400; a.angle = 0;
+        b.x = 800; b.y = 400; b.angle = Math.PI;
+        return { t, a, b };
+    };
+
+    const laser = mkTank();
+    laser.a.weapon = 'laser';
+    laser.a.inputShoot = true;
+    laser.t.update(0.016);
+    assert(!laser.b.alive && laser.a.score === 1 && laser.a.weapon === null, 'Tank: laser kills a tank in its path and is used up');
+    assert(laser.t.getSnapshot().lasers.length === 1, 'Tank: laser beam is part of the snapshot for rendering');
+
+    const wallLaser = mkTank();
+    wallLaser.t.walls = [{ x1: 500, y1: 100, x2: 500, y2: 700 }];
+    wallLaser.a.weapon = 'laser';
+    wallLaser.a.inputShoot = true;
+    wallLaser.t.update(0.016);
+    assert(wallLaser.b.alive, 'Tank: laser is stopped (reflected) by a wall');
+
+    const mine = mkTank();
+    mine.a.weapon = 'mine';
+    mine.a.inputShoot = true;
+    mine.t.update(0.016);
+    mine.a.inputShoot = false;
+    assert(mine.t.mines.length === 1, 'Tank: mine is laid at the tank position');
+    const m = mine.t.mines[0];
+    mine.a.x = 100; mine.a.y = 100;
+    mine.b.x = m.x; mine.b.y = m.y;
+    mine.t.update(0.5);
+    assert(mine.b.alive, 'Tank: a fresh mine is not armed yet');
+    mine.t.update(1.5);
+    assert(!mine.b.alive && mine.a.score === 1 && mine.t.mines.length === 0, 'Tank: armed mine kills the victim for its owner');
+
+    const pick = mkTank();
+    pick.t.pickupsEnabled = true;
+    pick.t.pickupTimer = 0;
+    pick.t.update(0.016);
+    assert(pick.t.pickups.length === 1, 'Tank: weapon pickups spawn');
+    pick.t.pickups[0].type = 'laser';
+    pick.t.pickups[0].x = pick.a.x;
+    pick.t.pickups[0].y = pick.a.y;
+    pick.t.update(0.016);
+    assert(pick.a.weapon === 'laser' && pick.t.pickups.length === 0, 'Tank: driving over a pickup arms the tank');
+}
+
 console.log('\n========================================');
 console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('========================================\n');

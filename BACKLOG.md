@@ -54,12 +54,12 @@ Legende: ⭐ = großer Spaß-Effekt bei wenig Aufwand · 🧱 = größerer Umbau
 - [ ] 🧱 **Der Maulwurf im Projekt:** Social-Deduction-Spiel – eine Person sabotiert heimlich, die anderen müssen sie entlarven.
 
 ## Verbesserungen an bestehenden Spielen
-- [ ] **Codenames:** Optionaler Rundentimer; Spionchef-Hinweis per Enter abschicken.
-- [ ] **Montagsmaler:** Radiergummi, Rückgängig-Knopf und Füllwerkzeug.
-- [ ] **UNO:** Hausregeln als Schalter (+2/+4 stapeln, 7-0-Tauschen).
-- [ ] **Dodgeball:** Power-Ups (Schild, Doppelwurf) und ein Rundentimer gegen ewige 1-gegen-1-Duelle.
-- [ ] **Tank Trouble:** Weitere Labyrinth-Layouts und Power-Ups (Laser, Minen).
-- [ ] **Bots** auch für Codenames, Montagsmaler und Dodgeball-Lücken, damit kleine Runden funktionieren.
+- [x] **Codenames:** Optionaler Rundentimer; Spionchef-Hinweis per Enter abschicken. -> Erledigt: Timer (60/90/120 s pro Phase, Zeitablauf beendet den Zug) in den Lobby-Einstellungen, Enter im Hinweisfeld schickt den Hinweis ab.
+- [x] **Montagsmaler:** Radiergummi, Rückgängig-Knopf und Füllwerkzeug. -> Erledigt: Stift/Radierer/Füllen und ↶ Zurück (Strich-Gruppen, auf allen Clients synchron). Außerdem wird die Zeichenfläche nun bei jeder neuen Runde geleert.
+- [x] **UNO:** Hausregeln als Schalter (+2/+4 stapeln, 7-0-Tauschen). -> Erledigt: zwei Schalter in der Lobby, Bots beherrschen beide Regeln. Nebenbei behoben: Clients konnten per Ziehen-Button keine Karten ziehen.
+- [x] **Dodgeball:** Power-Ups (Schild, Doppelwurf) und ein Rundentimer gegen ewige 1-gegen-1-Duelle. -> Erledigt: Pickups 🛡️/✌️, optionaler Rundentimer (bei Zeitablauf gewinnt das Team mit mehr Lebenspunkten).
+- [x] **Tank Trouble:** Weitere Labyrinth-Layouts und Power-Ups (Laser, Minen). -> Erledigt: 5 feste Layouts (Kreuz, Pfeiler, Kammern, Zickzack, Arena) plus „Gemischt“, Pickups 🔦 Laser (abprallend) und 💣 Minen; Bots sammeln Pickups ein.
+- [x] **Bots** auch für Codenames, Montagsmaler und Dodgeball-Lücken, damit kleine Runden funktionieren. -> Erledigt: Codenames-Bots (Themenwelten als Hinweise), Montagsmaler-Bots (zeichnen 8 Motive, raten mit), Dodgeball füllt ungleiche Teams beim Start mit Bots auf (abschaltbar).
 
 ## Barrierefreiheit
 - [ ] Farbenblind-freundliche Farbpalette als Option (Rot/Grün-Unterscheidung bei Teams und Karten).

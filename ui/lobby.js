@@ -62,7 +62,8 @@ function setupLobbyForGame(gameType) {
     };
     lobbyGameTitle.textContent = titles[gameType] || 'Lobby';
     curveSettings.style.display = gameType === 'curve' ? 'block' : 'none';
-    btnAddBot.style.display = (gameType === 'codenames' || gameType === 'skribbl') ? 'none' : 'block';
+    btnAddBot.style.display = 'block';
+    updateGameSettingsVisibility();
     lobbyMaxPlayers.textContent = (gameType === 'tank' || gameType === 'pong' || gameType === 'uno' || gameType === 'dodgeball' || gameType === 'roulette') ? '8' : '12';
     updateLobbyInstructions(gameType);
 }
@@ -88,6 +89,7 @@ document.querySelectorAll('.btn-host-game').forEach(btn => {
             g.addPlayer(myPlayerId, getPlayerName(), selectedColor, false);
 
             updateLobbyUI();
+            updateGameSettingsVisibility();
             showScreen(lobbyScreen);
         } catch (err) {
             alert('Fehler beim Hosten: ' + err.message);
@@ -161,6 +163,7 @@ btnAddBot.addEventListener('click', () => {
 
 btnStartGame.addEventListener('click', () => {
     if (window.soundFX) window.soundFX.playClick();
+    if (activeGameType === 'dodgeball' && dodgeballFillBots) fillDodgeballBots();
     networkManager.broadcast('START_GAME', {
         gameType: activeGameType,
         snapshot: getActiveGameInstance().getSnapshot ? getActiveGameInstance().getSnapshot() : null

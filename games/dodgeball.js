@@ -24,6 +24,12 @@ const DB_BALL_TYPES = [
     { type: 'comn_package', name: 'Das große ComN-Paket', icon: '📦', color: '#ffd700', speed: 380, damage: 2, isCluster: true, desc: 'Spezialangriff: Explodiert in Fels, Rechnung & Ordner!' }
 ];
 
+const DB_POWERUP_TYPES = [
+    { type: 'shield', icon: '🛡️', name: 'Compliance-Schild', color: '#00f3ff', desc: '6 Sekunden unverwundbar' },
+    { type: 'double', icon: '✌️', name: 'Doppelwurf', color: '#ffaa00', desc: 'Dein nächster Wurf schickt zwei Bälle los' }
+];
+const DB_SHIELD_SECONDS = 6;
+
 const DB_QUOTES = [
     '„Dafür haben wir leider kein Budget!“',
     '„Wir beauftragen lieber eine externe Agentur.“',
@@ -54,6 +60,14 @@ class DodgeballGame {
         this.ballSpawnTimer = 2.0;
         this.packageSpawnTimer = 8.0;
         this.nextBallId = 1;
+
+        // Einstellungen des Hosts
+        this.roundTimeLimit = 0;   // Sekunden pro Runde, 0 = kein Limit
+        this.roundTimeLeft = 0;
+        this.powerupsEnabled = true;
+        this.powerups = [];        // Pickups auf dem Boden: { id, type, icon, color, x, y, life }
+        this.powerupSpawnTimer = 8.0;
+        this.nextPowerupId = 1;
     }
 
     addPlayer(id, name, color, isBot = false, preferredTeam = null) {
@@ -92,6 +106,7 @@ class DodgeballGame {
             dashCooldown: 0,
             dashTimer: 0,
             shieldTimer: 0,
+            doubleThrow: false,  // next throw releases two balls
             inputFwd: false,
             inputBack: false,
             inputLeft: false,
@@ -125,6 +140,9 @@ class DodgeballGame {
         this.balls = [];
         this.rocks = [];
         this.particles = [];
+        this.powerups = [];
+        this.powerupSpawnTimer = 8.0;
+        this.roundTimeLeft = this.roundTimeLimit;
         this.banner = {
             text: '🔔 RUNDE ' + this.round + ': DATA SQUAD VS. COMN!',
             color: '#00f3ff',
@@ -141,6 +159,7 @@ class DodgeballGame {
             p.dashCooldown = 0;
             p.dashTimer = 0;
             p.shieldTimer = 0;
+            p.doubleThrow = false;
             p.vx = 0;
             p.vy = 0;
 
@@ -249,6 +268,19 @@ class DodgeballGame {
             this.spawnComnPackage();
         }
 
+        // Power-up pickups: spawn, expire, and get collected below
+        if (this.powerupsEnabled) {
+            this.powerupSpawnTimer -= dt;
+            if (this.powerupSpawnTimer <= 0 && this.powerups.length < 2) {
+                this.powerupSpawnTimer = 9.0 + Math.random() * 6.0;
+                this.spawnPowerup();
+            }
+        }
+        for (let i = this.powerups.length - 1; i >= 0; i--) {
+            this.powerups[i].life -= dt;
+            if (this.powerups[i].life <= 0) this.powerups.splice(i, 1);
+        }
+
         // 2. Update Rocks expiration
         for (let i = this.rocks.length - 1; i >= 0; i--) {
             this.rocks[i].life -= dt;
@@ -324,6 +356,17 @@ class DodgeballGame {
                 }
             }
 
+            // Collect power-ups
+            for (let i = this.powerups.length - 1; i >= 0; i--) {
+                const pu = this.powerups[i];
+                if (Math.hypot(p.x - pu.x, p.y - pu.y) > DB_PLAYER_RADIUS + 18) continue;
+                if (pu.type === 'shield') p.shieldTimer = DB_SHIELD_SECONDS;
+                else if (pu.type === 'double') p.doubleThrow = true;
+                this.powerups.splice(i, 1);
+                this.banner = { text: `${pu.icon} ${p.name}: ${pu.name}!`, color: pu.color, timer: 1.8 };
+                if (window.soundFX) window.soundFX.playGap();
+            }
+
             // Pickup Balls on Floor
             if (!p.hasBall) {
                 for (let i = this.balls.length - 1; i >= 0; i--) {
@@ -358,24 +401,29 @@ class DodgeballGame {
                 const throwAngle = typeof p.aimAngle === 'number' ? p.aimAngle : (p.team === 'squad' ? 0 : Math.PI);
                 const speed = b.type === 'release' ? 560 : 480;
 
-                this.balls.push({
-                    id: this.nextBallId++,
-                    type: b.type,
-                    name: b.name,
-                    icon: b.icon,
-                    color: b.color,
-                    x: p.x + Math.cos(throwAngle) * (DB_PLAYER_RADIUS + 14),
-                    y: p.y + Math.sin(throwAngle) * (DB_PLAYER_RADIUS + 14),
-                    vx: Math.cos(throwAngle) * speed,
-                    vy: Math.sin(throwAngle) * speed,
-                    state: 'FLYING',
-                    thrownBy: p.id,
-                    thrownTeam: p.team,
-                    bouncesLeft: b.bounces || 0,
-                    leavesRock: b.leavesRock,
-                    boomerang: b.boomerang,
-                    curveAngle: throwAngle
-                });
+                // Doppelwurf: two balls fanned out slightly; otherwise one straight ball
+                const angles = p.doubleThrow ? [throwAngle - 0.14, throwAngle + 0.14] : [throwAngle];
+                p.doubleThrow = false;
+                for (const a of angles) {
+                    this.balls.push({
+                        id: this.nextBallId++,
+                        type: b.type,
+                        name: b.name,
+                        icon: b.icon,
+                        color: b.color,
+                        x: p.x + Math.cos(a) * (DB_PLAYER_RADIUS + 14),
+                        y: p.y + Math.sin(a) * (DB_PLAYER_RADIUS + 14),
+                        vx: Math.cos(a) * speed,
+                        vy: Math.sin(a) * speed,
+                        state: 'FLYING',
+                        thrownBy: p.id,
+                        thrownTeam: p.team,
+                        bouncesLeft: b.bounces || 0,
+                        leavesRock: b.leavesRock,
+                        boomerang: b.boomerang,
+                        curveAngle: a
+                    });
+                }
 
                 if (window.soundFX) window.soundFX.playClick();
 
@@ -457,6 +505,14 @@ class DodgeballGame {
                     break;
                 }
 
+                if (dist <= hitRadius && enemy.shieldTimer > 0) {
+                    // Compliance-Schild absorbs the hit
+                    this.spawnHitExplosion(b.x, b.y, '#00f3ff');
+                    this.balls.splice(i, 1);
+                    if (window.soundFX) window.soundFX.playClick();
+                    break;
+                }
+
                 if (dist <= hitRadius) {
                     // Direct Hit!
                     const dmg = b.damage || 1;
@@ -496,6 +552,15 @@ class DodgeballGame {
 
         this.updateParticles(dt);
 
+        // Round timer: when time is up the team with more remaining HP takes the round
+        if (this.roundTimeLimit > 0) {
+            this.roundTimeLeft -= dt;
+            if (this.roundTimeLeft <= 0) {
+                this.endRoundOnTimeout();
+                return;
+            }
+        }
+
         // 6. Check Round Win Condition (One team fully eliminated)
         let squadAlive = 0;
         let comnAlive = 0;
@@ -520,6 +585,45 @@ class DodgeballGame {
             } else {
                 this.banner = { text: '🤝 UNENTSCHIEDEN! Beide Teams im Meeting!', color: '#ffff00', timer: 2.5 };
             }
+        }
+    }
+
+    spawnPowerup() {
+        const tpl = DB_POWERUP_TYPES[Math.floor(Math.random() * DB_POWERUP_TYPES.length)];
+        const squadSide = Math.random() < 0.5;
+        this.powerups.push({
+            id: this.nextPowerupId++,
+            type: tpl.type,
+            name: tpl.name,
+            icon: tpl.icon,
+            color: tpl.color,
+            x: squadSide ? 120 + Math.random() * 400 : DB_ARENA_W - 120 - Math.random() * 400,
+            y: 100 + Math.random() * (DB_ARENA_H - 200),
+            life: 14
+        });
+    }
+
+    teamHp(team) {
+        let hp = 0;
+        for (const p of this.players.values()) {
+            if (p.alive && p.team === team) hp += p.hp;
+        }
+        return hp;
+    }
+
+    endRoundOnTimeout() {
+        const squadHp = this.teamHp('squad');
+        const comnHp = this.teamHp('comn');
+        this.status = 'ROUND_OVER';
+        this.roundOverTimer = 2.6;
+        if (squadHp > comnHp) {
+            this.scoreSquad++;
+            this.banner = { text: '⏱ ZEIT ABGELAUFEN! DATA SQUAD führt nach Lebenspunkten und gewinnt die Runde!', color: '#00f3ff', timer: 2.5 };
+        } else if (comnHp > squadHp) {
+            this.scoreComN++;
+            this.banner = { text: '⏱ ZEIT ABGELAUFEN! COMN führt nach Lebenspunkten und gewinnt die Runde!', color: '#ff0055', timer: 2.5 };
+        } else {
+            this.banner = { text: '⏱ ZEIT ABGELAUFEN! Gleichstand – niemand punktet.', color: '#ffff00', timer: 2.5 };
         }
     }
 
@@ -587,6 +691,26 @@ class DodgeballGame {
         bot.inputDash = false;
 
         // 2. If bot does not have a ball, seek closest reachable ball
+        // Grab a nearby power-up on our own half first
+        let nearestPu = null;
+        let nearestPuDist = 320;
+        for (const pu of this.powerups) {
+            const onMyHalf = bot.team === 'squad' ? pu.x <= DB_CENTER_X : pu.x >= DB_CENTER_X;
+            const d = Math.hypot(bot.x - pu.x, bot.y - pu.y);
+            if (onMyHalf && d < nearestPuDist) {
+                nearestPuDist = d;
+                nearestPu = pu;
+            }
+        }
+        if (nearestPu) {
+            const angleToPu = Math.atan2(nearestPu.y - bot.y, nearestPu.x - bot.x);
+            bot.inputLeft = Math.cos(angleToPu) < -0.2;
+            bot.inputRight = Math.cos(angleToPu) > 0.2;
+            bot.inputFwd = Math.sin(angleToPu) < -0.2;
+            bot.inputBack = Math.sin(angleToPu) > 0.2;
+            return;
+        }
+
         if (!bot.hasBall) {
             let closestBall = null;
             let minDist = Infinity;
@@ -824,7 +948,9 @@ class DodgeballGame {
                 alive: p.alive,
                 aimAngle: Math.round((p.aimAngle || 0) * 100) / 100,
                 hasBallIcon: p.hasBall ? p.hasBall.icon : null,
-                isDashing: p.dashTimer > 0
+                isDashing: p.dashTimer > 0,
+                shield: p.shieldTimer > 0,
+                doubleThrow: !!p.doubleThrow
             });
         }
 
@@ -857,6 +983,11 @@ class DodgeballGame {
                 color: this.banner.color,
                 timer: Math.round(this.banner.timer * 10) / 10
             } : null,
+            roundTimeLimit: this.roundTimeLimit,
+            roundTimeLeft: Math.max(0, Math.ceil(this.roundTimeLeft)),
+            powerups: this.powerups.map(pu => ({
+                id: pu.id, icon: pu.icon, color: pu.color, x: Math.round(pu.x), y: Math.round(pu.y)
+            })),
             players: playersList,
             balls: ballsList,
             rocks: rocksList
@@ -872,6 +1003,9 @@ class DodgeballGame {
         this.countdownTimer = snap.countdown;
         this.winner = snap.winner;
         this.banner = snap.banner;
+        this.roundTimeLimit = snap.roundTimeLimit || 0;
+        this.roundTimeLeft = snap.roundTimeLeft || 0;
+        this.powerups = snap.powerups || [];
 
         if (snap.balls) {
             this.balls = snap.balls;
@@ -896,6 +1030,8 @@ class DodgeballGame {
                 p.aimAngle = sp.aimAngle;
                 p.hasBall = sp.hasBallIcon ? { icon: sp.hasBallIcon } : null;
                 p.dashTimer = sp.isDashing ? 0.2 : 0;
+                p.shieldTimer = sp.shield ? 1 : 0;
+                p.doubleThrow = !!sp.doubleThrow;
             }
         }
     }

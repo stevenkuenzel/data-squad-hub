@@ -54,6 +54,14 @@ btnGiveClue.addEventListener('click', () => {
     cnClueWordInput.value = '';
 });
 
+// Enter in the clue field submits the clue
+cnClueWordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        btnGiveClue.click();
+    }
+});
+
 btnEndTurn.addEventListener('click', () => {
     if (networkManager.isHost) {
         if (codenamesGame.endTurn(myPlayerId)) broadcastCodenamesState();
@@ -68,7 +76,8 @@ function renderCodenamesBoard(remoteSnap = null) {
     cnScoreRed.textContent = snap.scoreRed;
     cnScoreBlue.textContent = snap.scoreBlue;
 
-    cnTurnIndicator.textContent = snap.currentTurn === 'red' ? 'TEAM ROT AM ZUG' : 'TEAM BLAU AM ZUG';
+    const cnTimerText = (snap.timerSeconds > 0 && snap.gameStatus === 'PLAYING') ? ` · ⏱ ${snap.timeLeft}s` : '';
+    cnTurnIndicator.textContent = (snap.currentTurn === 'red' ? 'TEAM ROT AM ZUG' : 'TEAM BLAU AM ZUG') + cnTimerText;
     cnTurnIndicator.style.color = snap.currentTurn === 'red' ? '#ff3333' : '#0099ff';
 
     // Identify local player team and role
@@ -88,7 +97,7 @@ function renderCodenamesBoard(remoteSnap = null) {
         playersList.filter(p => p.team === 'red').forEach(p => {
             const pill = document.createElement('span');
             pill.className = `cn-player-pill ${p.role}`;
-            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}`;
+            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}${p.isBot ? ' 🤖' : ''}`;
             cnRosterRed.appendChild(pill);
         });
     }
@@ -97,7 +106,7 @@ function renderCodenamesBoard(remoteSnap = null) {
         playersList.filter(p => p.team === 'blue').forEach(p => {
             const pill = document.createElement('span');
             pill.className = `cn-player-pill ${p.role}`;
-            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}`;
+            pill.textContent = `${p.role === 'spymaster' ? '🕵️' : '👥'} ${p.name}${p.isBot ? ' 🤖' : ''}`;
             cnRosterBlue.appendChild(pill);
         });
     }

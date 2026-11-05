@@ -32,13 +32,16 @@ function handleHostGameEvent(type, payload, senderId) {
         // addStroke checks the sender is the drawer and returns a cleaned copy
         const stroke = skribblGame.addStroke(payload, senderId);
         if (!stroke) return;
-        drawSkStroke(stroke);
+        applySkStroke(stroke);
         networkManager.broadcast('SK_STROKE', stroke);
     } else if (type === 'SK_CLEAR') {
         if (!skribblGame.clearCanvas(senderId)) return;
-        skCtx.fillStyle = '#ffffff';
-        skCtx.fillRect(0, 0, skribblCanvas.width, skribblCanvas.height);
+        clearSkCanvas();
         networkManager.broadcast('SK_CLEAR', {});
+    } else if (type === 'SK_UNDO') {
+        if (!skribblGame.undoLast(senderId)) return;
+        undoSkLocal();
+        networkManager.broadcast('SK_UNDO', {});
     } else if (type === 'SK_CHOOSE_WORD') {
         if (skribblGame.chooseWord(payload.word, senderId)) broadcastSkribblState();
     } else if (type === 'SK_GUESS') {
@@ -52,6 +55,9 @@ function handleHostGameEvent(type, payload, senderId) {
         broadcastUnoState();
     } else if (type === 'UNO_CALL') {
         unoGame.callUno(senderId);
+        broadcastUnoState();
+    } else if (type === 'UNO_SWAP') {
+        unoGame.chooseSwapTarget(senderId, payload.targetId);
         broadcastUnoState();
     } else if (type === 'UNO_COLOR') {
         unoGame.chooseWildColor(senderId, payload.color);
@@ -97,10 +103,11 @@ function handleClientGameEvent(type, payload) {
     } else if (type === 'SK_STATE') {
         renderSkribblSnapshot(payload);
     } else if (type === 'SK_STROKE') {
-        drawSkStroke(payload);
+        applySkStroke(payload);
     } else if (type === 'SK_CLEAR') {
-        skCtx.fillStyle = '#ffffff';
-        skCtx.fillRect(0, 0, skribblCanvas.width, skribblCanvas.height);
+        clearSkCanvas();
+    } else if (type === 'SK_UNDO') {
+        undoSkLocal();
     } else if (type === 'SK_CHAT') {
         if (payload.isMatch) {
             addSkChatMsg('', payload.systemMsg, true);

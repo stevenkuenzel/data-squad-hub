@@ -12,6 +12,48 @@ const BULLET_SPEED = 320;
 const BULLET_MAX_BOUNCES = 5;
 const BULLET_RADIUS = 3.5;
 
+
+// Feste Labyrinth-Layouts (Wandsegmente im 1200x800-Feld). Spawnpunkte und Korridore (>= 80px) bleiben frei.
+function tankBox(cx, cy, w, h) {
+    const x1 = cx - w / 2, x2 = cx + w / 2, y1 = cy - h / 2, y2 = cy + h / 2;
+    return [
+        { x1, y1, x2, y2: y1 }, { x1: x2, y1, x2, y2 },
+        { x1: x2, y1: y2, x2: x1, y2 }, { x1, y1: y2, x2: x1, y2: y1 }
+    ];
+}
+
+const TANK_LAYOUTS = {
+    cross: () => [
+        { x1: 330, y1: 400, x2: 540, y2: 400 }, { x1: 660, y1: 400, x2: 870, y2: 400 },
+        { x1: 600, y1: 180, x2: 600, y2: 330 }, { x1: 600, y1: 470, x2: 600, y2: 620 }
+    ],
+    pillars: () => [
+        [300, 250], [600, 250], [900, 250], [300, 550], [600, 550], [900, 550], [450, 400], [750, 400]
+    ].flatMap(([cx, cy]) => tankBox(cx, cy, 70, 70)),
+    chambers: () => [
+        { x1: 400, y1: 130, x2: 400, y2: 330 }, { x1: 400, y1: 470, x2: 400, y2: 670 },
+        { x1: 800, y1: 130, x2: 800, y2: 330 }, { x1: 800, y1: 470, x2: 800, y2: 670 }
+    ],
+    zigzag: () => [
+        { x1: 200, y1: 250, x2: 800, y2: 250 }, { x1: 400, y1: 550, x2: 1000, y2: 550 },
+        { x1: 800, y1: 250, x2: 800, y2: 360 }, { x1: 400, y1: 550, x2: 400, y2: 440 }
+    ],
+    arena: () => [
+        { x1: 420, y1: 300, x2: 560, y2: 300 }, { x1: 640, y1: 300, x2: 780, y2: 300 },
+        { x1: 420, y1: 500, x2: 560, y2: 500 }, { x1: 640, y1: 500, x2: 780, y2: 500 },
+        { x1: 420, y1: 300, x2: 420, y2: 360 }, { x1: 420, y1: 440, x2: 420, y2: 500 },
+        { x1: 780, y1: 300, x2: 780, y2: 360 }, { x1: 780, y1: 440, x2: 780, y2: 500 }
+    ]
+};
+
+const TANK_PICKUPS = {
+    laser: { icon: '🔦', name: 'Laser', color: '#ff3355' },
+    mine: { icon: '💣', name: 'Mine', color: '#ffaa00' }
+};
+const TANK_LASER_BOUNCES = 2;
+const TANK_MINE_ARM_TIME = 1.5;
+const TANK_MINE_RADIUS = 20;
+
 class TankGame {
     constructor() {
         this.players = new Map(); // id -> TankPlayer
@@ -25,6 +67,15 @@ class TankGame {
         this.roundWinner = null;
         this.matchWinner = null;
         this.nextBulletId = 1;
+
+        // Einstellungen des Hosts
+        this.layout = 'maze';           // 'maze' | 'mix' | Schlüssel aus TANK_LAYOUTS
+        this.pickupsEnabled = true;
+        this.pickups = [];              // { id, type, x, y }
+        this.mines = [];                // { id, ownerId, x, y, arm, color }
+        this.lasers = [];               // { points, life, color } – nur zur Darstellung
+        this.pickupTimer = 6;
+        this.nextItemId = 1;
     }
 
     addPlayer(id, name, color, isBot = false) {
@@ -41,6 +92,7 @@ class TankGame {
                 angle: 0,
                 cooldown: 0,
                 shootCooldown: 1.0 + Math.random() * 1.5,
+                weapon: null,
                 inputFwd: false,
                 inputBack: false,
                 inputLeft: false,
@@ -75,6 +127,17 @@ class TankGame {
         this.walls.push({ x1: TANK_ARENA_W - margin, y1: margin, x2: TANK_ARENA_W - margin, y2: TANK_ARENA_H - margin });
         this.walls.push({ x1: TANK_ARENA_W - margin, y1: TANK_ARENA_H - margin, x2: margin, y2: TANK_ARENA_H - margin });
         this.walls.push({ x1: margin, y1: TANK_ARENA_H - margin, x2: margin, y2: margin });
+
+        // Fixed layouts (or a random pick among all of them in "mix" mode)
+        let kind = this.layout;
+        if (kind === 'mix') {
+            const kinds = ['maze', ...Object.keys(TANK_LAYOUTS)];
+            kind = kinds[Math.floor(Math.random() * kinds.length)];
+        }
+        if (TANK_LAYOUTS[kind]) {
+            this.walls.push(...TANK_LAYOUTS[kind]());
+            return;
+        }
 
         // Wide, spacious layout: 5 cols x 3 rows (cells are ~228 x ~248 px)
         // With large corridor gaps (90px) so tanks (width 32px) have plenty of maneuvering room
@@ -127,6 +190,10 @@ class TankGame {
         this.generateMaze();
         this.bullets = [];
         this.particles = [];
+        this.pickups = [];
+        this.mines = [];
+        this.lasers = [];
+        this.pickupTimer = 6;
         this.roundWinner = null;
         this.status = 'PLAYING';
 
@@ -146,6 +213,7 @@ class TankGame {
             p.angle = Math.random() * Math.PI * 2;
             p.alive = true;
             p.cooldown = 0;
+            p.weapon = null;
             sIdx++;
         }
     }
@@ -177,6 +245,13 @@ class TankGame {
         }
 
         if (this.status !== 'PLAYING') return;
+
+        this.updatePickups(dt);
+        this.updateMines(dt);
+        for (let i = this.lasers.length - 1; i >= 0; i--) {
+            this.lasers[i].life -= dt;
+            if (this.lasers[i].life <= 0) this.lasers.splice(i, 1);
+        }
 
         // 1. Tank updates
         let aliveCount = 0;
@@ -212,7 +287,13 @@ class TankGame {
             // Shooting (max 5 active bullets per tank to prevent spam)
             if (p.cooldown > 0) p.cooldown -= dt;
             const myActiveBullets = this.bullets.filter(b => b.ownerId === p.id).length;
-            if (p.inputShoot && p.cooldown <= 0 && myActiveBullets < 5) {
+            if (p.inputShoot && p.cooldown <= 0 && p.weapon) {
+                // Special weapons are used up with the next trigger pull
+                if (p.weapon === 'laser') this.fireLaser(p);
+                else if (p.weapon === 'mine') this.layMine(p);
+                p.weapon = null;
+                p.cooldown = 0.45;
+            } else if (p.inputShoot && p.cooldown <= 0 && myActiveBullets < 5) {
                 this.shootBullet(p);
                 p.cooldown = 0.45; // balanced fire rate
             }
@@ -284,6 +365,123 @@ class TankGame {
             this.roundWinner = lastAlive;
             if (lastAlive && window.soundFX) window.soundFX.playWin();
         }
+    }
+
+    // Kills a tank and credits the shooter (no point for suicide)
+    killTank(victim, killerId) {
+        if (!victim.alive) return;
+        victim.alive = false;
+        this.spawnExplosion(victim.x, victim.y, victim.color);
+        if (window.soundFX) window.soundFX.playDie();
+        if (killerId && killerId !== victim.id) {
+            const shooter = this.players.get(killerId);
+            if (shooter) shooter.score++;
+        }
+    }
+
+    updatePickups(dt) {
+        if (!this.pickupsEnabled) return;
+        this.pickupTimer -= dt;
+        if (this.pickupTimer <= 0 && this.pickups.length < 2) {
+            this.pickupTimer = 8 + Math.random() * 6;
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const x = 80 + Math.random() * (TANK_ARENA_W - 160);
+                const y = 80 + Math.random() * (TANK_ARENA_H - 160);
+                if (this.checkTankWallCollision(x, y)) continue;
+                // keep clear of walls so the pickup is reachable
+                if (this.walls.some(w => this.checkLineCircleCollision(w.x1, w.y1, w.x2, w.y2, x, y, TANK_RADIUS * 2))) continue;
+                const type = Math.random() < 0.5 ? 'laser' : 'mine';
+                this.pickups.push({ id: this.nextItemId++, type, x, y });
+                break;
+            }
+        }
+        for (let i = this.pickups.length - 1; i >= 0; i--) {
+            const pu = this.pickups[i];
+            for (const p of this.players.values()) {
+                if (!p.alive || Math.hypot(p.x - pu.x, p.y - pu.y) > TANK_RADIUS + 14) continue;
+                p.weapon = pu.type;
+                this.pickups.splice(i, 1);
+                if (window.soundFX) window.soundFX.playGap();
+                break;
+            }
+        }
+    }
+
+    layMine(tank) {
+        this.mines.push({
+            id: this.nextItemId++, ownerId: tank.id, x: tank.x, y: tank.y,
+            arm: TANK_MINE_ARM_TIME, color: tank.color
+        });
+        if (window.soundFX) window.soundFX.playClick();
+    }
+
+    updateMines(dt) {
+        for (let i = this.mines.length - 1; i >= 0; i--) {
+            const m = this.mines[i];
+            m.arm = Math.max(0, m.arm - dt);
+            if (m.arm > 0) continue;
+            for (const p of this.players.values()) {
+                if (!p.alive || Math.hypot(p.x - m.x, p.y - m.y) > TANK_RADIUS + TANK_MINE_RADIUS * 0.5) continue;
+                this.spawnExplosion(m.x, m.y, '#ffaa00');
+                this.killTank(p, m.ownerId);
+                this.mines.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    // Distance along the ray (ox,oy)+t*(dx,dy) to the nearest wall; returns { t, wall } or null
+    rayCastWall(ox, oy, dx, dy) {
+        let best = null;
+        for (const w of this.walls) {
+            const sx = w.x2 - w.x1;
+            const sy = w.y2 - w.y1;
+            const denom = dx * sy - dy * sx;
+            if (Math.abs(denom) < 1e-9) continue;
+            const t = ((w.x1 - ox) * sy - (w.y1 - oy) * sx) / denom;
+            const u = ((w.x1 - ox) * dy - (w.y1 - oy) * dx) / denom;
+            if (t > 0.001 && u >= 0 && u <= 1 && (!best || t < best.t)) best = { t, wall: w };
+        }
+        return best;
+    }
+
+    // Instant laser: travels (and bounces) through walls and kills every tank on its path
+    fireLaser(tank) {
+        let ox = tank.x + Math.cos(tank.angle) * (TANK_RADIUS + 4);
+        let oy = tank.y + Math.sin(tank.angle) * (TANK_RADIUS + 4);
+        let dx = Math.cos(tank.angle);
+        let dy = Math.sin(tank.angle);
+        const points = [[tank.x, tank.y]];
+
+        for (let seg = 0; seg <= TANK_LASER_BOUNCES; seg++) {
+            const hit = this.rayCastWall(ox, oy, dx, dy);
+            const len = hit ? hit.t : 1600;
+            const ex = ox + dx * len;
+            const ey = oy + dy * len;
+
+            for (const p of this.players.values()) {
+                if (!p.alive || p.id === tank.id) continue;
+                if (this.checkLineCircleCollision(ox, oy, ex, ey, p.x, p.y, TANK_RADIUS)) {
+                    this.killTank(p, tank.id);
+                }
+            }
+            points.push([ex, ey]);
+            if (!hit) break;
+
+            // reflect off the wall
+            const wx = hit.wall.x2 - hit.wall.x1;
+            const wy = hit.wall.y2 - hit.wall.y1;
+            const wl = Math.hypot(wx, wy);
+            const nx = -wy / wl;
+            const ny = wx / wl;
+            const dot = dx * nx + dy * ny;
+            dx -= 2 * dot * nx;
+            dy -= 2 * dot * ny;
+            ox = ex + dx * 2;
+            oy = ey + dy * 2;
+        }
+        this.lasers.push({ points, life: 0.35, color: tank.color });
+        if (window.soundFX) window.soundFX.playGap();
     }
 
     shootBullet(tank) {
@@ -396,6 +594,30 @@ class TankGame {
             return;
         }
 
+        // Detour to a visible weapon pickup when unarmed
+        if (!bot.weapon && this.pickups.length > 0) {
+            let nearest = null;
+            let nearestDist = 380;
+            for (const pu of this.pickups) {
+                const d = Math.hypot(pu.x - bot.x, pu.y - bot.y);
+                if (d < nearestDist && this.hasLineOfSight(bot.x, bot.y, pu.x, pu.y)) {
+                    nearestDist = d;
+                    nearest = pu;
+                }
+            }
+            if (nearest) {
+                let diff = Math.atan2(nearest.y - bot.y, nearest.x - bot.x) - bot.angle;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                bot.inputLeft = diff < -0.15;
+                bot.inputRight = diff > 0.15;
+                bot.inputFwd = Math.abs(diff) < 0.9;
+                bot.inputBack = false;
+                bot.inputShoot = false;
+                return;
+            }
+        }
+
         if (target) {
             const hasSight = this.hasLineOfSight(bot.x, bot.y, target.x, target.y);
             const desiredAngle = Math.atan2(target.y - bot.y, target.x - bot.x);
@@ -469,8 +691,12 @@ class TankGame {
                 alive: p.alive,
                 x: Math.round(p.x * 10) / 10,
                 y: Math.round(p.y * 10) / 10,
-                angle: Math.round(p.angle * 100) / 100
+                angle: Math.round(p.angle * 100) / 100,
+                weapon: p.weapon
             })),
+            pickups: this.pickups.map(pu => ({ id: pu.id, type: pu.type, x: Math.round(pu.x), y: Math.round(pu.y) })),
+            mines: this.mines.map(m => ({ id: m.id, x: Math.round(m.x), y: Math.round(m.y), armed: m.arm <= 0, color: m.color })),
+            lasers: this.lasers.map(l => ({ points: l.points.map(pt => [Math.round(pt[0]), Math.round(pt[1])]), life: Math.round(l.life * 100) / 100, color: l.color })),
             bullets: this.bullets.map(b => ({
                 id: b.id,
                 x: Math.round(b.x * 10) / 10,
@@ -488,6 +714,9 @@ class TankGame {
         this.matchWinner = snap.matchWinner ? { name: snap.matchWinner } : null;
         this.walls = snap.walls || [];
         this.bullets = snap.bullets || [];
+        this.pickups = snap.pickups || [];
+        this.mines = snap.mines || [];
+        this.lasers = snap.lasers || [];
 
         for (const t of snap.tanks) {
             let p = this.players.get(t.id);
@@ -503,6 +732,7 @@ class TankGame {
             p.x = t.x;
             p.y = t.y;
             p.angle = t.angle;
+            p.weapon = t.weapon || null;
         }
     }
 }

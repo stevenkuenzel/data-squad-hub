@@ -15,10 +15,13 @@ const unoTopCardContainer = document.getElementById('uno-top-card-container');
 const unoHandCards = document.getElementById('uno-hand-cards');
 const btnCallUno = document.getElementById('btn-call-uno');
 const unoColorModal = document.getElementById('uno-color-modal');
+const unoSwapModal = document.getElementById('uno-swap-modal');
+const unoSwapOptions = document.getElementById('uno-swap-options');
 const unoWinnerOverlay = document.getElementById('uno-winner-overlay');
 const unoWinnerText = document.getElementById('uno-winner-text');
 
 let pendingWildCardId = null;
+let lastUnoSnap = null;
 
 function renderUnoCardElement(card, isPlayable = false) {
     const div = document.createElement('div');
@@ -44,10 +47,12 @@ function renderUnoCardElement(card, isPlayable = false) {
 
 function renderUnoSnapshot(snap) {
     if (!snap) return;
+    lastUnoSnap = snap;
 
     const isMyTurn = snap.currentTurnPlayerId === myPlayerId;
     if (unoTurnIndicator) {
-        unoTurnIndicator.textContent = isMyTurn ? 'AM ZUG: DU' : `AM ZUG: ${snap.currentTurnName}`;
+        const pendingText = snap.pendingDraw > 0 ? ` · ⚠️ +${snap.pendingDraw} offen` : '';
+        unoTurnIndicator.textContent = (isMyTurn ? 'AM ZUG: DU' : `AM ZUG: ${snap.currentTurnName}`) + pendingText;
         unoTurnIndicator.style.color = isMyTurn ? 'var(--cyan)' : '#f59e0b';
     }
 
@@ -101,11 +106,19 @@ function renderUnoSnapshot(snap) {
     if (unoHandCards) {
         unoHandCards.innerHTML = '';
         (snap.myHand || []).forEach(card => {
-            const canPlay = isMyTurn && !snap.awaitingColorChoice && (
-                card.color === 'wild' ||
-                card.color === snap.activeColor ||
-                (snap.topCard && card.value === snap.topCard.value)
-            );
+            let canPlay;
+            if (!isMyTurn || snap.awaitingColorChoice || snap.awaitingSwap) {
+                canPlay = false;
+            } else if (snap.pendingDraw > 0) {
+                // Stacking house rule: only +2/+4 may answer an open penalty
+                canPlay = snap.pendingType === 'wild4'
+                    ? card.value === 'wild4'
+                    : (card.value === 'draw2' || card.value === 'wild4');
+            } else {
+                canPlay = card.color === 'wild' ||
+                    card.color === snap.activeColor ||
+                    (snap.topCard && card.value === snap.topCard.value);
+            }
 
             const cardEl = renderUnoCardElement(card, canPlay);
             if (canPlay) {
@@ -125,6 +138,31 @@ function renderUnoSnapshot(snap) {
             }
             unoHandCards.appendChild(cardEl);
         });
+    }
+
+    // 7-0 house rule: swap partner selection
+    if (unoSwapModal) {
+        if (snap.awaitingSwap && snap.swapChooserId === myPlayerId) {
+            unoSwapModal.style.display = 'flex';
+            unoSwapOptions.innerHTML = '';
+            (snap.players || []).filter(p => p.id !== myPlayerId).forEach(p => {
+                const b = document.createElement('button');
+                b.className = 'color-pick-btn';
+                b.textContent = `${p.name}${p.isBot ? ' 🤖' : ''} (${p.cardCount} 🎴)`;
+                b.addEventListener('click', () => {
+                    unoSwapModal.style.display = 'none';
+                    if (networkManager.isHost) {
+                        unoGame.chooseSwapTarget(myPlayerId, p.id);
+                        broadcastUnoState();
+                    } else {
+                        networkManager.sendToHost('UNO_SWAP', { targetId: p.id });
+                    }
+                });
+                unoSwapOptions.appendChild(b);
+            });
+        } else {
+            unoSwapModal.style.display = 'none';
+        }
     }
 
     // Winner overlay
@@ -151,15 +189,15 @@ function broadcastUnoState() {
 // Deck Draw button click
 if (btnUnoDraw) {
     btnUnoDraw.addEventListener('click', () => {
-        if (unoGame.status === 'PLAYING') {
-            const curr = unoGame.getCurrentPlayer();
-            if (curr && curr.id === myPlayerId) {
-                if (networkManager.isHost) {
-                    unoGame.playerDrawCard(myPlayerId);
-                    broadcastUnoState();
-                } else {
-                    networkManager.sendToHost('UNO_DRAW', {});
-                }
+        // Clients only know the last snapshot, not the engine state
+        const snap = lastUnoSnap;
+        if (snap && snap.status === 'PLAYING' && snap.currentTurnPlayerId === myPlayerId &&
+            !snap.awaitingColorChoice && !snap.awaitingSwap) {
+            if (networkManager.isHost) {
+                unoGame.playerDrawCard(myPlayerId);
+                broadcastUnoState();
+            } else {
+                networkManager.sendToHost('UNO_DRAW', {});
             }
         }
     });

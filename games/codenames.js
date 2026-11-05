@@ -25,6 +25,32 @@ const CODENAMES_WORDS = [
     "Ring", "Kette", "Brille", "Kamm", "Seife", "Handtuch", "Kino", "Theater", "Museum", "Stadion"
 ];
 
+// Themenwelten für die Bots: ein Bot-Spionchef gibt den Namen einer Kategorie als Hinweis,
+// Bot-Ermittler raten Karten aus der genannten Kategorie. (Keine Kategorie heißt wie ein Brettwort.)
+const CODENAMES_CATEGORIES = [
+    { clue: 'TIERE', words: ['Fliege', 'Frosch', 'Löwe', 'Wolf', 'Spinne', 'Adler', 'Elefant', 'Krokodil', 'Pinguin', 'Papagei', 'Känguru', 'Schmetterling', 'Eule', 'Koala', 'Schildkröte', 'Panda', 'Zebra', 'Giraffe', 'Tiger', 'Nilpferd', 'Kamel', 'Flamingo', 'Fuchs', 'Waschbär', 'Biber', 'Igel', 'Eichhörnchen', 'Reh', 'Hirsch', 'Hamster', 'Wal', 'Delfin', 'Hai', 'Qualle', 'Seestern', 'Oktopus', 'Krabbe', 'Seepferdchen', 'Robbe', 'Eisbär', 'Faultier', 'Chamäleon', 'Fledermaus', 'Biene', 'Hummel', 'Ameise', 'Käfer', 'Schnecke', 'Dinosaurier'] },
+    { clue: 'MEER', words: ['Wal', 'Delfin', 'Hai', 'Qualle', 'Seestern', 'Oktopus', 'Krabbe', 'Seepferdchen', 'Robbe', 'Muschel', 'Insel', 'U-Boot', 'Leuchtturm', 'Anker', 'Boot', 'Pirat', 'Taucher'] },
+    { clue: 'INSEKTEN', words: ['Fliege', 'Spinne', 'Biene', 'Hummel', 'Ameise', 'Käfer', 'Schmetterling', 'Schnecke'] },
+    { clue: 'VÖGEL', words: ['Adler', 'Eule', 'Pinguin', 'Papagei', 'Flamingo', 'Feder'] },
+    { clue: 'ESSEN', words: ['Apfel', 'Honig', 'Pfeffer', 'Eis', 'Zitrone', 'Schokolade', 'Karotte', 'Erdbeere', 'Torte', 'Pilz', 'Brot', 'Brezel', 'Croissant', 'Butter', 'Käse', 'Milch', 'Waffel'] },
+    { clue: 'GETRÄNKE', words: ['Kaffee', 'Tee', 'Wasser', 'Milch', 'Tasse', 'Glas', 'Flasche'] },
+    { clue: 'KÜCHE', words: ['Tasse', 'Glas', 'Flasche', 'Teller', 'Topf', 'Pfanne', 'Ofen', 'Messer', 'Gabel', 'Löffel'] },
+    { clue: 'MÖBEL', words: ['Schrank', 'Stuhl', 'Sofa', 'Kissen', 'Decke', 'Teppich', 'Lampe', 'Bank', 'Spiegel', 'Leiter'] },
+    { clue: 'HAUS', words: ['Tür', 'Fenster', 'Dach', 'Mauer', 'Zaun', 'Schlüssel', 'Schloss', 'Garten', 'Kerze', 'Lampe'] },
+    { clue: 'WERKZEUG', words: ['Nagel', 'Pinsel', 'Hammer', 'Schraube', 'Zange', 'Säge', 'Schere', 'Lineal', 'Bleistift', 'Leiter'] },
+    { clue: 'KLEIDUNG', words: ['Krawatte', 'Hut', 'Mütze', 'Schal', 'Handschuh', 'Gürtel', 'Brille', 'Krone', 'Ring'] },
+    { clue: 'GLITZER', words: ['Ring', 'Kette', 'Krone', 'Diamant', 'Gold', 'Spiegel', 'Stern'] },
+    { clue: 'FAHRZEUG', words: ['Boot', 'Zug', 'Fahrrad', 'Hubschrauber', 'Rakete', 'U-Boot'] },
+    { clue: 'PFLANZEN', words: ['Rose', 'Kaktus', 'Palme', 'Eiche', 'Birke', 'Tanne', 'Kastanie', 'Sonnenblume', 'Tulpe', 'Nelke', 'Lavendel', 'Klee', 'Pilz'] },
+    { clue: 'WILDNIS', words: ['Wald', 'Eiche', 'Birke', 'Tanne', 'Pilz', 'Wolf', 'Fuchs', 'Reh', 'Hirsch', 'Igel', 'Eichhörnchen', 'Lagerfeuer', 'Zelt', 'Biber'] },
+    { clue: 'WELTALL', words: ['Stern', 'Mond', 'Planet', 'Komet', 'Rakete', 'Roboter'] },
+    { clue: 'FANTASIE', words: ['Drache', 'Zwerg', 'Geist', 'Zauberer', 'Ritter', 'Mumie', 'Wikinger', 'Pirat', 'König', 'Krone', 'Schloss', 'Roboter'] },
+    { clue: 'ORTE', words: ['Wüste', 'Wald', 'Insel', 'Vulkan', 'Schule', 'Garten', 'Kino', 'Theater', 'Museum', 'Stadion', 'Zirkus', 'Leuchtturm', 'Brücke'] },
+    { clue: 'CAMPING', words: ['Zelt', 'Lagerfeuer', 'Taschenlampe', 'Kompass', 'Schatzkarte', 'Wald'] },
+    { clue: 'BÜRO', words: ['Bleistift', 'Lineal', 'Buch', 'Kalender', 'Schere', 'Schule'] },
+    { clue: 'KÄLTE', words: ['Eis', 'Eisbär', 'Schneemann', 'Pinguin', 'Robbe', 'Schal', 'Handschuh', 'Mütze'] }
+];
+
 class CodenamesGame {
     constructor() {
         this.board = [];         // 25 cards: { id, word, type: 'red'|'blue'|'neutral'|'assassin', revealed: boolean }
@@ -40,12 +66,15 @@ class CodenamesGame {
         this.winner = null;
         this.gameStatus = 'LOBBY'; // LOBBY, PLAYING, GAME_OVER
         this.logs = [];
+        this.timerSeconds = 0;   // 0 = kein Rundentimer (Einstellung des Hosts)
+        this.timeLeft = 0;
+        this.botTimer = 1.5;
 
         // Player assignments: id -> { id, name, team: 'red'|'blue'|'spectator', role: 'operative'|'spymaster' }
         this.players = new Map();
     }
 
-    addPlayer(id, name) {
+    addPlayer(id, name, color = null, isBot = false) {
         if (!this.players.has(id)) {
             // Balance teams automatically
             let redCount = 0;
@@ -55,11 +84,16 @@ class CodenamesGame {
                 if (p.team === 'blue') blueCount++;
             }
             const team = redCount <= blueCount ? 'red' : 'blue';
+            // A bot takes the spymaster seat if its team has none yet
+            const teamHasSpymaster = Array.from(this.players.values())
+                .some(o => o.team === team && o.role === 'spymaster');
             this.players.set(id, {
                 id,
                 name: String(name).slice(0, 16),
+                color: color || '#00f3ff',
+                isBot: !!isBot,
                 team,
-                role: 'operative'
+                role: (isBot && !teamHasSpymaster) ? 'spymaster' : 'operative'
             });
         }
         return this.players.get(id);
@@ -85,7 +119,7 @@ class CodenamesGame {
 
     startNewGame() {
         // Pick 25 random unique words
-        const shuffledWords = shuffleArray([...CODENAMES_WORDS]).slice(0, 25);
+        const shuffledWords = shuffleArray([...new Set(CODENAMES_WORDS)]).slice(0, 25);
 
         // Decide starting team randomly
         this.startingTeam = Math.random() < 0.5 ? 'red' : 'blue';
@@ -116,6 +150,8 @@ class CodenamesGame {
         this.guessesLeft = 0;
         this.winner = null;
         this.gameStatus = 'PLAYING';
+        this.timeLeft = this.timerSeconds;
+        this.botTimer = 1.5;
         this.logs = [`Das Spiel beginnt! Team ${this.startingTeam === 'red' ? 'Rot' : 'Blau'} fängt an.`];
     }
 
@@ -157,6 +193,7 @@ class CodenamesGame {
         this.clueWord = clueWord;
         this.clueCount = Math.min(9, Math.max(1, parseInt(count, 10) || 1));
         this.guessesLeft = this.clueCount + 1; // standard rules: count + 1 bonus guess
+        this.timeLeft = this.timerSeconds;     // guessing phase gets a fresh timer
         const teamName = this.currentTurn === 'red' ? 'Team Rot' : 'Team Blau';
         this.logs.unshift(`${teamName} Spionchef gibt Hinweis: "${this.clueWord} ${this.clueCount}"`);
         return true;
@@ -227,12 +264,93 @@ class CodenamesGame {
             if (this.gameStatus !== 'PLAYING' || !p || p.team !== this.currentTurn) return false;
         }
         this.currentTurn = this.currentTurn === 'red' ? 'blue' : 'red';
+        this.timeLeft = this.timerSeconds;
         this.clueWord = '';
         this.clueCount = 0;
         this.guessesLeft = 0;
         const nextTeam = this.currentTurn === 'red' ? 'Team Rot' : 'Team Blau';
         this.logs.unshift(`Zugwechsel! ${nextTeam} ist an der Reihe.`);
         return true;
+    }
+
+    /**
+     * Host tick: round timer + bot actions. Returns true when the visible state changed.
+     */
+    update(dt) {
+        if (this.gameStatus !== 'PLAYING') return false;
+        let changed = false;
+
+        if (this.timerSeconds > 0) {
+            const before = Math.ceil(this.timeLeft);
+            this.timeLeft -= dt;
+            if (this.timeLeft <= 0) {
+                this.logs.unshift('⏰ Zeit abgelaufen!');
+                this.endTurn();
+                return true;
+            }
+            if (Math.ceil(this.timeLeft) !== before) changed = true;
+        }
+
+        this.botTimer -= dt;
+        if (this.botTimer <= 0) {
+            this.botTimer = 1.4 + Math.random() * 1.2;
+            if (this.runBot()) changed = true;
+        }
+        return changed;
+    }
+
+    runBot() {
+        const bots = Array.from(this.players.values()).filter(p => p.isBot && p.team === this.currentTurn);
+        if (!this.clueWord) {
+            const spy = bots.find(p => p.role === 'spymaster');
+            if (!spy) return false;
+            const { clue, count } = this.botPickClue(this.currentTurn);
+            return this.giveClue(clue, count, spy.id);
+        }
+        if (this.guessesLeft > 0) {
+            const op = bots.find(p => p.role === 'operative');
+            if (!op) return false;
+            const card = this.botPickCard();
+            if (!card) return this.endTurn(op.id);
+            this.revealCard(card.id, op.id);
+            return true;
+        }
+        return false;
+    }
+
+    botPickClue(team) {
+        const enemy = team === 'red' ? 'blue' : 'red';
+        const open = this.board.filter(c => !c.revealed);
+        let best = null;
+        for (const cat of CODENAMES_CATEGORIES) {
+            let own = 0;
+            let penalty = 0;
+            for (const c of open) {
+                if (!cat.words.includes(c.word)) continue;
+                if (c.type === team) own++;
+                else if (c.type === enemy) penalty += 3;
+                else if (c.type === 'assassin') penalty += 20;
+            }
+            const score = own * 2 - penalty;
+            if (own > 0 && score > 0 && (!best || score > best.score)) {
+                best = { clue: cat.clue, count: Math.min(own, 4), score };
+            }
+        }
+        return best || { clue: 'IRGENDWAS', count: 1 };
+    }
+
+    botPickCard() {
+        const open = this.board.filter(c => !c.revealed);
+        if (open.length === 0) return null;
+        const pick = list => list[Math.floor(Math.random() * list.length)];
+        const cat = CODENAMES_CATEGORIES.find(c => c.clue === this.clueWord);
+        const guessesMade = this.clueCount + 1 - this.guessesLeft;
+        if (cat) {
+            const matches = open.filter(c => cat.words.includes(c.word));
+            if (matches.length > 0) return pick(matches);
+        }
+        // Clue not understood: gamble on the first guess only, then stop
+        return guessesMade === 0 ? pick(open) : null;
     }
 
     /**
@@ -255,7 +373,8 @@ class CodenamesGame {
             id: p.id,
             name: p.name,
             team: p.team,
-            role: p.role
+            role: p.role,
+            isBot: p.isBot
         }));
 
         return {
@@ -268,6 +387,8 @@ class CodenamesGame {
             clueWord: this.clueWord,
             clueCount: this.clueCount,
             guessesLeft: this.guessesLeft,
+            timerSeconds: this.timerSeconds,
+            timeLeft: Math.max(0, Math.ceil(this.timeLeft)),
             winner: this.winner,
             logs: this.logs.slice(0, 10),
             cards,
