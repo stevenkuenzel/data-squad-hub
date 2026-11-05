@@ -1402,7 +1402,55 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(!idle.active && !idle.fwd && !idle.left, 'Stick: deadzone is ignored');
     const far = sandbox.padStickToDirs(400, 0, 40, 10);
     assert(Math.abs(far.x - 40) < 1e-9 && far.right, 'Stick: deflection is clamped to the radius');
+    assert(Math.abs(sandbox.padStickToDirs(20, 0, 40, 10).mag - 0.5) < 1e-9 && sandbox.padStickToDirs(400, 0, 40, 10).mag === 1, 'Stick: magnitude is relative to the radius (0..1)');
     assert(sandbox.padHasController('dodgeball') && !sandbox.padHasController('uno'), 'Pad: controllers exist for realtime games only');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: TANK ZWEI-STICK-STEUERUNG
+// ----------------------------------------------------
+{
+    console.log('--- Tank: Zwei-Stick-Steuerung ---');
+    const tg = new sandbox.TankGame();
+    tg.addPlayer('t1', 'T1', '#fff', false);
+    tg.startMatch(3);
+    tg.walls = []; // freies Feld
+    tg.pickupsEnabled = false;
+    tg.status = 'PLAYING';
+    const t1 = tg.players.get('t1');
+    t1.x = 600; t1.y = 400; t1.angle = 0; t1.cooldown = 0;
+
+    tg.setTwinStick('t1', 0, -1, null, false);
+    for (let i = 0; i < 25; i++) tg.update(0.02);
+    assert(t1.y < 400 - 40 && Math.abs(t1.x - 600) < 1, 'Twin: left stick drives in any direction (straight up)');
+    assert(Math.abs(Math.atan2(Math.sin(t1.angle), Math.cos(t1.angle)) - (-Math.PI / 2)) < 0.2, 'Twin: without aim the tank faces its driving direction');
+
+    t1.x = 600; t1.y = 400; t1.angle = 0;
+    tg.setTwinStick('t1', 1, 0, Math.PI / 2, false);
+    for (let i = 0; i < 40; i++) tg.update(0.02);
+    assert(t1.x > 600 + 40 && Math.abs(t1.angle - Math.PI / 2) < 0.05, 'Twin: aim stick turns the barrel independently of the driving direction');
+
+    const bulletsBefore = tg.bullets.length;
+    tg.setTwinStick('t1', 0, 0, Math.PI / 2, true);
+    tg.update(0.02);
+    assert(tg.bullets.length === bulletsBefore + 1, 'Twin: pulling the aim stick fully fires a bullet');
+    tg.setTwinStick('t1', 0, 0, null, true);
+    assert(t1.inputShoot === false, 'Twin: no aim direction means no shot');
+
+    tg.setTwinStick('t1', NaN, 'x', Infinity, true);
+    assert(t1.moveX === 0 && t1.moveY === 0 && t1.aimAngle === null && !t1.inputShoot, 'Twin: invalid values from peers are ignored');
+    tg.setTwinStick('t1', 50, 0, 0, false);
+    assert(Math.abs(Math.hypot(t1.moveX, t1.moveY) - 1) < 1e-9, 'Twin: stick vector is clamped to length 1');
+
+    tg.walls = [{ x1: 700, y1: 0, x2: 700, y2: 800 }];
+    t1.x = 670; t1.y = 400;
+    tg.setTwinStick('t1', 1, 1, null, false);
+    const y0 = t1.y;
+    for (let i = 0; i < 20; i++) tg.update(0.02);
+    assert(t1.x < 700 && t1.y > y0 + 20, 'Twin: tank slides along a wall instead of sticking');
+
+    tg.setInput('t1', true, false, false, false, false);
+    assert(t1.twin === false, 'Twin: keyboard input switches back to classic controls');
 }
 
 console.log('\n========================================');

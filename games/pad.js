@@ -18,6 +18,7 @@ function padStickToDirs(dx, dy, radius = 40, deadzone = 10) {
         left: x < -deadzone,
         right: x > deadzone,
         active: Math.hypot(x, y) > deadzone,
+        mag: radius > 0 ? Math.min(1, Math.hypot(x, y) / radius) : 0, // 0..1 relativ zum Radius
         angle: Math.atan2(y, x)
     };
 }

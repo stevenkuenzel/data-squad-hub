@@ -101,7 +101,12 @@ class TankGame {
                 inputBack: false,
                 inputLeft: false,
                 inputRight: false,
-                inputShoot: false
+                inputShoot: false,
+                // Zwei-Stick-Steuerung (Handy): freie Fahrtrichtung + getrenntes Zielen
+                twin: false,
+                moveX: 0,
+                moveY: 0,
+                aimAngle: null
             });
         }
         return this.players.get(id);
@@ -119,7 +124,33 @@ class TankGame {
             p.inputLeft = !!left;
             p.inputRight = !!right;
             p.inputShoot = !!shoot;
+            p.twin = false;
         }
+    }
+
+    // Zwei Analog-Sticks: (mx, my) fährt in beliebige Richtung (Länge 0..1), aim dreht Rohr und Panzer,
+    // fire schießt. Alle Werte kommen von Peers und werden hier geprüft.
+    setTwinStick(id, mx, my, aim, fire) {
+        const p = this.players.get(id);
+        if (!p) return;
+        let x = Number.isFinite(mx) ? mx : 0;
+        let y = Number.isFinite(my) ? my : 0;
+        const len = Math.hypot(x, y);
+        if (len > 1) { x /= len; y /= len; }
+        p.twin = true;
+        p.moveX = x;
+        p.moveY = y;
+        p.aimAngle = Number.isFinite(aim) ? aim : null;
+        p.inputShoot = !!fire && p.aimAngle !== null;
+        p.inputFwd = p.inputBack = p.inputLeft = p.inputRight = false;
+    }
+
+    // Dreht den Panzer höchstens um maxStep in Richtung target (kürzester Weg)
+    turnTowards(p, target, maxStep) {
+        let diff = target - p.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        p.angle += Math.max(-maxStep, Math.min(maxStep, diff));
     }
 
     generateMaze() {
@@ -271,6 +302,21 @@ class TankGame {
 
             if (p.isBot) {
                 this.updateTankBot(p, dt);
+            }
+
+            if (p.twin) {
+                // Zwei-Stick-Steuerung: Zielstick bestimmt die Blickrichtung, sonst die Fahrtrichtung
+                const moving = Math.hypot(p.moveX, p.moveY) > 0.05;
+                if (p.aimAngle !== null) this.turnTowards(p, p.aimAngle, TANK_TURN_SPEED * 2.5 * dt);
+                else if (moving) this.turnTowards(p, Math.atan2(p.moveY, p.moveX), TANK_TURN_SPEED * 2.5 * dt);
+                if (moving) {
+                    const dx = p.moveX * TANK_SPEED * dt;
+                    const dy = p.moveY * TANK_SPEED * dt;
+                    // An Wänden entlanggleiten statt hängen zu bleiben
+                    if (!this.checkTankWallCollision(p.x + dx, p.y + dy)) { p.x += dx; p.y += dy; }
+                    else if (!this.checkTankWallCollision(p.x + dx, p.y)) p.x += dx;
+                    else if (!this.checkTankWallCollision(p.x, p.y + dy)) p.y += dy;
+                }
             }
 
             // Turning

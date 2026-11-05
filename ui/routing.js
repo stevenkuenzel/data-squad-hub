@@ -14,7 +14,9 @@ function handleHostGameEvent(type, payload, senderId) {
         if (activeGameType === 'curve') {
             curveGame.setPlayerInput(senderId, payload.left, payload.right);
         } else if (activeGameType === 'tank') {
-            tankGame.setInput(senderId, payload.fwd, payload.back, payload.left, payload.right, payload.shoot);
+            const t = payload.twin;
+            if (t && typeof t === 'object') tankGame.setTwinStick(senderId, t.mx, t.my, t.aim, t.fire);
+            else tankGame.setInput(senderId, payload.fwd, payload.back, payload.left, payload.right, payload.shoot);
         } else if (activeGameType === 'pong') {
             octaPongGame.setInput(senderId, payload.left, payload.right);
         }

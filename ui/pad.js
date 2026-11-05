@@ -14,6 +14,8 @@ let padActive = false;      // Controller ist gerade sichtbar (Spielfeld wird da
 let padBuiltFor = '';       // für welches Spiel der Controller aufgebaut ist
 let padWakeLock = null;
 let padStatusTimer = null;
+// Tank-Zwei-Stick-Eingabe, wird von ui/main.js (sendClientInputs) abgeholt
+const tankTwin = { on: false, mx: 0, my: 0, aim: null, fire: false };
 
 if (optPad) optPad.addEventListener('change', () => { padMode = optPad.checked; });
 padMode = isPadRequested();
@@ -23,6 +25,9 @@ const PAD_KEY_CODES = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space
 
 function padReleaseAll() {
     PAD_KEY_CODES.forEach(code => { keys[code] = false; });
+    tankTwin.mx = tankTwin.my = 0;
+    tankTwin.aim = null;
+    tankTwin.fire = false;
     padBody.querySelectorAll('.pad-btn.active').forEach(el => el.classList.remove('active'));
     padBody.querySelectorAll('.pad-knob').forEach(el => { el.style.transform = 'translate(0px, 0px)'; });
 }
@@ -61,13 +66,14 @@ function padStick(zone, onMove) {
             radius * 0.7,
             radius * 0.18
         );
+        d.radius = radius * 0.7;
         knob.style.transform = `translate(${d.x}px, ${d.y}px)`;
         onMove(d);
     };
     const end = () => {
         pointerId = null;
         knob.style.transform = 'translate(0px, 0px)';
-        onMove({ fwd: false, back: false, left: false, right: false, active: false, angle: 0 });
+        onMove({ fwd: false, back: false, left: false, right: false, active: false, angle: 0, mag: 0, radius: 1 });
     };
 
     zone.addEventListener('pointerdown', (e) => {
@@ -106,10 +112,19 @@ function buildPad(gameType) {
         padHoldButton(document.getElementById('pad-left'), down => { keys.ArrowLeft = down; });
         padHoldButton(document.getElementById('pad-right'), down => { keys.ArrowRight = down; });
     } else if (gameType === 'tank') {
-        padBody.innerHTML = `<div class="pad-zone" id="pad-move">${stickMarkup}</div>` +
-            '<div class="pad-zone"><button class="pad-btn pad-fire" id="pad-fire" type="button">💥<small>FEUER</small></button></div>';
-        padStick(document.getElementById('pad-move'), setDirKeys);
-        padHoldButton(document.getElementById('pad-fire'), down => { keys.Space = down; });
+        // Zwei Sticks: links fahren, rechts zielen (voll auslenken = Feuer)
+        padBody.innerHTML = `<div class="pad-zone" id="pad-move">${stickMarkup}<small class="pad-label">FAHREN</small></div>` +
+            `<div class="pad-zone" id="pad-aim">${stickMarkup}<small class="pad-label">ZIELEN · VOLL AUSLENKEN = FEUER</small></div>`;
+        padStick(document.getElementById('pad-move'), (d) => {
+            // d.x / d.y sind auf den Stick-Radius begrenzt; auf 0..1 normieren
+            tankTwin.mx = d.active ? d.x / d.radius : 0;
+            tankTwin.my = d.active ? d.y / d.radius : 0;
+        });
+        padStick(document.getElementById('pad-aim'), (d) => {
+            tankTwin.aim = d.active ? d.angle : null;
+            tankTwin.fire = d.active && d.mag > 0.85;
+        });
+        tankTwin.on = true;
     } else if (gameType === 'dodgeball') {
         padBody.innerHTML = `<div class="pad-zone" id="pad-move">${stickMarkup}</div>` +
             '<div class="pad-zone pad-actions">' +
@@ -168,6 +183,7 @@ function updatePadVisibility(screenEl) {
         padRequestWakeLock();
     } else {
         padReleaseAll();
+        tankTwin.on = false;
         padBuiltFor = '';
         if (padStatusTimer) { clearInterval(padStatusTimer); padStatusTimer = null; }
         if (padWakeLock) { padWakeLock.release().catch(() => {}); padWakeLock = null; }

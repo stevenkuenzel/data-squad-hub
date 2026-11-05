@@ -98,6 +98,11 @@ function sendClientInputs() {
         const right = !!(keys.ArrowRight || keys.KeyD);
         networkManager.sendToHost('INPUT', { left, right });
     } else if (activeGameType === 'tank') {
+        if (tankTwin.on) {
+            // Handy-Controller mit zwei Sticks
+            networkManager.sendToHost('INPUT', { twin: { mx: tankTwin.mx, my: tankTwin.my, aim: tankTwin.aim, fire: tankTwin.fire } });
+            return;
+        }
         const fwd = !!(keys.ArrowUp || keys.KeyW);
         const back = !!(keys.ArrowDown || keys.KeyS);
         const left = !!(keys.ArrowLeft || keys.KeyA);

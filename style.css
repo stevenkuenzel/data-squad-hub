@@ -2268,6 +2268,8 @@ body.pad-active .reaction-bar { display: none !important; }
     pointer-events: none;
 }
 
+.pad-tank .pad-base { width: min(44vw, 42vh, 260px); }
+.pad-label { text-align: center; font-size: 0.7rem; letter-spacing: 1.5px; color: var(--text-muted); }
 .pad-fire { flex: 1; border-color: rgba(255, 0, 127, 0.6); }
 .pad-fire.active { background: rgba(255, 0, 127, 0.35); border-color: var(--pink); }
 .pad-dash { flex: 1; border-color: rgba(255, 215, 0, 0.6); font-size: 2.4rem; }
@@ -2275,7 +2277,7 @@ body.pad-active .reaction-bar { display: none !important; }
 
 /* Hochkant: Aktionen unter dem Stick statt daneben */
 @media (orientation: portrait) {
-    .pad-tank, .pad-dodgeball { flex-direction: column; }
+    .pad-dodgeball { flex-direction: column; }
     .pad-actions { flex-direction: row; }
 }
 
@@ -2358,4 +2360,70 @@ body.pad-active .reaction-bar { display: none !important; }
     .skribbl-tools { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
     .sk-color-btn { width: 30px; height: 30px; }
     .skribbl-chat-panel { min-height: 130px; max-height: 30vh; flex: none; }
+}
+
+/* ================= UNO & Co.: Handy im Querformat / dynamische Viewport-Höhe ================= */
+/* 94vh ist auf Handys höher als der sichtbare Bereich (Adressleiste) – die Hand rutschte aus dem Bild */
+@media (min-width: 641px) {
+    .uno-container, .roulette-container, .codenames-container, .skribbl-layout { height: 94vh; height: 94dvh; }
+}
+.uno-table { min-height: 0; }
+.uno-player-section { flex: 0 0 auto; }
+
+@media (orientation: landscape) and (max-height: 520px) {
+    .uno-container {
+        width: 100%;
+        height: 100dvh;
+        max-width: none;
+        padding: 4px 8px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 52%);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 4px 8px;
+        overflow: hidden;
+    }
+    .uno-header { grid-column: 1 / -1; margin: 0; gap: 6px; }
+    .uno-opponents-bar { grid-column: 1 / -1; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; min-height: 0; margin: 0; }
+    .uno-opponent-badge { flex: 0 0 auto; white-space: nowrap; padding: 2px 8px; }
+    .uno-table { grid-column: 1; grid-row: 3; margin: 0; }
+    .uno-pile-container { gap: 16px; }
+    .uno-deck { width: 56px; height: 84px; }
+    .uno-card { width: 54px; height: 80px; padding: 3px; border-width: 2px; }
+    .uno-player-section { grid-column: 2; grid-row: 3; min-height: 0; overflow: hidden; padding: 6px 8px; }
+    .uno-hand-container {
+        flex: 1;
+        min-height: 0;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        justify-content: center;
+        overflow-x: hidden;
+        overflow-y: auto;
+        gap: 5px;
+        padding: 4px 2px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .uno-hand-container .uno-card { width: 54px; height: 80px; }
+    .hud-pill { padding: 2px 8px; font-size: 0.72rem; white-space: nowrap; }
+    .icon-btn { width: 30px; height: 30px; font-size: 0.85rem; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+    body.in-room .reaction-bar { display: none; left: auto; right: 40px; bottom: 10px; }
+    body.in-room .reaction-bar.open { display: flex; }
+    body.in-room:not(.pad-active):not(.beamer-mode) .reaction-toggle {
+        display: flex;
+        position: fixed;
+        right: 3px;
+        bottom: 10px;
+        z-index: 911;
+        width: 32px;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid var(--border-color);
+        background: rgba(10, 14, 26, 0.82);
+        font-size: 1.1rem;
+        opacity: 0.65;
+    }
 }

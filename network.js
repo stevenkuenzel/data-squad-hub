@@ -152,6 +152,14 @@ class NetworkManager {
                 debug: 1
             });
 
+            // Without a timeout the UI hangs on "Verbinde..." when the broker or the host never answers
+            const attemptPeer = this.peer;
+            const joinTimer = setTimeout(() => {
+                attemptPeer.destroy(); // verhindert eine verspätete Verbindung nach dem Abbruch
+                reject(new Error('Zeitüberschreitung beim Verbinden'));
+            }, 15000);
+            const done = (fn, arg) => { clearTimeout(joinTimer); fn(arg); };
+
             this.peer.on('open', (id) => {
                 this.myPeerId = id;
                 console.log(`[Net] Client initialized with ID: ${id}. Connecting to host: ${hostPeerId}`);
@@ -164,7 +172,7 @@ class NetworkManager {
                     console.log('[Net] Successfully connected to host!');
                     this.hostConn = conn;
                     this.startPingInterval();
-                    resolve(this.roomCode);
+                    done(resolve, this.roomCode);
                 });
 
                 conn.on('data', (data) => {
@@ -180,13 +188,13 @@ class NetworkManager {
 
                 conn.on('error', (err) => {
                     console.error('[Net] Host connection error:', err);
-                    reject(err);
+                    done(reject, err);
                 });
             });
 
             this.peer.on('error', (err) => {
                 console.error('[Net] Client Peer error:', err);
-                reject(err);
+                done(reject, err);
             });
         });
     }
