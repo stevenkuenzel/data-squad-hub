@@ -576,38 +576,71 @@ canvas {
 .touch-controls {
     display: none;
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
     justify-content: space-between;
-    z-index: 15;
+    align-items: flex-end;
+    z-index: 30;
     pointer-events: none;
 }
 
 .touch-btn {
     pointer-events: auto;
-    width: 75px;
-    height: 75px;
+    width: 66px;
+    height: 66px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(0, 243, 255, 0.4);
     color: #fff;
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.08s, background-color 0.08s;
 }
 
-.touch-btn:active {
-    background: rgba(0, 243, 255, 0.4);
+.touch-btn:active, .touch-btn.active {
+    background: rgba(0, 243, 255, 0.35);
     border-color: var(--cyan);
+    transform: scale(0.92);
 }
 
-@media (pointer: coarse) {
+.tank-dpad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.tank-dpad-row {
+    display: flex;
+    gap: 8px;
+}
+
+.shoot-btn {
+    width: 76px;
+    height: 76px;
+    background: rgba(239, 68, 68, 0.35);
+    border-color: var(--red);
+    font-size: 1.8rem;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+}
+
+.shoot-btn:active, .shoot-btn.active {
+    background: rgba(239, 68, 68, 0.7);
+    border-color: #ff6666;
+    transform: scale(0.92);
+}
+
+@media (pointer: coarse), (max-width: 900px) {
     .touch-controls {
-        display: flex;
+        display: flex !important;
     }
 }
 
@@ -1007,12 +1040,235 @@ canvas {
     margin-top: 12px;
 }
 
-/* ================= 6. TANK SPECIFIC ================= */
-.tank-touch {
+/* ================= 7. HUB & LOBBY ENHANCEMENTS ================= */
+.card-btn-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn-card-help {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.lobby-rules-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+
+.lobby-rules-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.lobby-rules-content {
+    font-size: 0.84rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* ================= 8. INSTRUCTIONS MODAL ================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 7, 16, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-card {
+    background: #0d1224;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 243, 255, 0.15);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.instructions-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.instructions-tabs::-webkit-scrollbar {
     display: none;
 }
 
-.shoot-btn {
-    background: rgba(255, 51, 51, 0.4);
-    border-color: var(--red);
+.inst-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.inst-tab:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.inst-tab.active {
+    background: rgba(0, 243, 255, 0.15);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.2);
+}
+
+.instructions-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #cbd5e1;
+}
+
+.inst-panel h4 {
+    margin: 0 0 8px 0;
+    color: #fff;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inst-block {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.inst-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: var(--cyan);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+/* ================= 9. RESPONSIVE MOBILE OPTIMIZATION ================= */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 6px;
+    }
+
+    .hud-bar {
+        top: 6px;
+        left: 8px;
+        right: 8px;
+        gap: 6px;
+    }
+
+    .hud-pill {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+    }
+
+    .canvas-wrapper canvas {
+        max-height: calc(100vh - 175px);
+    }
+
+    /* Codenames Mobile Grid */
+    .codenames-container {
+        height: auto;
+        min-height: 94vh;
+        width: 98%;
+    }
+
+    .codenames-roster-bar {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .codenames-grid {
+        gap: 5px;
+        max-height: 54vh;
+    }
+
+    .cn-card {
+        font-size: clamp(0.68rem, 2.6vw, 0.95rem);
+        min-height: 48px;
+        padding: 4px 2px;
+    }
+
+    /* Skribbl Mobile Layout */
+    .skribbl-layout {
+        height: auto;
+        min-height: 94vh;
+    }
+
+    .skribbl-main {
+        flex-direction: column;
+        height: auto;
+        gap: 8px;
+    }
+
+    .skribbl-players-panel {
+        width: 100%;
+        max-height: 70px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        overflow-x: auto;
+    }
+
+    .skribbl-canvas-wrapper {
+        min-height: 260px;
+    }
+
+    .skribbl-chat-panel {
+        width: 100%;
+        height: 180px;
+    }
+
+    /* Hub Games Grid */
+    .games-grid {
+        grid-template-columns: 1fr;
+    }
 }

@@ -216,6 +216,7 @@
         lobbyGameTitle.textContent = titles[gameType] || 'Lobby';
         curveSettings.style.display = gameType === 'curve' ? 'block' : 'none';
         btnAddBot.style.display = (gameType === 'codenames' || gameType === 'skribbl') ? 'none' : 'block';
+        updateLobbyInstructions(gameType);
     }
 
     // Host Game from Card
@@ -462,12 +463,26 @@
         if (e.code in keys) keys[e.code] = false;
     });
 
-    // Touch controls
+    // Ergonomic Multi-Touch Controls (Pointer & Touch Events)
     const bindTouch = (elId, code) => {
         const el = document.getElementById(elId);
         if (!el) return;
-        el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[code] = true; }, { passive: false });
-        el.addEventListener('touchend', (e) => { e.preventDefault(); keys[code] = false; }, { passive: false });
+        const press = (e) => {
+            e.preventDefault();
+            keys[code] = true;
+            el.classList.add('active');
+        };
+        const release = (e) => {
+            e.preventDefault();
+            keys[code] = false;
+            el.classList.remove('active');
+        };
+        el.addEventListener('pointerdown', press, { passive: false });
+        el.addEventListener('pointerup', release, { passive: false });
+        el.addEventListener('pointercancel', release, { passive: false });
+        el.addEventListener('pointerleave', release, { passive: false });
+        el.addEventListener('touchstart', press, { passive: false });
+        el.addEventListener('touchend', release, { passive: false });
     };
 
     bindTouch('curve-touch-left', 'ArrowLeft');
@@ -475,9 +490,172 @@
     bindTouch('tank-touch-left', 'ArrowLeft');
     bindTouch('tank-touch-right', 'ArrowRight');
     bindTouch('tank-touch-fwd', 'ArrowUp');
+    bindTouch('tank-touch-back', 'ArrowDown');
     bindTouch('tank-touch-shoot', 'Space');
     bindTouch('pong-touch-left', 'ArrowLeft');
     bindTouch('pong-touch-right', 'ArrowRight');
+
+    // ==========================================
+    // GAME INSTRUCTIONS & HELP MODAL SYSTEM
+    // ==========================================
+    const GAME_INSTRUCTIONS = {
+        curve: {
+            title: '🐍 Curve Arena (Achtung die Kurve / Tron)',
+            goal: 'Überlebe als Letzter im Spielfeld! Schneide deinen Gegnern den Weg ab und berühre weder den Rand noch gezogene Linien.',
+            controls: [
+                '💻 <strong>Desktop-Tastatur:</strong> <code>◀</code> / <code>▶</code> oder <code>A</code> / <code>D</code> zum Lenken.',
+                '📱 <strong>Mobile Touch:</strong> <code>◀</code> und <code>▶</code> Touch-Buttons am unteren Bildschirmrand antippen.'
+            ],
+            tip: '💡 <strong>Lücken-Mechanik:</strong> Deine Linie bekommt in regelmäßigen Abständen kurze Löcher. Nutze diese Lücken, um kreuzende Linien gefahrlos zu durchqueren!'
+        },
+        codenames: {
+            title: '🕵️ Codenames (Team-Worträtsel)',
+            goal: 'Finde als erstes Team alle geheimen Wörter eurer Farbe (Rot oder Blau) auf dem 5x5-Feld, ohne den Attentäter aufzudecken!',
+            roles: [
+                '🕵️ <strong>Spionchef:</strong> Sieht alle Farben (Rot, Blau, Zivilist, Attentäter). Gibt pro Runde 1 Hinweis-Wort + Anzahl (z. B. <em>"WASSER 2"</em>). Darf selbst keine Karten anklicken!',
+                '👥 <strong>Ermittler:</strong> Beraten sich im Team und tippen auf die Karten, die zum Hinweis passen.'
+            ],
+            controls: [
+                'Ermittler am Zug tippen auf die vermuteten Wortkarten.',
+                'Spionchefs tragen Wort & Anzahl in die Hinweis-Leiste ein und klicken "Hinweis geben".',
+                'Klicke "Zug beenden", wenn ihr keine weiteren Versuche wagen möchtet.'
+            ],
+            tip: '⚠️ <strong>Attentäter-Warnung:</strong> Wer die schwarze Karte aufdeckt, verliert das gesamte Spiel auf der Stelle!'
+        },
+        skribbl: {
+            title: '🎨 Montagsmaler (Skribbl)',
+            goal: 'Sammle Punkte durch schnelles Raten und verständliches Zeichnen im ständigen Wechsel.',
+            roles: [
+                '🎨 <strong>Der Maler:</strong> Wählt zu Beginn 1 von 3 Begriffen und zeichnet ihn auf der Leinwand. (Maler ist im Chat gesperrt, um kein Wort zu leaken).',
+                '💡 <strong>Die Rater:</strong> Tippen Vermutungen in das Chatfeld ein.'
+            ],
+            controls: [
+                '🎨 <strong>Maler:</strong> Mit Maus oder Finger auf der Leinwand zeichnen. Farbpalette und Pinselgröße wählbar.',
+                '💡 <strong>Rater:</strong> Textfeld nutzen & Absenden / Enter drücken.'
+            ],
+            tip: '⚡ <strong>Punktevergabe:</strong> Je schneller das Wort erraten wird, desto mehr Punkte erhalten Rater und Maler!'
+        },
+        tank: {
+            title: '💥 Tank Trouble (2D Panzer-Schlacht)',
+            goal: 'Zerstöre gegnerische Panzer mit abprallenden Querschlägern und sei der letzte Überlebende der Runde!',
+            controls: [
+                '💻 <strong>Desktop:</strong> <code>W</code> / <code>S</code> oder <code>▲</code> / <code>▼</code> (Fahren), <code>A</code> / <code>D</code> oder <code>◀</code> / <code>▶</code> (Drehen), <code>Leertaste</code> (Feuer).',
+                '📱 <strong>Mobile:</strong> Virtuelles Steuerkreuz links (Vor, Zurück, Drehen) & 💥 Feuer-Knopf rechts.'
+            ],
+            tip: '💥 <strong>Querschläger:</strong> Schüsse prallen bis zu 5-mal an Wänden ab. Pass auf, dass du dich nicht selbst abschießt! Maximal 5 Kugeln gleichzeitig aktiv.'
+        },
+        pong: {
+            title: '🏓 Octa-Pong (8-Spieler Achteck-Pong)',
+            goal: 'Verteidige deine Kante des regelmäßigen Achtecks! Wer 4 Bälle kassiert, scheidet aus. Wer als Letzter noch Leben hat, gewinnt.',
+            controls: [
+                '💻 <strong>Desktop:</strong> <code>◀</code> / <code>▶</code> oder <code>A</code> / <code>D</code> zum Verschieben deines Schlägers.',
+                '📱 <strong>Mobile:</strong> <code>◀</code> und <code>▶</code> Touch-Buttons links und rechts.'
+            ],
+            tip: '🌀 <strong>Schnitt & Speed:</strong> Triffst du den Ball mit der Ecke deines Schlägers, wird er mit extra Schnitt und höherem Tempo abgelenkt!'
+        }
+    };
+
+    const modalInstructions = document.getElementById('modal-instructions');
+    const instructionsBody = document.getElementById('instructions-body');
+    const btnCloseInstructions = document.getElementById('btn-close-instructions');
+    const instTabs = document.querySelectorAll('.inst-tab');
+    const lobbyRulesText = document.getElementById('lobby-rules-text');
+
+    function renderInstructionPanel(gameType) {
+        const info = GAME_INSTRUCTIONS[gameType] || GAME_INSTRUCTIONS.curve;
+        let html = `<div class="inst-panel">
+            <h4>${info.title}</h4>
+            <div class="inst-block">
+                <div class="inst-label">🎯 Spielziel</div>
+                <div>${info.goal}</div>
+            </div>`;
+
+        if (info.roles) {
+            html += `<div class="inst-block">
+                <div class="inst-label">👥 Rollen & Aufgaben</div>
+                ${info.roles.map(r => `<div style="margin-bottom: 4px;">${r}</div>`).join('')}
+            </div>`;
+        }
+
+        if (info.controls) {
+            html += `<div class="inst-block">
+                <div class="inst-label">🎮 Steuerung</div>
+                ${info.controls.map(c => `<div style="margin-bottom: 4px;">${c}</div>`).join('')}
+            </div>`;
+        }
+
+        if (info.tip) {
+            html += `<div class="inst-block" style="border-color: rgba(0, 243, 255, 0.3); background: rgba(0, 243, 255, 0.05);">
+                <div class="inst-label" style="color: var(--cyan);">💡 Tipp & Besonderheit</div>
+                <div>${info.tip}</div>
+            </div>`;
+        }
+
+        html += `</div>`;
+        if (instructionsBody) instructionsBody.innerHTML = html;
+
+        instTabs.forEach(t => {
+            t.classList.toggle('active', t.getAttribute('data-game') === gameType);
+        });
+    }
+
+    function openInstructionsModal(gameType) {
+        if (!modalInstructions) return;
+        renderInstructionPanel(gameType || activeGameType || 'curve');
+        modalInstructions.style.display = 'flex';
+        if (window.soundFX) window.soundFX.playClick();
+    }
+
+    function closeInstructionsModal() {
+        if (!modalInstructions) return;
+        modalInstructions.style.display = 'none';
+        if (window.soundFX) window.soundFX.playClick();
+    }
+
+    function updateLobbyInstructions(gameType) {
+        if (!lobbyRulesText) return;
+        const info = GAME_INSTRUCTIONS[gameType] || GAME_INSTRUCTIONS.curve;
+        lobbyRulesText.innerHTML = `<strong>${info.title}:</strong> ${info.goal} <span style="color: var(--cyan); margin-left: 4px;">${info.tip || ''}</span>`;
+    }
+
+    if (btnCloseInstructions) btnCloseInstructions.addEventListener('click', closeInstructionsModal);
+    if (modalInstructions) {
+        modalInstructions.addEventListener('click', (e) => {
+            if (e.target === modalInstructions) closeInstructionsModal();
+        });
+    }
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalInstructions && modalInstructions.style.display === 'flex') {
+            closeInstructionsModal();
+        }
+    });
+
+    instTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const g = tab.getAttribute('data-game');
+            renderInstructionPanel(g);
+        });
+    });
+
+    document.querySelectorAll('.btn-instructions-toggle').forEach(b => {
+        b.addEventListener('click', () => {
+            const g = b.getAttribute('data-game') || activeGameType;
+            openInstructionsModal(g);
+        });
+    });
+
+    document.querySelectorAll('.btn-card-help').forEach(b => {
+        b.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const g = b.getAttribute('data-game');
+            openInstructionsModal(g);
+        });
+    });
+
+    const btnLobbyHelp = document.getElementById('btn-lobby-help');
+    if (btnLobbyHelp) {
+        btnLobbyHelp.addEventListener('click', () => openInstructionsModal(activeGameType));
+    }
 
     // Curve settings
     if (btnToggleGaps) {
