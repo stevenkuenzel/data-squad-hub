@@ -27,9 +27,9 @@
 ---
 
 # Code-Review-Funde (offen)
-- [ ] **Kein Zug-Timer bei UNO, Roulette (und Codenames ohne Timer):** Ein verbundener, aber untätiger Mensch blockiert das Spiel dauerhaft (Farbwahl, Tausch, Zug). Idee: Idle-Zähler (z. B. 45 s), dann Auto-Zug (ziehen/Farbe wählen/`endTurn`). (`games/uno.js`, `games/roulette.js`)
-- [ ] **UNO: Ziehen unbegrenzt wiederholbar, kein „Passen“:** Auch mit spielbaren Karten auf der Hand lässt sich beliebig oft ziehen (bläht die Statistik `draws` auf, schaltet „collector“ frei). Idee: nur einmal pro Zug ziehen, dann spielen oder passen. Ebenso: „UNO!“ ist rein kosmetisch, keine Strafe, keine +4-Anfechtung (evtl. bewusst).
-- [ ] **Curve: Reihenfolge-Bias bei Frontalcrash und Gleichstand:** Spieler werden nacheinander bewegt; wer in der Map-Reihenfolge früher kommt, überlebt einen gleichzeitigen Crash. Idee: Tode pro Tick sammeln, danach Punkte vergeben. (`games/curve.js`)
+- [x] **Zug-Timer bei UNO und Roulette:** -> Erledigt: UNO 45 s (automatischer Zug, der Spieler bleibt ein Mensch), Roulette 60 s (Zug verfällt); jede Aktion setzt den Timer zurück. Codenames hat bereits einen einstellbaren Rundentimer.
+- [x] **UNO: einmal ziehen und Passen:** -> Erledigt: pro Zug nur noch einmal ziehen (außer bei offener Strafe), danach spielen oder „Passen ➔“. „UNO!“-Pflicht/+4-Anfechtung bleiben bewusst weg.
+- [x] **Curve: Frontalcrash unabhängig von der Spielerreihenfolge:** -> Erledigt: Kollisionen werden gegen den Stand vor dem Tick geprüft, neue Segmente danach eingetragen, Punkte nur an Überlebende des Ticks; Rundensieger wird sofort (nicht einen Tick später) ermittelt.
 
 # 💡 Feature-Ideen für mehr Teambuilding-Spaß
 

@@ -55,6 +55,9 @@ function handleHostGameEvent(type, payload, senderId) {
     } else if (type === 'UNO_DRAW') {
         unoGame.playerDrawCard(senderId);
         broadcastUnoState();
+    } else if (type === 'UNO_PASS') {
+        unoGame.passTurn(senderId);
+        broadcastUnoState();
     } else if (type === 'UNO_CALL') {
         unoGame.callUno(senderId);
         broadcastUnoState();

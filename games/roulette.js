@@ -32,6 +32,8 @@ const ROULETTE_CARDS = [
     { id: 'vorstand_demo', category: 'action', title: 'Vorstandspräsentation', icon: '👑', value: 35, count: 3, desc: 'Direkter Segen vom Vorstand: +35% Fortschritt!' }
 ];
 
+const ROULETTE_TURN_LIMIT = 60; // Sekunden pro Zug für Menschen
+
 class FreigabeRouletteGame {
     constructor() {
         this.players = new Map(); // id -> Player
@@ -46,6 +48,7 @@ class FreigabeRouletteGame {
         this.cardsPlayedThisTurn = 0;
         this.maxCardsPerTurn = 2;
         this.botActionTimer = 0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
         this.lastAction = null;
     }
 
@@ -121,6 +124,7 @@ class FreigabeRouletteGame {
         this.logs = ['Das Freigabe-Roulette beginnt! Wer schafft den ersten Go-Live?'];
         this.cardsPlayedThisTurn = 0;
         this.botActionTimer = 1.0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
 
         // Deal 5 cards to each player and reset progress
         for (const p of this.players.values()) {
@@ -250,6 +254,7 @@ class FreigabeRouletteGame {
         }
 
         if (window.soundFX) window.soundFX.playClick();
+        this.turnTimer = ROULETTE_TURN_LIMIT; // jede Aktion verlängert den Zug
 
         // Check if player exhausted turn cards
         if (this.cardsPlayedThisTurn >= this.maxCardsPerTurn) {
@@ -302,6 +307,7 @@ class FreigabeRouletteGame {
         this.turnIndex = (this.turnIndex + 1) % this.playerOrder.length;
         this.cardsPlayedThisTurn = 0;
         this.botActionTimer = 1.0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
 
         const nextP = this.getCurrentPlayer();
         if (nextP) {
@@ -325,6 +331,13 @@ class FreigabeRouletteGame {
             this.botActionTimer -= dt;
             if (this.botActionTimer <= 0) {
                 this.runBotTurn(curr);
+            }
+        } else if (curr) {
+            // Zug-Timer: ein untätiger Mensch blockiert sonst das ganze Spiel
+            this.turnTimer -= dt;
+            if (this.turnTimer <= 0) {
+                this.logs.unshift(`⏰ ${curr.name} war zu langsam – der Zug verfällt.`);
+                this.endTurn();
             }
         }
     }

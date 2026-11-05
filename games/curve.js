@@ -356,14 +356,14 @@ class CurveGame {
             }
         }
 
-        // Move alive players
-        let aliveCount = 0;
-        let lastAlivePlayer = null;
+        // Move alive players. Kollisionen werden für alle gegen den Stand VOR diesem Tick geprüft
+        // (neue Segmente erst danach eintragen, Tode erst danach werten) – so hängt ein Frontalcrash
+        // nicht von der Reihenfolge der Spieler ab.
+        const diedThisTick = [];
+        const pendingSegments = [];
 
         for (const p of this.players.values()) {
             if (!p.alive) continue;
-            aliveCount++;
-            lastAlivePlayer = p;
 
             // Player effects lookup
             const pEffects = this.activeEffects.filter(e => e.targetPlayerId === p.id);
@@ -433,13 +433,7 @@ class CurveGame {
                 bumpStat(this, p.id, 'survival', this.roundElapsed, true);
                 this.spawnExplosion(p.x, p.y, p.color);
                 if (window.soundFX) window.soundFX.playDie();
-
-                // Award 1 point to all currently alive players
-                for (const other of this.players.values()) {
-                    if (other.alive && other.id !== p.id) {
-                        other.score += 1;
-                    }
-                }
+                diedThisTick.push(p);
                 continue;
             }
 
@@ -457,9 +451,7 @@ class CurveGame {
                     y2: nextY
                 };
 
-                this.segments.push(seg);
-                this.newSegmentsQueue.push(seg);
-                this.grid.addSegment(seg);
+                pendingSegments.push(seg);
 
                 p.recentSegments.push(seg.id);
                 // Keep only last 8 recent segments in exclusion queue
@@ -484,6 +476,18 @@ class CurveGame {
                 }
             }
         }
+
+        for (const seg of pendingSegments) {
+            this.segments.push(seg);
+            this.newSegmentsQueue.push(seg);
+            this.grid.addSegment(seg);
+        }
+
+        // Jeder Tod bringt allen, die diesen Tick überleben, 1 Punkt
+        const survivors = Array.from(this.players.values()).filter(p => p.alive);
+        for (const survivor of survivors) survivor.score += diedThisTick.length;
+        const aliveCount = survivors.length;
+        const lastAlivePlayer = survivors.length > 0 ? survivors[survivors.length - 1] : null;
 
         this.updateParticles(dt);
 

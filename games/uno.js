@@ -10,6 +10,7 @@
  */
 
 const UNO_COLORS = ['red', 'blue', 'green', 'yellow'];
+const UNO_TURN_LIMIT = 45; // Sekunden, die ein Mensch für seinen Zug hat
 const UNO_VALUES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'reverse', 'draw2'];
 
 class UnoGame {
@@ -26,6 +27,8 @@ class UnoGame {
         this.awaitingColorChoice = false;
         this.colorChooserPlayerId = null;
         this.botActionTimer = 0;
+        this.turnTimer = UNO_TURN_LIMIT;
+        this.drewThisTurn = false;
         this.logs = [];
         this.nextCardId = 1;
 
@@ -135,6 +138,8 @@ class UnoGame {
         this.turnIndex = 0;
         this.status = 'PLAYING';
         this.botActionTimer = 1.0;
+        this.turnTimer = UNO_TURN_LIMIT;
+        this.drewThisTurn = false;
 
         this.logs.unshift(`Startkarte: ${this.formatCardName(firstCard)}`);
         return true;
@@ -383,6 +388,10 @@ class UnoGame {
             return null;
         }
 
+        // Ohne offene Strafe: nur einmal pro Zug ziehen, danach spielen oder passen
+        if (this.drewThisTurn) return null;
+        this.drewThisTurn = true;
+
         const drawn = this.drawCardFromPile();
         curr.hand.push(drawn);
         bumpStat(this, curr.id, 'draws');
@@ -422,7 +431,20 @@ class UnoGame {
         return this.players.get(this.playerOrder[nextIdx]);
     }
 
+    // Nach dem Ziehen einer spielbaren Karte darf man passen, statt sie zu spielen
+    passTurn(playerId) {
+        if (this.status !== 'PLAYING' || !this.drewThisTurn) return false;
+        const curr = this.getCurrentPlayer();
+        if (!curr || curr.id !== playerId) return false;
+        if (this.awaitingColorChoice || this.awaitingSwap || this.pendingDraw > 0) return false;
+        this.logs.unshift(`${curr.name} passt`);
+        this.advanceTurn();
+        return true;
+    }
+
     advanceTurn() {
+        this.drewThisTurn = false;
+        this.turnTimer = UNO_TURN_LIMIT;
         this.turnIndex = (this.turnIndex + this.direction) % this.playerOrder.length;
         if (this.turnIndex < 0) this.turnIndex += this.playerOrder.length;
         this.botActionTimer = 0.9 + Math.random() * 0.5; // Bot reaction delay
@@ -436,6 +458,15 @@ class UnoGame {
             this.botActionTimer -= dt;
             if (this.botActionTimer <= 0) {
                 this.runBotTurn(curr);
+            }
+        } else if (curr) {
+            // Zug-Timer: ein untätiger Mensch blockiert sonst das ganze Spiel
+            this.turnTimer -= dt;
+            if (this.turnTimer <= 0) {
+                this.logs.unshift(`⏰ ${curr.name} war zu langsam – automatischer Zug.`);
+                this.runBotTurn(curr);
+                // Offene Farb-/Tauschwahl gleich im nächsten Schritt erledigen
+                this.turnTimer = (this.awaitingColorChoice || this.awaitingSwap) ? 1 : UNO_TURN_LIMIT;
             }
         }
     }
@@ -554,6 +585,7 @@ class UnoGame {
             swapChooserId: this.swapChooserId,
             pendingDraw: this.pendingDraw,
             pendingType: this.pendingType,
+            drewThisTurn: this.drewThisTurn,
             rules: this.rules,
             winner: this.winner ? this.winner.name : null,
             players: playersList,

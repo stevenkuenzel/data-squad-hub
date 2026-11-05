@@ -1543,6 +1543,70 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(evS.totals.s.wins === 0 && evS.totals.c.wins === 0, 'Evening: niemand bekommt einen Sieg, wenn das Siegerteam leer ist');
 }
 
+// ----------------------------------------------------
+// TEST SUITE: ZUG-TIMER, UNO-ZIEHEN/PASSEN, CURVE-CRASH-FAIRNESS
+// ----------------------------------------------------
+{
+    console.log('--- Timer, UNO draw/pass, Curve crash ---');
+    const unoT = new sandbox.UnoGame();
+    ['h1', 'h2', 'h3'].forEach(id => unoT.addPlayer(id, id, '#fff', false));
+    unoT.startMatch();
+    const first = unoT.getCurrentPlayer().id;
+
+    // Einmal ziehen pro Zug
+    unoT.discardPile.push({ id: 9001, color: 'red', value: '5' });
+    unoT.activeColor = 'red';
+    unoT.drawPile.push({ id: 9002, color: 'red', value: '7' }); // spielbar, wird gezogen
+    const handBefore = unoT.getCurrentPlayer().hand.length;
+    unoT.playerDrawCard(first);
+    const afterFirst = unoT.getCurrentPlayer().hand.length;
+    const second = unoT.playerDrawCard(first);
+    assert(afterFirst === handBefore + 1 && second === null && unoT.getCurrentPlayer().hand.length === afterFirst, 'UNO: pro Zug darf nur einmal gezogen werden');
+    assert(unoT.getSnapshot(first).drewThisTurn === true, 'UNO: Snapshot meldet, dass bereits gezogen wurde');
+    assert(unoT.passTurn('h-fremd') === false, 'UNO: nur der Spieler am Zug kann passen');
+    assert(unoT.passTurn(first) === true && unoT.getCurrentPlayer().id !== first, 'UNO: nach dem Ziehen kann man passen');
+    const nextId = unoT.getCurrentPlayer().id;
+    assert(unoT.passTurn(nextId) === false, 'UNO: ohne Ziehen kein Passen');
+
+    // Zug-Timer
+    const unoTimer = new sandbox.UnoGame();
+    ['t1', 't2'].forEach(id => unoTimer.addPlayer(id, id, '#fff', false));
+    unoTimer.startMatch();
+    const idleId = unoTimer.getCurrentPlayer().id;
+    for (let i = 0; i < 46 * 20; i++) unoTimer.update(0.05);
+    assert(unoTimer.getCurrentPlayer().id !== idleId || unoTimer.logs[0].includes('zu langsam') || unoTimer.logs.some(l => l.includes('zu langsam')), 'UNO: untätiger Mensch bekommt nach 45 s einen automatischen Zug');
+    assert(unoTimer.players.get(idleId).isBot === false, 'UNO: der Spieler bleibt ein Mensch');
+
+    const rT = new sandbox.FreigabeRouletteGame();
+    ['r1', 'r2'].forEach(id => rT.addPlayer(id, id, '#fff', false));
+    rT.startMatch();
+    const rIdle = rT.getCurrentPlayer().id;
+    for (let i = 0; i < 30 * 20; i++) rT.update(0.05);
+    assert(rT.getCurrentPlayer().id === rIdle, 'Roulette: vor Ablauf des Timers bleibt der Zug beim Spieler');
+    for (let i = 0; i < 31 * 20; i++) rT.update(0.05);
+    assert(rT.getCurrentPlayer().id !== rIdle, 'Roulette: nach 60 s verfällt der Zug eines untätigen Menschen');
+
+    // Curve: Frontalcrash unabhängig von der Spielerreihenfolge
+    const crash = (orderAB) => {
+        const cg = new sandbox.CurveGame();
+        const ids = orderAB ? ['a', 'b'] : ['b', 'a'];
+        ids.forEach(id => cg.addPlayer(id, id, '#fff', false));
+        cg.enableGaps = false;
+        cg.powerUpsEnabled = false;
+        cg.resetMatch();
+        cg.state = 'PLAYING';
+        const pa = cg.players.get('a'), pb = cg.players.get('b');
+        pa.x = 600; pa.y = 400; pa.angle = 0;
+        pb.x = 606; pb.y = 400; pb.angle = Math.PI;
+        for (let i = 0; i < 6 && cg.state === 'PLAYING'; i++) cg.update(0.016);
+        return { a: pa.alive, b: pb.alive, sa: pa.score, sb: pb.score };
+    };
+    const r1 = crash(true), r2 = crash(false);
+    assert(r1.a === r2.a && r1.b === r2.b && r1.sa === r2.sa && r1.sb === r2.sb, 'Curve: Ergebnis eines Frontalcrashs hängt nicht von der Spielerreihenfolge ab');
+    assert(r1.a === r1.b, 'Curve: bei einem Frontalcrash sterben beide gleichzeitig');
+    assert(r1.sa === 0 && r1.sb === 0, 'Curve: gleichzeitig Gestorbene bekommen keine Punkte voneinander');
+}
+
 console.log('\n========================================');
 console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('========================================\n');
