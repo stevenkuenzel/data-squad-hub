@@ -17,6 +17,10 @@ const PLAYER_COLORS = [
     { name: 'Solar Amber', hex: '#ffaa00', glow: 'rgba(255, 170, 0, 0.6)' },
     { name: 'Electric Violet', hex: '#bd00ff', glow: 'rgba(189, 0, 255, 0.6)' },
     { name: 'Crimson Glow', hex: '#ff3333', glow: 'rgba(255, 51, 51, 0.6)' },
+    { name: 'Emerald Wave', hex: '#00ffaa', glow: 'rgba(0, 255, 170, 0.6)' },
+    { name: 'Sky Azure', hex: '#0099ff', glow: 'rgba(0, 153, 255, 0.6)' },
+    { name: 'Hot Magenta', hex: '#ff00aa', glow: 'rgba(255, 0, 170, 0.6)' },
+    { name: 'Bright Gold', hex: '#ffd700', glow: 'rgba(255, 215, 0, 0.6)' }
 ];
 
 function distToSegmentSquared(px, py, x1, y1, x2, y2) {

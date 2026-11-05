@@ -59,7 +59,29 @@
     // App State
     const game = new CurveGame();
     let myPlayerId = 'p-local-' + Math.floor(Math.random() * 10000);
-    let selectedColor = PLAYER_COLORS[0].hex;
+
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function getUnusedColor() {
+        const usedHexes = new Set();
+        for (const p of game.players.values()) {
+            if (p.color) usedHexes.add(p.color.toLowerCase());
+        }
+        const available = PLAYER_COLORS.filter(c => !usedHexes.has(c.hex.toLowerCase()));
+        if (available.length > 0) {
+            return available[Math.floor(Math.random() * available.length)].hex;
+        }
+        return PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)].hex;
+    }
+
+    const randomInitialColorIdx = Math.floor(Math.random() * PLAYER_COLORS.length);
+    let selectedColor = PLAYER_COLORS[randomInitialColorIdx].hex;
     let isLocalMultiplayer = false;
     let localPlayer2Id = 'p-local-2';
 
@@ -75,10 +97,10 @@
     const savedName = localStorage.getItem('curve_player_name');
     if (savedName) playerNameInput.value = savedName;
 
-    // Build Color Picker
+    // Build Color Picker (Defaulting to a random vibrant color)
     PLAYER_COLORS.forEach((c, idx) => {
         const swatch = document.createElement('div');
-        swatch.className = 'color-option' + (idx === 0 ? ' selected' : '');
+        swatch.className = 'color-option' + (idx === randomInitialColorIdx ? ' selected' : '');
         swatch.style.backgroundColor = c.hex;
         swatch.title = c.name;
         swatch.addEventListener('click', () => {
@@ -170,8 +192,8 @@
         // HOST HANDLING
         if (networkManager.isHost) {
             if (type === 'JOIN') {
-                const assignedColor = PLAYER_COLORS[game.players.size % PLAYER_COLORS.length].hex;
-                game.addPlayer(senderId, payload.name, payload.color || assignedColor, false);
+                const assignedColor = getUnusedColor();
+                game.addPlayer(senderId, payload.name, assignedColor, false);
                 broadcastLobbyUpdate();
                 updateLobbyUI();
             } else if (type === 'INPUT') {
@@ -307,7 +329,8 @@
             lobbyRoleText.textContent = 'Du bist der Host. Lade Freunde ein!';
 
             game.players.clear();
-            game.addPlayer(myPlayerId, getPlayerName(), selectedColor, false);
+            const hostColor = selectedColor || getUnusedColor();
+            game.addPlayer(myPlayerId, getPlayerName(), hostColor, false);
 
             updateLobbyUI();
             switchScreen(lobbyScreen);
@@ -366,10 +389,14 @@
         myPlayerId = 'p-human';
 
         game.players.clear();
-        game.addPlayer('p-human', getPlayerName(), selectedColor, false);
-        game.addPlayer('bot-1', 'Bot Viper', PLAYER_COLORS[1].hex, true);
-        game.addPlayer('bot-2', 'Bot Nova', PLAYER_COLORS[2].hex, true);
-        game.addPlayer('bot-3', 'Bot Ghost', PLAYER_COLORS[4].hex, true);
+        const shuffled = shuffleArray([...PLAYER_COLORS]);
+        game.addPlayer('p-human', getPlayerName(), selectedColor || shuffled[0].hex, false);
+
+        const botNames = ['Bot Viper', 'Bot Nova', 'Bot Ghost', 'Bot Apex', 'Bot Cyber'];
+        for (let i = 0; i < 3; i++) {
+            const bColor = shuffled[i + 1] ? shuffled[i + 1].hex : PLAYER_COLORS[i].hex;
+            game.addPlayer(`bot-${i + 1}`, botNames[i], bColor, true);
+        }
 
         hudRoomCode.textContent = 'SOLO';
         hudPingPill.style.display = 'none';
@@ -388,8 +415,11 @@
         localPlayer2Id = 'p2-wasd';
 
         game.players.clear();
-        game.addPlayer(myPlayerId, `${getPlayerName()} (Pfeile)`, selectedColor, false);
-        const p2Color = selectedColor === PLAYER_COLORS[1].hex ? PLAYER_COLORS[0].hex : PLAYER_COLORS[1].hex;
+        const shuffled = shuffleArray([...PLAYER_COLORS]);
+        const p1Color = selectedColor || shuffled[0].hex;
+        const p2Color = shuffled.find(c => c.hex !== p1Color).hex;
+
+        game.addPlayer(myPlayerId, `${getPlayerName()} (Pfeile)`, p1Color, false);
         game.addPlayer(localPlayer2Id, 'Spieler 2 (A / D)', p2Color, false);
 
         hudRoomCode.textContent = 'LOCAL 2P';
@@ -423,8 +453,8 @@
         if (window.soundFX) window.soundFX.playClick();
         const botIndex = game.players.size;
         const botId = `bot-${botIndex}`;
-        const botColor = PLAYER_COLORS[botIndex % PLAYER_COLORS.length].hex;
-        const botNames = ['Cyber', 'Pulse', 'Shadow', 'Apex', 'Matrix', 'Volt'];
+        const botColor = getUnusedColor();
+        const botNames = ['Cyber', 'Pulse', 'Shadow', 'Apex', 'Matrix', 'Volt', 'Specter', 'Titan', 'Viper'];
         const botName = 'Bot ' + botNames[(botIndex - 1) % botNames.length];
 
         game.addPlayer(botId, botName, botColor, true);
