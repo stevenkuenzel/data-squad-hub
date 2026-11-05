@@ -19,53 +19,92 @@
 </head>
 <body>
     <div id="app">
-        <!-- ================= HOME SCREEN ================= -->
+        <!-- ================= 1. HUB HOME SCREEN ================= -->
         <div id="home-screen" class="screen active">
-            <div class="card">
+            <div class="hub-container">
                 <div class="logo-container">
                     <h1 class="title">DataSquad Hub</h1>
-                    <p class="subtitle">Distributed Stream Matrix • P2P Cluster</p>
+                    <p class="subtitle">Interaktive Team-Plattform • Erstellt von Jimmy</p>
                 </div>
 
-                <div class="input-group">
-                    <label for="player-name">Dein Spielername</label>
-                    <input type="text" id="player-name" maxlength="15" value="Player 1" placeholder="Name eingeben...">
-                </div>
-
-                <div class="input-group">
-                    <label>Farbe wählen</label>
-                    <div class="color-picker" id="color-picker">
-                        <!-- Populated dynamically via JS -->
+                <!-- Profile & Quick Join Bar -->
+                <div class="hub-profile-bar">
+                    <div class="input-inline">
+                        <label for="player-name">Name:</label>
+                        <input type="text" id="player-name" maxlength="15" value="Player 1">
+                    </div>
+                    <div class="color-picker-mini" id="color-picker" title="Farbkennung wählen"></div>
+                    <div class="join-inline">
+                        <input type="text" id="join-code-input" placeholder="CODE (z.B. AB123)" maxlength="6">
+                        <button id="btn-join-room" class="btn btn-primary btn-sm">Beitreten</button>
                     </div>
                 </div>
 
-                <div class="btn-grid">
-                    <button id="btn-host-room" class="btn btn-primary">
-                        <span>Raum erstellen (Host)</span>
-                    </button>
-
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="join-code-input" placeholder="CODE (z.B. AB123)" style="text-transform: uppercase; font-family: 'Orbitron', monospace; font-weight: bold; letter-spacing: 2px;">
-                        <button id="btn-join-room" class="btn btn-secondary" style="white-space: nowrap;">Beitreten</button>
+                <!-- Game Cards Selection Grid -->
+                <div class="hub-games-grid">
+                    <!-- 1. Curve Arena -->
+                    <div class="game-card" data-game="curve">
+                        <div class="game-card-icon">🐍</div>
+                        <div class="game-card-info">
+                            <h3>Curve Arena</h3>
+                            <p>Neon-Linien & Ausweichmanöver. Schneide Gegner ab und kreuze Linien durch Lücken!</p>
+                            <span class="game-card-meta">2 - 12 Spieler • Echtzeit-Arcade</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm btn-host-game" data-game="curve">Hosten</button>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-top: 6px;">
-                        <button id="btn-vs-bot" class="btn btn-secondary btn-sm" style="flex: 1;">
-                            Solo vs. Bots
-                        </button>
-                        <button id="btn-local-2p" class="btn btn-secondary btn-sm" style="flex: 1;">
-                            1 Tastatur (2P)
-                        </button>
+                    <!-- 2. Codenames -->
+                    <div class="game-card" data-game="codenames">
+                        <div class="game-card-icon">🕵️</div>
+                        <div class="game-card-info">
+                            <h3>Codenames</h3>
+                            <p>Team Rot vs. Team Blau. Finde die geheimen Agenten anhand von Hinweisen des Spionchefs!</p>
+                            <span class="game-card-meta">4 - 12 Spieler • Worträtsel (Deutsch)</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm btn-host-game" data-game="codenames">Hosten</button>
+                    </div>
+
+                    <!-- 3. Montagsmaler / Skribbl -->
+                    <div class="game-card" data-game="skribbl">
+                        <div class="game-card-icon">🎨</div>
+                        <div class="game-card-info">
+                            <h3>Montagsmaler</h3>
+                            <p>Einer zeichnet, alle raten! Sammle Punkte durch Schnelligkeit im Live-Chat.</p>
+                            <span class="game-card-meta">2 - 12 Spieler • Kreativ & Raten</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm btn-host-game" data-game="skribbl">Hosten</button>
+                    </div>
+
+                    <!-- 4. Tank Trouble -->
+                    <div class="game-card" data-game="tank">
+                        <div class="game-card-icon">💥</div>
+                        <div class="game-card-info">
+                            <h3>Tank Trouble</h3>
+                            <p>2D-Panzer im Labyrinth. Schüsse prallen von den Wänden ab – Vorsicht vor Querschlägern!</p>
+                            <span class="game-card-meta">2 - 8 Spieler • Bouncing-Action</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm btn-host-game" data-game="tank">Hosten</button>
+                    </div>
+
+                    <!-- 5. Octa-Pong -->
+                    <div class="game-card" data-game="pong">
+                        <div class="game-card-icon">🏓</div>
+                        <div class="game-card-info">
+                            <h3>Octa-Pong</h3>
+                            <p>8-Spieler Achteck-Pong mit Diagonalen! Verteidige deine Seite gegen rasante Bälle.</p>
+                            <span class="game-card-meta">2 - 8 Spieler • Diagonales Pong</span>
+                        </div>
+                        <button class="btn btn-secondary btn-sm btn-host-game" data-game="pong">Hosten</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= LOBBY SCREEN ================= -->
+        <!-- ================= 2. UNIVERSAL LOBBY SCREEN ================= -->
         <div id="lobby-screen" class="screen">
             <div class="card">
                 <div class="logo-container">
-                    <h2 class="title" style="font-size: 1.8rem;">Spiel-Lobby</h2>
+                    <h2 class="title" id="lobby-game-title" style="font-size: 1.8rem;">Spiel-Lobby</h2>
                     <p class="subtitle" id="lobby-role-text">Warte auf Mitspieler...</p>
                 </div>
 
@@ -78,47 +117,36 @@
                 </div>
 
                 <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
-                    Spieler (<span id="player-count">1</span>/12)
+                    Spieler (<span id="player-count">1</span>/<span id="lobby-max-players">12</span>)
                 </div>
-                <ul id="lobby-player-list" class="player-list">
-                    <!-- Populated dynamically -->
-                </ul>
+                <ul id="lobby-player-list" class="player-list"></ul>
 
-                <!-- Lobby Settings for Host -->
-                <div id="host-settings" style="margin: 12px 0; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                <!-- Curve Settings -->
+                <div id="curve-settings" class="game-specific-settings" style="display: none;">
+                    <div class="setting-row">
                         <div>
-                            <div style="font-size: 0.85rem; font-weight: bold; color: #fff;">Lücken im Schweif</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">Curve-Mechanik zum Durchqueren</div>
+                            <div class="setting-title">Lücken im Schweif</div>
+                            <div class="setting-desc">Curve-Mechanik zum Durchqueren</div>
                         </div>
-                        <button id="btn-toggle-gaps" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;">AN</button>
+                        <button id="btn-toggle-gaps" class="btn btn-secondary btn-sm">AN</button>
                     </div>
-
-                    <div style="padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <div class="setting-row">
                         <div>
-                            <div style="font-size: 0.85rem; font-weight: bold; color: #fff;">Bot-Schwierigkeit</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">KI-Intelligenz einstellen</div>
+                            <div class="setting-title">Bot-Schwierigkeit</div>
+                            <div class="setting-desc">KI-Intelligenz einstellen</div>
                         </div>
-                        <div class="diff-btn-group" id="diff-selector" style="display: flex; gap: 4px;">
-                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="easy" style="padding: 3px 8px; font-size: 0.75rem;">Leicht</button>
-                            <button class="btn btn-sm btn-secondary diff-btn active" data-diff="medium" style="padding: 3px 8px; font-size: 0.75rem; border-color: var(--cyan); color: var(--cyan);">Mittel</button>
-                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="hard" style="padding: 3px 8px; font-size: 0.75rem;">Schwer</button>
-                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="insane" style="padding: 3px 8px; font-size: 0.75rem;">Profi</button>
+                        <div class="diff-btn-group" id="diff-selector">
+                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="easy">Leicht</button>
+                            <button class="btn btn-sm btn-secondary diff-btn active" data-diff="medium">Mittel</button>
+                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="hard">Schwer</button>
+                            <button class="btn btn-sm btn-secondary diff-btn" data-diff="insane">Profi</button>
                         </div>
                     </div>
-                </div>
-
-                <div class="lobby-tip" style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; padding: 8px 12px; background: rgba(0, 243, 255, 0.05); border-left: 3px solid var(--cyan); border-radius: 4px;">
-                    💡 <strong>Hinweis:</strong> Die Lücken in den Linien sind das Kernelement von Curve Fever, damit du gegnerische Spuren kreuzen kannst!
                 </div>
 
                 <div class="btn-grid" id="host-lobby-controls">
-                    <button id="btn-add-bot" class="btn btn-secondary">
-                        + Bot hinzufügen
-                    </button>
-                    <button id="btn-start-game" class="btn btn-primary">
-                        Spiel starten
-                    </button>
+                    <button id="btn-add-bot" class="btn btn-secondary">+ Bot hinzufügen</button>
+                    <button id="btn-start-game" class="btn btn-primary">Spiel starten</button>
                 </div>
 
                 <div id="client-lobby-notice" style="display: none; text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-top: 15px;">
@@ -126,80 +154,211 @@
                 </div>
 
                 <button id="btn-leave-lobby" class="btn btn-danger btn-sm" style="margin-top: 15px; width: 100%;">
-                    Lobby verlassen
+                    Zurück zum Hub
                 </button>
             </div>
         </div>
 
-        <!-- ================= GAMEPLAY SCREEN ================= -->
-        <div id="game-screen" class="screen">
-            <!-- HUD -->
+        <!-- ================= 3. GAME VIEW: CURVE ARENA ================= -->
+        <div id="game-curve" class="game-view">
             <div class="hud-bar">
                 <div class="hud-left">
-                    <div class="hud-pill">
-                        <span>RUNDE</span>
-                        <strong id="hud-round-display">1 / 5</strong>
-                    </div>
-                    <div class="hud-pill" id="hud-room-pill" style="cursor: pointer;" title="Klicken zum Kopieren">
-                        <span>RAUM:</span>
-                        <strong id="hud-room-code">-----</strong>
-                    </div>
+                    <button class="btn-hub-back icon-btn" title="Zurück zum Hub">◂</button>
+                    <div class="hud-pill"><span>RUNDE</span><strong id="curve-round-display">1 / 5</strong></div>
+                    <div class="hud-pill" id="curve-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="curve-room-code">-----</strong></div>
                 </div>
-
-                <div class="hud-scores" id="hud-scores-container">
-                    <!-- Dynamic player score badges -->
-                </div>
-
+                <div class="hud-scores" id="curve-scores-container"></div>
                 <div class="hud-right">
-                    <div class="hud-pill" id="hud-ping-pill" style="display: none;">
-                        <span id="hud-ping-text">0 ms</span>
-                    </div>
-                    <button class="icon-btn" id="btn-mute" title="Sound ein/aus">🔊</button>
-                    <button class="icon-btn" id="btn-fullscreen" title="Vollbild">⛶</button>
-                    <button class="icon-btn" id="btn-quit" title="Zurück zur Lobby">✕</button>
+                    <button class="icon-btn btn-mute-toggle" title="Sound">🔊</button>
+                    <button class="icon-btn btn-fullscreen-toggle" title="Vollbild">⛶</button>
                 </div>
             </div>
-
-            <!-- Canvas Viewport -->
             <div class="canvas-wrapper">
-                <canvas id="gameCanvas" width="1200" height="800"></canvas>
+                <canvas id="curveCanvas" width="1200" height="800"></canvas>
             </div>
-
-            <!-- Overlays -->
-            <div class="overlay-center" id="countdown-overlay" style="display: none;">
-                <div class="countdown-display" id="countdown-number">3</div>
-                <div id="countdown-hint" style="font-size: 1rem; color: var(--cyan); margin-top: 10px; font-weight: 600; text-shadow: 0 0 10px rgba(0,243,255,0.5);">
-                    Steuerung: ◀ / ▶ oder A / D
-                </div>
+            <div class="overlay-center" id="curve-countdown-overlay" style="display: none;">
+                <div class="countdown-display" id="curve-countdown-num">3</div>
+                <div class="countdown-hint">Steuerung: ◀ / ▶ oder A / D</div>
             </div>
-
-            <div class="overlay-center" id="round-over-overlay" style="display: none;">
+            <div class="overlay-center" id="curve-winner-overlay" style="display: none;">
                 <div class="round-over-box">
-                    <h2 class="winner-title" id="round-winner-text" style="color: var(--cyan);">RUNDE VORBEI</h2>
-                    <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 12px;">Nächste Runde beginnt gleich...</p>
+                    <h2 class="winner-title" id="curve-winner-text">🏆 RUNDE VORBEI</h2>
+                    <button class="btn btn-primary btn-play-again-curve" style="margin-top: 15px; width: 100%;">Nochmal spielen</button>
                 </div>
             </div>
-
-            <div class="overlay-center" id="match-over-overlay" style="display: none;">
-                <div class="round-over-box">
-                    <h2 class="winner-title" id="match-winner-text" style="color: #ffaa00;">🏆 SIEGER!</h2>
-                    <p id="match-winner-sub" style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 20px;">hat das Match gewonnen!</p>
-                    <button id="btn-play-again" class="btn btn-primary" style="width: 100%;">Noch einmal spielen</button>
-                </div>
-            </div>
-
-            <!-- Mobile Touch Steering -->
             <div class="touch-controls">
-                <button class="touch-btn" id="touch-left">◀</button>
-                <button class="touch-btn" id="touch-right">▶</button>
+                <button class="touch-btn" id="curve-touch-left">◀</button>
+                <button class="touch-btn" id="curve-touch-right">▶</button>
+            </div>
+        </div>
+
+        <!-- ================= 4. GAME VIEW: CODENAMES ================= -->
+        <div id="game-codenames" class="game-view">
+            <div class="codenames-container">
+                <div class="codenames-header">
+                    <div class="hud-left">
+                        <button class="btn-hub-back icon-btn" title="Zurück zum Hub">◂</button>
+                        <div class="hud-pill"><span id="cn-turn-indicator" style="font-weight: bold; color: #ff3333;">TEAM ROT IST AM ZUG</span></div>
+                        <div class="hud-pill" style="cursor: pointer;" id="cn-room-pill"><span>RAUM:</span><strong id="cn-room-code">-----</strong></div>
+                    </div>
+                    <div class="codenames-scores">
+                        <span class="cn-score-tag red">Rot: <strong id="cn-score-red">9</strong></span>
+                        <span class="cn-score-tag blue">Blau: <strong id="cn-score-blue">8</strong></span>
+                    </div>
+                    <div class="hud-right">
+                        <button class="btn btn-secondary btn-sm" id="btn-toggle-spymaster">Rolle: Agent</button>
+                        <button class="icon-btn btn-mute-toggle">🔊</button>
+                    </div>
+                </div>
+
+                <!-- 5x5 Card Grid -->
+                <div class="codenames-grid" id="codenames-board"></div>
+
+                <!-- Controls & Clue Bar -->
+                <div class="codenames-controls">
+                    <div id="cn-spymaster-bar" class="cn-action-bar" style="display: none;">
+                        <input type="text" id="cn-clue-word" placeholder="Hinweis-Wort (z.B. WASSER)" maxlength="20">
+                        <select id="cn-clue-count">
+                            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                            <option value="4">4</option><option value="5">5</option><option value="9">∞</option>
+                        </select>
+                        <button id="btn-give-clue" class="btn btn-primary btn-sm">Hinweis geben</button>
+                    </div>
+                    <div id="cn-operative-bar" class="cn-action-bar">
+                        <span id="cn-current-clue-display" style="font-weight: bold; color: #fff;">Warte auf Hinweis...</span>
+                        <button id="btn-end-turn" class="btn btn-secondary btn-sm">Zug beenden</button>
+                    </div>
+                </div>
+
+                <div class="codenames-log" id="codenames-log"></div>
+            </div>
+        </div>
+
+        <!-- ================= 5. GAME VIEW: SKRIBBL ================= -->
+        <div id="game-skribbl" class="game-view">
+            <div class="skribbl-layout">
+                <!-- Top Status Bar -->
+                <div class="skribbl-header">
+                    <button class="btn-hub-back icon-btn">◂</button>
+                    <div class="hud-pill"><span>ZEIT:</span><strong id="sk-time-left" style="color: var(--cyan);">60s</strong></div>
+                    <div class="skribbl-word-hint" id="sk-word-hint">_ _ _ _ _</div>
+                    <div class="hud-pill"><span>RUNDE:</span><strong id="sk-round-num">1 / 3</strong></div>
+                    <button class="icon-btn btn-mute-toggle">🔊</button>
+                </div>
+
+                <div class="skribbl-main">
+                    <!-- Left: Player Scoreboard -->
+                    <div class="skribbl-players-panel" id="sk-players-list"></div>
+
+                    <!-- Center: Drawing Area -->
+                    <div class="skribbl-canvas-wrapper">
+                        <canvas id="skribblCanvas" width="800" height="600"></canvas>
+                        <!-- Drawing Tools (Only visible for drawer) -->
+                        <div class="skribbl-tools" id="sk-draw-tools">
+                            <div class="sk-colors" id="sk-color-palette"></div>
+                            <div class="sk-sizes">
+                                <button class="size-btn active" data-size="4">•</button>
+                                <button class="size-btn" data-size="8">●</button>
+                                <button class="size-btn" data-size="16">⬤</button>
+                            </div>
+                            <button id="btn-sk-clear" class="btn btn-secondary btn-sm">Löschen</button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Live Guessing Chat -->
+                    <div class="skribbl-chat-panel">
+                        <div class="skribbl-chat-log" id="sk-chat-log"></div>
+                        <form id="sk-chat-form" class="skribbl-chat-input">
+                            <input type="text" id="sk-guess-input" placeholder="Begriff raten..." autocomplete="off">
+                            <button type="submit" class="btn btn-primary btn-sm">Senden</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Word Choice Modal -->
+                <div class="overlay-center" id="sk-word-choice-overlay" style="display: none;">
+                    <div class="round-over-box">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 12px; color: var(--cyan);">Wähle ein Wort zum Zeichnen:</h2>
+                        <div class="word-choice-btns" id="sk-word-choice-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 6. GAME VIEW: TANK TROUBLE ================= -->
+        <div id="game-tank" class="game-view">
+            <div class="hud-bar">
+                <div class="hud-left">
+                    <button class="btn-hub-back icon-btn">◂</button>
+                    <div class="hud-pill"><span>RUNDE</span><strong id="tank-round-display">1 / 5</strong></div>
+                    <div class="hud-pill" id="tank-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="tank-room-code">-----</strong></div>
+                </div>
+                <div class="hud-scores" id="tank-scores-container"></div>
+                <div class="hud-right">
+                    <button class="icon-btn btn-mute-toggle">🔊</button>
+                    <button class="icon-btn btn-fullscreen-toggle">⛶</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="tankCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="overlay-center" id="tank-winner-overlay" style="display: none;">
+                <div class="round-over-box">
+                    <h2 class="winner-title" id="tank-winner-text">RUNDE VORBEI</h2>
+                </div>
+            </div>
+            <div class="touch-controls tank-touch">
+                <div style="display: flex; gap: 8px;">
+                    <button class="touch-btn" id="tank-touch-left">◀</button>
+                    <button class="touch-btn" id="tank-touch-fwd">▲</button>
+                    <button class="touch-btn" id="tank-touch-right">▶</button>
+                </div>
+                <button class="touch-btn shoot-btn" id="tank-touch-shoot">💥</button>
+            </div>
+        </div>
+
+        <!-- ================= 7. GAME VIEW: OCTA-PONG ================= -->
+        <div id="game-pong" class="game-view">
+            <div class="hud-bar">
+                <div class="hud-left">
+                    <button class="btn-hub-back icon-btn">◂</button>
+                    <div class="hud-pill"><span>OCTA-PONG</span><strong>8-SPIELER</strong></div>
+                    <div class="hud-pill" id="pong-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="pong-room-code">-----</strong></div>
+                </div>
+                <div class="hud-scores" id="pong-scores-container"></div>
+                <div class="hud-right">
+                    <button class="icon-btn btn-mute-toggle">🔊</button>
+                    <button class="icon-btn btn-fullscreen-toggle">⛶</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="pongCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="overlay-center" id="pong-countdown-overlay" style="display: none;">
+                <div class="countdown-display" id="pong-countdown-num">3</div>
+                <div class="countdown-hint">Steuerung: ◀ / ▶ oder A / D</div>
+            </div>
+            <div class="overlay-center" id="pong-winner-overlay" style="display: none;">
+                <div class="round-over-box">
+                    <h2 class="winner-title" id="pong-winner-text">SIEG!</h2>
+                    <button class="btn btn-primary btn-play-again-pong" style="margin-top: 15px; width: 100%;">Nochmal spielen</button>
+                </div>
+            </div>
+            <div class="touch-controls">
+                <button class="touch-btn" id="pong-touch-left">◀</button>
+                <button class="touch-btn" id="pong-touch-right">▶</button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts (Modular Architecture) -->
     <script src="audio.js"></script>
     <script src="network.js"></script>
     <script src="game.js"></script>
+    <script src="games/codenames.js"></script>
+    <script src="games/skribbl.js"></script>
+    <script src="games/tank.js"></script>
+    <script src="games/pong.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
