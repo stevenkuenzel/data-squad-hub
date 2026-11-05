@@ -1623,3 +1623,72 @@ canvas {
 .color-pick-btn.color-blue { background: #3b82f6; }
 .color-pick-btn.color-green { background: #10b981; }
 .color-pick-btn.color-yellow { background: #f59e0b; color: #000; }
+
+/* ================= 11. CORPORATE DODGEBALL SPECIFIC ================= */
+#dodgeballCanvas {
+    background: #070913;
+    border: 2px solid rgba(0, 243, 255, 0.35);
+    box-shadow: 0 0 35px rgba(0, 243, 255, 0.15);
+    border-radius: 8px;
+    max-width: 98vw;
+    max-height: 94vh;
+}
+
+.db-banner {
+    border-color: #ffaa00;
+    box-shadow: 0 0 25px rgba(255, 170, 0, 0.45);
+}
+
+.db-touch {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    width: 100%;
+    padding: 0 24px;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 60;
+}
+
+.db-dpad, .db-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.db-actions {
+    flex-direction: row;
+    gap: 12px;
+}
+
+.touch-btn-primary {
+    background: linear-gradient(135deg, var(--cyan), #0099ff);
+    color: #000;
+    font-weight: 800;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+}
+
+.touch-btn-secondary {
+    background: linear-gradient(135deg, #ff0055, #ff5500);
+    color: #fff;
+    font-weight: 800;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    font-size: 0.82rem;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+}
+
+@media (max-width: 900px) {
+    .db-touch {
+        display: flex;
+    }
+}

@@ -218,6 +218,7 @@ class UnoGame {
             if (chosenColor && UNO_COLORS.includes(chosenColor)) {
                 this.activeColor = chosenColor;
                 this.finishWildPlay(card);
+                this.advanceTurn();
             } else {
                 // Must choose color
                 this.awaitingColorChoice = true;

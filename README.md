@@ -17,6 +17,7 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 | **💥 Tank Trouble** | 2 – 8 Spieler | 2D-Panzer im Labyrinth mit abprallenden Querschlägern | `WASD` / Pfeile + `Leertaste` |
 | **🏓 Octa-Pong** | 2 – 8 Spieler | 8-Spieler-Achteck-Pong mit Diagonalen | `◀` / `▶` oder `A` / `D` |
 | **🃏 UNO** | 2 – 8 Spieler | Klassisches Kartenspiel mit 108 Karten, Farbwahl & Aussetzen | Maus / Touch (Klick) |
+| **🤾 Corporate Dodgeball** | 2 – 8 Spieler | Data Squad vs. ComM! Büro-Völkerball mit Steinen, Akten & Releases | `WASD` / Pfeile + `Leertaste` / `Shift` |
 
 ---
 
@@ -50,6 +51,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **Montagsmaler:** Verifiziert, dass der aktive Maler keine Begriffe tippen oder leaken kann und Punkte für Maler & Rater korrekt vergeben werden.
 - **Codenames:** Validiert 25-Karten-Verteilung (1 Attentäter, 9/8 Teamkarten), Spionchef/Ermittler-Maskierung und Rollenrechte.
 - **UNO:** Prüft Standard-Deck (108 Karten), Aktionskarten (+2, Farbwahl, +4, Richtungswechsel), Bot-Entscheidungsfindung und Anti-Cheat Hand-Maskierung.
+- **Corporate Dodgeball:** Validiert Team-Aufteilung (Data Squad vs. ComM), Halbfeld-Grenzschutz, Ball-Pickups, Wurf- und Flugphysik, Hechtsprung-Fangen (Catch-Mechanik) und Erzeugung von Fels-Hindernissen ("Steine im Weg").
 - **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
 
 ---

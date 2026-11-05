@@ -37,6 +37,7 @@ const skribblSrc = readFileSync('./games/skribbl.js', 'utf-8');
 const codenamesSrc = readFileSync('./games/codenames.js', 'utf-8');
 const curveSrc = readFileSync('./game.js', 'utf-8');
 const unoSrc = readFileSync('./games/uno.js', 'utf-8');
+const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
 
 runInContext(tankSrc, sandbox);
 runInContext(pongSrc, sandbox);
@@ -44,6 +45,7 @@ runInContext(skribblSrc, sandbox);
 runInContext(codenamesSrc, sandbox);
 runInContext(curveSrc, sandbox);
 runInContext(unoSrc, sandbox);
+runInContext(dodgeballSrc, sandbox);
 
 let passed = 0;
 let failed = 0;
@@ -454,6 +456,165 @@ const botHandCount = uBot.hand.length;
 uno.botActionTimer = 0.05;
 uno.update(0.1);
 assert(uno.turnIndex !== uno.playerOrder.indexOf('uBot'), 'Bot executed turn and passed turn index');
+
+// ----------------------------------------------------
+// TEST SUITE 7: CORPORATE DODGEBALL (DATA SQUAD VS. COMM)
+// ----------------------------------------------------
+console.log('\n--- TEST 7: CORPORATE DODGEBALL ---');
+const db = new sandbox.DodgeballGame();
+const dev = db.addPlayer('dev1', 'DataLead', '#00f3ff', false, 'squad');
+const comm = db.addPlayer('comm1', 'ComM-Lead', '#ff0055', false, 'comm');
+const commBot = db.addPlayer('botComM', 'Bot Berater', '#ff00aa', true, 'comm');
+
+assert(dev.team === 'squad', 'Data Squad player assigned to Squad team');
+assert(comm.team === 'comm', 'ComM player assigned to ComM team');
+
+// 1. Match Start & Ball Rushes
+db.startMatch(3);
+assert(db.status === 'COUNTDOWN', 'Dodgeball starts in COUNTDOWN state');
+assert(db.balls.length >= 3, 'Floor balls spawned along center dividing line');
+db.status = 'PLAYING';
+
+// 2. Center Dividing Line boundary check
+dev.x = sandbox.DB_CENTER_X - 10;
+dev.inputRight = true;
+db.update(0.1);
+assert(dev.x < sandbox.DB_CENTER_X, 'Data Squad player cannot cross center dividing line into ComM court');
+
+comm.x = sandbox.DB_CENTER_X + 10;
+comm.inputLeft = true;
+db.update(0.1);
+assert(comm.x > sandbox.DB_CENTER_X, 'ComM player cannot cross center dividing line into Squad court');
+comm.inputLeft = false;
+dev.inputRight = false;
+
+// 3. Ball Pickup
+dev.x = 200;
+dev.y = 200;
+dev.hasBall = null;
+db.balls.push({
+    id: 8001,
+    type: 'release',
+    name: 'Code-Release',
+    icon: '📦',
+    color: '#00f3ff',
+    x: 205,
+    y: 200,
+    state: 'FLOOR'
+});
+db.update(0.05);
+assert(dev.hasBall !== null && dev.hasBall.type === 'release', 'Player picks up floor ball when stepping over it');
+
+// 4. Ball Throw
+dev.inputThrow = true;
+dev.aimAngle = 0; // aim right towards ComM
+const ballCountBefore = db.balls.length;
+db.update(0.05);
+assert(dev.hasBall === null, 'Player released held ball upon throw');
+const thrownBall = db.balls.find(b => b.state === 'FLYING' && b.thrownBy === 'dev1');
+assert(thrownBall !== undefined && thrownBall.vx > 0, 'Flying projectile launched with velocity towards enemy court');
+
+// 5. Direct Hit & HP Reduction
+comm.x = 800;
+comm.y = 400;
+comm.hp = 3;
+comm.dashTimer = 0;
+// Place flying ball directly on comm
+db.balls.push({
+    id: 8002,
+    type: 'release',
+    name: 'Code-Release',
+    icon: '📦',
+    color: '#00f3ff',
+    x: 802,
+    y: 400,
+    vx: 400,
+    vy: 0,
+    state: 'FLYING',
+    thrownBy: 'dev1',
+    thrownTeam: 'squad'
+});
+db.update(0.05);
+assert(comm.hp === 2, 'Direct hit reduces enemy player HP from 3 to 2');
+
+// 6. Catch Mechanic (Dodgeball Catch)
+comm.hasBall = null;
+comm.dashTimer = 0.2; // Dashing!
+db.balls.push({
+    id: 8003,
+    type: 'coffee',
+    name: 'Kaffee-Becher',
+    icon: '☕',
+    color: '#ffaa00',
+    x: 802,
+    y: 400,
+    vx: -400,
+    vy: 0,
+    state: 'FLYING',
+    thrownBy: 'dev1',
+    thrownTeam: 'squad'
+});
+db.update(0.05);
+assert(comm.hasBall !== null && comm.hasBall.type === 'coffee', 'Dashing into incoming ball catches the ball mid-air');
+assert(comm.hp === 2, 'Catching ball negates all incoming damage');
+
+// 7. Stein im Weg (Stone creates obstacle rock)
+const rockCountBefore = db.rocks.length;
+comm.x = 800;
+comm.y = 400;
+comm.vx = 0;
+comm.vy = 0;
+comm.inputLeft = false;
+comm.inputRight = false;
+comm.inputFwd = false;
+comm.inputBack = false;
+comm.dashTimer = 0; // Not dashing, direct hit!
+comm.hasBall = null;
+db.balls.push({
+    id: 8004,
+    type: 'stone',
+    name: 'Stein im Weg',
+    icon: '🪨',
+    color: '#ff0055',
+    x: 802,
+    y: 400,
+    vx: 400,
+    vy: 0,
+    state: 'FLYING',
+    thrownBy: 'dev1',
+    thrownTeam: 'squad',
+    leavesRock: true
+});
+db.update(0.05);
+assert(db.rocks.length > rockCountBefore, 'Stein im Weg leaves physical rock obstacle on the floor upon impact');
+
+// 8. Bot AI Dodge & Aim
+commBot.alive = true;
+commBot.x = 900;
+commBot.y = 400;
+// Send incoming threat straight at bot
+db.balls.push({
+    id: 8005,
+    type: 'release',
+    name: 'Code-Release',
+    icon: '📦',
+    color: '#00f3ff',
+    x: 750,
+    y: 400,
+    vx: 500,
+    vy: 0,
+    state: 'FLYING',
+    thrownBy: 'dev1',
+    thrownTeam: 'squad'
+});
+db.update(0.05);
+assert(commBot.inputFwd || commBot.inputBack || commBot.inputDash, 'Bot reacts dynamically to incoming threat by dodging');
+
+// 9. Snapshot Serialization
+const dbSnap = db.getSnapshot();
+assert(Array.isArray(dbSnap.players) && dbSnap.players.length === 3, 'Snapshot serializes full team roster');
+assert(Array.isArray(dbSnap.balls), 'Snapshot serializes arena balls');
+assert(Array.isArray(dbSnap.rocks), 'Snapshot serializes floor rocks');
 
 
 console.log('\n========================================');

@@ -125,6 +125,20 @@
                             <button class="icon-btn btn-card-help" data-game="uno" title="Anleitung">❓</button>
                         </div>
                     </div>
+
+                    <!-- 7. Corporate Dodgeball -->
+                    <div class="game-card" data-game="dodgeball">
+                        <div class="game-card-icon">🤾</div>
+                        <div class="game-card-info">
+                            <h3>Corporate Dodgeball</h3>
+                            <p>Data Squad vs. ComM! Weiche Steinen, Aktenordnern & Rechnungen aus und wirf Code-Releases zurück!</p>
+                            <span class="game-card-meta">2 - 8 Spieler • Action-Arena & Bots</span>
+                        </div>
+                        <div class="card-btn-row">
+                            <button class="btn btn-secondary btn-sm btn-host-game" data-game="dodgeball">Hosten</button>
+                            <button class="icon-btn btn-card-help" data-game="dodgeball" title="Anleitung">❓</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -495,6 +509,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- ================= 8. GAME VIEW: CORPORATE DODGEBALL ================= -->
+        <div id="game-dodgeball" class="game-view">
+            <div class="hud-bar">
+                <div class="hud-left">
+                    <button class="btn-hub-back icon-btn" title="Zurück zum Hub">◂</button>
+                    <div class="hud-pill"><span>RUNDE</span><strong id="db-round-display">1 / 3</strong></div>
+                    <div class="hud-pill" id="db-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="db-room-code">-----</strong></div>
+                </div>
+                <div class="hud-scores" id="db-scores-container">
+                    <div class="score-badge" style="border-left: 3px solid #00f3ff;">
+                        <span style="color: #00f3ff;">Data Squad:</span>
+                        <strong id="db-score-squad">0</strong>
+                    </div>
+                    <div class="score-badge" style="border-left: 3px solid #ff0055;">
+                        <span style="color: #ff0055;">ComM:</span>
+                        <strong id="db-score-comm">0</strong>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <button class="icon-btn btn-instructions-toggle" data-game="dodgeball" title="Spielanleitung">❓</button>
+                    <button class="icon-btn btn-mute-toggle" title="Sound">🔊</button>
+                    <button class="icon-btn btn-fullscreen-toggle" title="Vollbild">⛶</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="dodgeballCanvas" width="1200" height="800"></canvas>
+                <div id="db-banner" class="powerup-banner db-banner" style="display: none;"></div>
+            </div>
+            <div class="overlay-center" id="db-countdown-overlay" style="display: none;">
+                <div class="countdown-display" id="db-countdown-num">3</div>
+                <div class="countdown-hint">WASD = Bewegen | Leertaste / Klick = Werfen | Shift = Dash / Fangen</div>
+            </div>
+            <div class="overlay-center" id="db-winner-overlay" style="display: none;">
+                <div class="round-over-box">
+                    <h2 class="winner-title" id="db-winner-text">🏆 RUNDE VORBEI</h2>
+                    <button class="btn btn-primary btn-play-again-db" style="margin-top: 15px; width: 100%;">Nochmal spielen</button>
+                </div>
+            </div>
+            <div class="touch-controls db-touch">
+                <div class="db-dpad">
+                    <button class="touch-btn" id="db-touch-up">▲</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="touch-btn" id="db-touch-left">◀</button>
+                        <button class="touch-btn" id="db-touch-down">▼</button>
+                        <button class="touch-btn" id="db-touch-right">▶</button>
+                    </div>
+                </div>
+                <div class="db-actions">
+                    <button class="touch-btn touch-btn-primary" id="db-touch-throw">WURF 📦</button>
+                    <button class="touch-btn touch-btn-secondary" id="db-touch-dash">DASH 💨</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ================= 9. INSTRUCTIONS MODAL ================= -->
@@ -512,6 +580,7 @@
                 <button class="inst-tab" data-game="tank">💥 Tank Trouble</button>
                 <button class="inst-tab" data-game="pong">🏓 Octa-Pong</button>
                 <button class="inst-tab" data-game="uno">🎴 UNO</button>
+                <button class="inst-tab" data-game="dodgeball">🤾 Dodgeball</button>
             </div>
             <div class="instructions-body" id="instructions-body"></div>
         </div>
@@ -526,6 +595,7 @@
     <script src="games/tank.js"></script>
     <script src="games/pong.js"></script>
     <script src="games/uno.js"></script>
+    <script src="games/dodgeball.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
