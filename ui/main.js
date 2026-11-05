@@ -82,7 +82,8 @@ function masterLoop(now) {
         }
     }
 
-    // 2. Render active game
+    // 2. Render active game (am Handy-Controller gibt es kein Spielfeld)
+    if (padActive) return;
     if (gameViews.curve.classList.contains('active')) renderCurve();
     else if (gameViews.tank.classList.contains('active')) renderTank();
     else if (gameViews.pong.classList.contains('active')) renderPong();
@@ -128,7 +129,7 @@ function sendClientInputs() {
 
 // Host local input update for games
 function updateHostLocalInputs() {
-    if (!networkManager.isHost) return;
+    if (!networkManager.isHost || beamerMode) return;
     if (activeGameType === 'curve') {
         curveGame.setPlayerInput(myPlayerId, !!(keys.ArrowLeft || keys.KeyA), !!(keys.ArrowRight || keys.KeyD));
     } else if (activeGameType === 'tank') {

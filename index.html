@@ -45,6 +45,16 @@
                     </div>
                 </div>
 
+                <!-- Präsenz-Modi: Beamer-Host / Handy-Controller -->
+                <div class="hub-mode-bar">
+                    <label class="mode-opt" title="Dieser Rechner zeigt das Spiel nur an (z. B. am Beamer), ohne eigene Spielfigur. Mitspieler scannen den QR-Code und steuern per Handy.">
+                        <input type="checkbox" id="opt-beamer"> 📺 Beamer-Modus beim Hosten (nur Anzeige, Mitspieler steuern per Handy)
+                    </label>
+                    <label class="mode-opt" title="Beim Beitreten erscheint statt des Spielfelds ein Touch-Controller.">
+                        <input type="checkbox" id="opt-pad"> 📱 Handy-Controller beim Beitreten
+                    </label>
+                </div>
+
                 <!-- Game Cards Selection Grid -->
                 <div class="hub-games-grid">
                     <!-- 0. Spieleabend -->
@@ -189,6 +199,15 @@
                         <span id="display-room-code" class="room-code-text">-----</span>
                     </div>
                     <button id="btn-copy-link" class="btn btn-secondary btn-sm">Link kopieren</button>
+                </div>
+
+                <div id="lobby-qr-panel" class="qr-panel" style="display: none;">
+                    <div id="lobby-qr" class="qr-box"></div>
+                    <div class="qr-text">
+                        <strong>📱 Mit dem Handy scannen und mitspielen</strong>
+                        <span>Der Code führt direkt in diesen Raum – ohne Abtippen.</span>
+                        <span id="lobby-qr-link" class="qr-link"></span>
+                    </div>
                 </div>
 
                 <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
@@ -822,6 +841,23 @@
         </div>
     </div>
 
+    <!-- Beamer: kleiner Beitritts-Hinweis während des Spiels -->
+    <div id="beamer-join-badge" class="beamer-join-badge" style="display: none;">
+        <div id="beamer-join-qr" class="beamer-join-qr"></div>
+        <div class="beamer-join-text"><span>Mitspielen:</span><strong id="beamer-join-code"></strong></div>
+    </div>
+
+    <!-- Handy-Controller -->
+    <div id="pad-screen" class="pad-screen" style="display: none;">
+        <div class="pad-header">
+            <button id="pad-leave" class="icon-btn" type="button" title="Verlassen">✕</button>
+            <div class="pad-nameplate"><span id="pad-dot" class="pad-dot"></span><span id="pad-avatar"></span><strong id="pad-name"></strong></div>
+            <span id="pad-room" class="pad-room"></span>
+        </div>
+        <div id="pad-status" class="pad-status"></div>
+        <div id="pad-body" class="pad-body"></div>
+    </div>
+
     <div id="evening-overlay" class="fullscreen-overlay evening-overlay" style="display: none;">
         <div class="evening-box">
             <h2 id="evening-title" class="winner-title"></h2>
@@ -850,6 +886,8 @@
     <script src="games/dodgeball.js"></script>
     <script src="games/roulette.js"></script>
     <script src="games/evening.js"></script>
+    <script src="games/qr.js"></script>
+    <script src="games/pad.js"></script>
     <script src="ui/core.js"></script>
     <script src="ui/lobby.js"></script>
     <script src="ui/curve.js"></script>
@@ -865,6 +903,8 @@
     <script src="ui/session.js"></script>
     <script src="ui/evening.js"></script>
     <script src="ui/routing.js"></script>
+    <script src="ui/beamer.js"></script>
+    <script src="ui/pad.js"></script>
     <script src="ui/main.js"></script>
 </body>
 </html>

@@ -166,11 +166,9 @@ function getPlayerName() {
     return val;
 }
 
-function getShareableLink(gameType, code) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('game', gameType);
-    url.searchParams.set('room', code);
-    return url.toString();
+// Einladungslink; controller=true öffnet auf dem Handy direkt den Touch-Controller
+function getShareableLink(gameType, code, controller = false) {
+    return padBuildLink(window.location.href, gameType, code, controller);
 }
 
 // ==========================================
@@ -183,6 +181,8 @@ function showScreen(screenEl) {
     if (screenEl) screenEl.classList.add('active');
     // Reaction bar etc. only make sense inside a room
     document.body.classList.toggle('in-room', !!screenEl && screenEl !== homeScreen);
+    if (typeof updatePadVisibility === 'function') updatePadVisibility(screenEl);
+    if (typeof updateBeamerBadge === 'function') updateBeamerBadge(screenEl);
 }
 
 function openHub() {

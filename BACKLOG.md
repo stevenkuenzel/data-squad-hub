@@ -38,8 +38,8 @@ Legende: ⭐ = großer Spaß-Effekt bei wenig Aufwand · 🧱 = größerer Umbau
 - [x] **Aufholmechanik (optional):** Führende bekommen leichte Handicaps, Hintere kleine Boni – hält Abende für alle Erfahrungsstufen spannend. Per Einstellung abschaltbar. -> Erledigt für Curve (Aufholhilfe: 3 s Geist), Tank (Letzte starten bewaffnet, Führende laden langsamer) und Dodgeball (Letzte +1 Leben, Führende längerer Dash-Cooldown); Schalter in der Spieleabend-Lobby.
 
 ## Präsenz-Events
-- [ ] ⭐🧱 **Beamer-Modus mit Handy-Controllern:** Ein Rechner zeigt das Spiel groß auf dem Beamer, alle anderen steuern per Smartphone (QR-Code scannen → beitreten). Ideal für Offsites und Weihnachtsfeiern.
-- [ ] ⭐ **QR-Code für den Einladungslink** in der Lobby, damit Handys ohne Abtippen beitreten.
+- [x] ⭐🧱 **Beamer-Modus mit Handy-Controllern:** Ein Rechner zeigt das Spiel groß auf dem Beamer, alle anderen steuern per Smartphone (QR-Code scannen → beitreten). Ideal für Offsites und Weihnachtsfeiern. -> Erledigt: Häkchen „Beamer-Modus“ im Hub (oder `?beamer=1`): Der Host ist reine Anzeige ohne Spieler-Slot, mit großer Lobby, QR-Code und bildschirmfüllendem Spiel. Handys im Controller-Modus (`pad=1`, steckt im QR-Link) bekommen für Curve, Pong, Tank und Dodgeball einen Touch-Controller. Karten-/Rate-Spiele laufen auf dem Handy weiter im normalen Layout (Controller dafür als Folgeschritt denkbar).
+- [x] ⭐ **QR-Code für den Einladungslink** in der Lobby, damit Handys ohne Abtippen beitreten. -> Erledigt: Lokaler QR-Generator (`games/qr.js`, keine externen Requests), der Host sieht den QR-Code in jeder Lobby.
 
 ## Eigene Inhalte des Teams
 - [ ] ⭐ **Eigene Wortlisten für Codenames & Montagsmaler:** Host fügt Insider-Begriffe ein (Projektnamen, Tools, Running Gags). Optional mit den Standardwörtern mischen.
