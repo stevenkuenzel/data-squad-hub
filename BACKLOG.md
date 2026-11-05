@@ -3,6 +3,7 @@
 
 # Tanks:
 - [x] steuerkreuz bei tanks ist erst durch scrollen sichtbar. besser so ein virtueller analog stick? -> Erledigt: Steuerkreuz durch einen ergonomischen virtuellen Analog-Joystick mit Touch-/Maus-Erkennung ersetzt. Viewport auf `100dvh` fixiert (kein Scrollen mehr nötig).
+- [ ] ⭐ **Tank-Steuerung mit zwei Analog-Sticks (Handy-Controller):** Linker Stick fährt (Richtung = Fahrtrichtung), rechter Stick zielt und feuert beim Loslassen bzw. Auslenken. Mit nur einem Stick plus Feuer-Taste ist das Spiel auf dem Handy kaum spielbar. Braucht Anpassung in `games/tank.js` (Fahr- und Zielrichtung getrennt, Host prüft die Eingaben) und `ui/pad.js`.
 
 # montagsmaler:
 - [x] zeit läuft nicht runter? -> Erledigt: Der Timer-Countdown wird nun jede Sekunde (`Math.ceil(timeLeft)`) und bei Buchstaben-Hinweisen autoritativ synchronisiert und im UI aktualisiert.
@@ -38,7 +39,7 @@ Legende: ⭐ = großer Spaß-Effekt bei wenig Aufwand · 🧱 = größerer Umbau
 - [x] **Aufholmechanik (optional):** Führende bekommen leichte Handicaps, Hintere kleine Boni – hält Abende für alle Erfahrungsstufen spannend. Per Einstellung abschaltbar. -> Erledigt für Curve (Aufholhilfe: 3 s Geist), Tank (Letzte starten bewaffnet, Führende laden langsamer) und Dodgeball (Letzte +1 Leben, Führende längerer Dash-Cooldown); Schalter in der Spieleabend-Lobby.
 
 ## Präsenz-Events
-- [x] ⭐🧱 **Beamer-Modus mit Handy-Controllern:** Ein Rechner zeigt das Spiel groß auf dem Beamer, alle anderen steuern per Smartphone (QR-Code scannen → beitreten). Ideal für Offsites und Weihnachtsfeiern. -> Erledigt: Häkchen „Beamer-Modus“ im Hub (oder `?beamer=1`): Der Host ist reine Anzeige ohne Spieler-Slot, mit großer Lobby, QR-Code und bildschirmfüllendem Spiel. Handys im Controller-Modus (`pad=1`, steckt im QR-Link) bekommen für Curve, Pong, Tank und Dodgeball einen Touch-Controller. Karten-/Rate-Spiele laufen auf dem Handy weiter im normalen Layout (Controller dafür als Folgeschritt denkbar).
+- [x] ⭐🧱 **Beamer-Modus mit Handy-Controllern:** Ein Rechner zeigt das Spiel groß auf dem Beamer, alle anderen steuern per Smartphone (QR-Code scannen → beitreten). Ideal für Offsites und Weihnachtsfeiern. -> Erledigt: Häkchen „Beamer-Modus“ im Hub (oder `?beamer=1`): Der Host ist reine Anzeige ohne Spieler-Slot, mit großer Lobby, QR-Code und bildschirmfüllendem Spiel. Handys im Controller-Modus (`pad=1`, steckt im QR-Link) bekommen für Curve, Pong, Tank und Dodgeball einen Touch-Controller. UNO, Codenames, Montagsmaler und Roulette sind für Hochformat-Handys optimiert (kompaktes Layout, Hand umbrochen/scrollbar, einklappbare Reaktionen).
 - [x] ⭐ **QR-Code für den Einladungslink** in der Lobby, damit Handys ohne Abtippen beitreten. -> Erledigt: Lokaler QR-Generator (`games/qr.js`, keine externen Requests), der Host sieht den QR-Code in jeder Lobby.
 
 ## Eigene Inhalte des Teams
