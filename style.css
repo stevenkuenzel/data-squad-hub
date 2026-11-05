@@ -2056,18 +2056,18 @@ body.evening-active .btn-play-again-pong,
 body.evening-active .btn-play-again-uno,
 body.evening-active .btn-play-again-db,
 body.evening-active .btn-play-again-roulette { display: none !important; }
-
-/* Lobby: long setting lists (Spieleabend) must scroll; start buttons stay reachable */
-#lobby-screen {
-    overflow-y: auto;
-    justify-content: flex-start;
-    padding: 16px 0;
-}
-#lobby-screen > .card { margin: auto; }
-#lobby-screen #host-lobby-controls {
-    position: sticky;
-    bottom: -30px;
-    padding: 12px 0 4px;
-    background: linear-gradient(to top, var(--bg-dark) 70%, transparent);
-    z-index: 5;
-}
+
+/* Lobby: long setting lists (Spieleabend) must scroll; start buttons stay reachable */
+#lobby-screen {
+    overflow-y: auto;
+    justify-content: flex-start;
+    padding: 16px 0;
+}
+#lobby-screen > .card { margin: auto; }
+#lobby-screen #host-lobby-controls {
+    position: sticky;
+    bottom: 8px;
+    padding: 12px 0 4px;
+    background: linear-gradient(to top, var(--bg-dark) 70%, transparent);
+    z-index: 5;
+}
