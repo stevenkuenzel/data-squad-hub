@@ -1402,7 +1402,209 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(!idle.active && !idle.fwd && !idle.left, 'Stick: deadzone is ignored');
     const far = sandbox.padStickToDirs(400, 0, 40, 10);
     assert(Math.abs(far.x - 40) < 1e-9 && far.right, 'Stick: deflection is clamped to the radius');
+    assert(Math.abs(sandbox.padStickToDirs(20, 0, 40, 10).mag - 0.5) < 1e-9 && sandbox.padStickToDirs(400, 0, 40, 10).mag === 1, 'Stick: magnitude is relative to the radius (0..1)');
     assert(sandbox.padHasController('dodgeball') && !sandbox.padHasController('uno'), 'Pad: controllers exist for realtime games only');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: TANK ZWEI-STICK-STEUERUNG
+// ----------------------------------------------------
+{
+    console.log('--- Tank: Zwei-Stick-Steuerung ---');
+    const tg = new sandbox.TankGame();
+    tg.addPlayer('t1', 'T1', '#fff', false);
+    tg.startMatch(3);
+    tg.walls = []; // freies Feld
+    tg.pickupsEnabled = false;
+    tg.status = 'PLAYING';
+    const t1 = tg.players.get('t1');
+    t1.x = 600; t1.y = 400; t1.angle = 0; t1.cooldown = 0;
+
+    tg.setTwinStick('t1', 0, -1, null, false);
+    for (let i = 0; i < 25; i++) tg.update(0.02);
+    assert(t1.y < 400 - 40 && Math.abs(t1.x - 600) < 1, 'Twin: left stick drives in any direction (straight up)');
+    assert(Math.abs(Math.atan2(Math.sin(t1.angle), Math.cos(t1.angle)) - (-Math.PI / 2)) < 0.2, 'Twin: without aim the tank faces its driving direction');
+
+    t1.x = 600; t1.y = 400; t1.angle = 0;
+    tg.setTwinStick('t1', 1, 0, Math.PI / 2, false);
+    for (let i = 0; i < 40; i++) tg.update(0.02);
+    assert(t1.x > 600 + 40 && Math.abs(t1.angle - Math.PI / 2) < 0.05, 'Twin: aim stick turns the barrel independently of the driving direction');
+
+    const bulletsBefore = tg.bullets.length;
+    tg.setTwinStick('t1', 0, 0, Math.PI / 2, true);
+    tg.update(0.02);
+    assert(tg.bullets.length === bulletsBefore + 1, 'Twin: pulling the aim stick fully fires a bullet');
+    tg.setTwinStick('t1', 0, 0, null, true);
+    assert(t1.inputShoot === false, 'Twin: no aim direction means no shot');
+
+    tg.setTwinStick('t1', NaN, 'x', Infinity, true);
+    assert(t1.moveX === 0 && t1.moveY === 0 && t1.aimAngle === null && !t1.inputShoot, 'Twin: invalid values from peers are ignored');
+    tg.setTwinStick('t1', 50, 0, 0, false);
+    assert(Math.abs(Math.hypot(t1.moveX, t1.moveY) - 1) < 1e-9, 'Twin: stick vector is clamped to length 1');
+
+    tg.walls = [{ x1: 700, y1: 0, x2: 700, y2: 800 }];
+    t1.x = 670; t1.y = 400;
+    tg.setTwinStick('t1', 1, 1, null, false);
+    const y0 = t1.y;
+    for (let i = 0; i < 20; i++) tg.update(0.02);
+    assert(t1.x < 700 && t1.y > y0 + 20, 'Twin: tank slides along a wall instead of sticking');
+
+    tg.setInput('t1', true, false, false, false, false);
+    assert(t1.twin === false, 'Twin: keyboard input switches back to classic controls');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: BUGFIXES (Roulette, Codenames, Skribbl, Spieleabend)
+// ----------------------------------------------------
+{
+    console.log('--- Bugfixes ---');
+    const ROULETTE_CARDS_T = runInContext('ROULETTE_CARDS', sandbox);
+    const SK_DRAW_T = runInContext('SKRIBBL_BOT_DRAWINGS', sandbox);
+    const mkRoulette = () => {
+        const g = new sandbox.FreigabeRouletteGame();
+        ['a', 'b', 'c'].forEach(id => g.addPlayer(id, id, '#fff', false));
+        g.startMatch();
+        g.turnIndex = 0;
+        g.status = 'PLAYING';
+        return g;
+    };
+    const card = (id) => ({ ...ROULETTE_CARDS_T.find(c => c.id === id), uid: id + '-uid' });
+
+    // Chef-Bypass hält über das Zugende hinaus
+    let rg = mkRoulette();
+    const a = rg.players.get('a');
+    a.hand = [card('chef_genehmigung')];
+    rg.playCard('a', 'chef_genehmigung-uid');
+    rg.endTurn();
+    assert(a.shielded === true, 'Roulette: Chef-Bypass bleibt nach dem eigenen Zugende aktiv');
+    const b = rg.players.get('b');
+    b.hand = [card('stein_weg')];
+    const before = a.progress;
+    rg.playCard('b', 'stein_weg-uid', 'a');
+    assert(a.progress === before, 'Roulette: Chef-Bypass schützt vor einem Blocker im nächsten Zug');
+    rg.endTurn(); rg.endTurn();
+    assert(rg.getCurrentPlayer().id === 'a' && a.shielded === false, 'Roulette: Chef-Bypass endet beim eigenen nächsten Zug');
+
+    // Reaktionskarten
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('stein_weg')];
+    rg.players.get('b').hand = [card('problem_gefunden')];
+    rg.players.get('b').progress = 40;
+    rg.playCard('a', 'stein_weg-uid', 'b');
+    assert(rg.players.get('b').progress === 40 && rg.players.get('b').hand.length === 0, 'Roulette: "Problem gefunden!" blockt den Angriff und wird verbraucht');
+
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('stein_weg')];
+    rg.players.get('b').hand = [card('nicht_zustaendig')];
+    rg.players.get('b').progress = 40; rg.players.get('c').progress = 40;
+    rg.playCard('a', 'stein_weg-uid', 'b');
+    assert(rg.players.get('b').progress === 40 && rg.players.get('c').progress === 25, 'Roulette: "Nicht zuständig" leitet den Angriff an den nächsten Spieler um');
+
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('problem_gefunden')];
+    const played = rg.playCard('a', 'problem_gefunden-uid');
+    assert(played.success === false && rg.players.get('a').hand.length === 1 && rg.cardsPlayedThisTurn === 0, 'Roulette: Reaktionskarten lassen sich nicht aktiv ausspielen');
+
+    // Codenames: nur ein Hinweis pro Zug
+    const cnG = new sandbox.CodenamesGame();
+    cnG.addPlayer('s1', 'S1');
+    cnG.addPlayer('s2', 'S2');
+    cnG.startNewGame();
+    const spy = Array.from(cnG.players.values()).find(p => p.role === 'spymaster' && p.team === cnG.currentTurn);
+    if (spy) {
+        const ok1 = cnG.giveClue('TEST', 1, spy.id);
+        const left = cnG.guessesLeft;
+        const ok2 = cnG.giveClue('MEHR', 9, spy.id);
+        assert(ok1 && !ok2 && cnG.guessesLeft === left && cnG.clueWord === 'TEST', 'Codenames: ein zweiter Hinweis im selben Zug wird abgelehnt');
+    }
+
+    // Skribbl: Zeichner wird nach der Wortwahl zum Bot
+    const skB = new sandbox.SkribblGame();
+    skB.addPlayer('h', 'H', '#fff', false);
+    skB.addPlayer('x', 'X', '#fff', false);
+    skB.startMatch(1);
+    const drawerB = skB.players.get(skB.activeDrawerId);
+    drawerB.isBot = true;
+    skB.wordChoices = ['ZZZ-unbekannt', 'a', 'b'];
+    skB.updateTick(15);
+    assert(Object.keys(SK_DRAW_T).some(k => k.toUpperCase() === skB.secretWord), 'Skribbl: Bot-Zeichner bekommt nur Wörter, die er zeichnen kann');
+
+    // Spieleabend: Siegerteam ohne Spieler
+    const dbE = new sandbox.DodgeballGame();
+    dbE.addPlayer('s', 'S', '#fff', false, 'squad');
+    dbE.addPlayer('c', 'C', '#fff', false, 'squad');
+    dbE.status = 'MATCH_OVER';
+    dbE.winner = 'ComN';
+    const res = sandbox.extractGameResult('dodgeball', dbE);
+    assert(res && res.ranking[0].length === 0 && res.ranking[1].length === 2, 'Evening: leeres Siegerteam rückt das Verliererteam nicht auf Platz 1');
+    const evS = new sandbox.EveningSession();
+    evS.start(['dodgeball'], [{ id: 's', name: 'S', color: '#fff' }, { id: 'c', name: 'C', color: '#fff' }]);
+    evS.recordResult('dodgeball', res);
+    assert(evS.totals.s.wins === 0 && evS.totals.c.wins === 0, 'Evening: niemand bekommt einen Sieg, wenn das Siegerteam leer ist');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: ZUG-TIMER, UNO-ZIEHEN/PASSEN, CURVE-CRASH-FAIRNESS
+// ----------------------------------------------------
+{
+    console.log('--- Timer, UNO draw/pass, Curve crash ---');
+    const unoT = new sandbox.UnoGame();
+    ['h1', 'h2', 'h3'].forEach(id => unoT.addPlayer(id, id, '#fff', false));
+    unoT.startMatch();
+    const first = unoT.getCurrentPlayer().id;
+
+    // Einmal ziehen pro Zug
+    unoT.discardPile.push({ id: 9001, color: 'red', value: '5' });
+    unoT.activeColor = 'red';
+    unoT.drawPile.push({ id: 9002, color: 'red', value: '7' }); // spielbar, wird gezogen
+    const handBefore = unoT.getCurrentPlayer().hand.length;
+    unoT.playerDrawCard(first);
+    const afterFirst = unoT.getCurrentPlayer().hand.length;
+    const second = unoT.playerDrawCard(first);
+    assert(afterFirst === handBefore + 1 && second === null && unoT.getCurrentPlayer().hand.length === afterFirst, 'UNO: pro Zug darf nur einmal gezogen werden');
+    assert(unoT.getSnapshot(first).drewThisTurn === true, 'UNO: Snapshot meldet, dass bereits gezogen wurde');
+    assert(unoT.passTurn('h-fremd') === false, 'UNO: nur der Spieler am Zug kann passen');
+    assert(unoT.passTurn(first) === true && unoT.getCurrentPlayer().id !== first, 'UNO: nach dem Ziehen kann man passen');
+    const nextId = unoT.getCurrentPlayer().id;
+    assert(unoT.passTurn(nextId) === false, 'UNO: ohne Ziehen kein Passen');
+
+    // Zug-Timer
+    const unoTimer = new sandbox.UnoGame();
+    ['t1', 't2'].forEach(id => unoTimer.addPlayer(id, id, '#fff', false));
+    unoTimer.startMatch();
+    const idleId = unoTimer.getCurrentPlayer().id;
+    for (let i = 0; i < 46 * 20; i++) unoTimer.update(0.05);
+    assert(unoTimer.getCurrentPlayer().id !== idleId || unoTimer.logs[0].includes('zu langsam') || unoTimer.logs.some(l => l.includes('zu langsam')), 'UNO: untätiger Mensch bekommt nach 45 s einen automatischen Zug');
+    assert(unoTimer.players.get(idleId).isBot === false, 'UNO: der Spieler bleibt ein Mensch');
+
+    const rT = new sandbox.FreigabeRouletteGame();
+    ['r1', 'r2'].forEach(id => rT.addPlayer(id, id, '#fff', false));
+    rT.startMatch();
+    const rIdle = rT.getCurrentPlayer().id;
+    for (let i = 0; i < 30 * 20; i++) rT.update(0.05);
+    assert(rT.getCurrentPlayer().id === rIdle, 'Roulette: vor Ablauf des Timers bleibt der Zug beim Spieler');
+    for (let i = 0; i < 31 * 20; i++) rT.update(0.05);
+    assert(rT.getCurrentPlayer().id !== rIdle, 'Roulette: nach 60 s verfällt der Zug eines untätigen Menschen');
+
+    // Curve: Frontalcrash unabhängig von der Spielerreihenfolge
+    const crash = (orderAB) => {
+        const cg = new sandbox.CurveGame();
+        const ids = orderAB ? ['a', 'b'] : ['b', 'a'];
+        ids.forEach(id => cg.addPlayer(id, id, '#fff', false));
+        cg.enableGaps = false;
+        cg.powerUpsEnabled = false;
+        cg.resetMatch();
+        cg.state = 'PLAYING';
+        const pa = cg.players.get('a'), pb = cg.players.get('b');
+        pa.x = 600; pa.y = 400; pa.angle = 0;
+        pb.x = 606; pb.y = 400; pb.angle = Math.PI;
+        for (let i = 0; i < 6 && cg.state === 'PLAYING'; i++) cg.update(0.016);
+        return { a: pa.alive, b: pb.alive, sa: pa.score, sb: pb.score };
+    };
+    const r1 = crash(true), r2 = crash(false);
+    assert(r1.a === r2.a && r1.b === r2.b && r1.sa === r2.sa && r1.sb === r2.sb, 'Curve: Ergebnis eines Frontalcrashs hängt nicht von der Spielerreihenfolge ab');
+    assert(r1.a === r1.b, 'Curve: bei einem Frontalcrash sterben beide gleichzeitig');
+    assert(r1.sa === 0 && r1.sb === 0, 'Curve: gleichzeitig Gestorbene bekommen keine Punkte voneinander');
 }
 
 console.log('\n========================================');

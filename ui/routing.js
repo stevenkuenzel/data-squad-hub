@@ -14,7 +14,9 @@ function handleHostGameEvent(type, payload, senderId) {
         if (activeGameType === 'curve') {
             curveGame.setPlayerInput(senderId, payload.left, payload.right);
         } else if (activeGameType === 'tank') {
-            tankGame.setInput(senderId, payload.fwd, payload.back, payload.left, payload.right, payload.shoot);
+            const t = payload.twin;
+            if (t && typeof t === 'object') tankGame.setTwinStick(senderId, t.mx, t.my, t.aim, t.fire);
+            else tankGame.setInput(senderId, payload.fwd, payload.back, payload.left, payload.right, payload.shoot);
         } else if (activeGameType === 'pong') {
             octaPongGame.setInput(senderId, payload.left, payload.right);
         }
@@ -52,6 +54,9 @@ function handleHostGameEvent(type, payload, senderId) {
         broadcastUnoState();
     } else if (type === 'UNO_DRAW') {
         unoGame.playerDrawCard(senderId);
+        broadcastUnoState();
+    } else if (type === 'UNO_PASS') {
+        unoGame.passTurn(senderId);
         broadcastUnoState();
     } else if (type === 'UNO_CALL') {
         unoGame.callUno(senderId);

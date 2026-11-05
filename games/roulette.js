@@ -32,6 +32,8 @@ const ROULETTE_CARDS = [
     { id: 'vorstand_demo', category: 'action', title: 'Vorstandspräsentation', icon: '👑', value: 35, count: 3, desc: 'Direkter Segen vom Vorstand: +35% Fortschritt!' }
 ];
 
+const ROULETTE_TURN_LIMIT = 60; // Sekunden pro Zug für Menschen
+
 class FreigabeRouletteGame {
     constructor() {
         this.players = new Map(); // id -> Player
@@ -46,6 +48,7 @@ class FreigabeRouletteGame {
         this.cardsPlayedThisTurn = 0;
         this.maxCardsPerTurn = 2;
         this.botActionTimer = 0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
         this.lastAction = null;
     }
 
@@ -121,6 +124,7 @@ class FreigabeRouletteGame {
         this.logs = ['Das Freigabe-Roulette beginnt! Wer schafft den ersten Go-Live?'];
         this.cardsPlayedThisTurn = 0;
         this.botActionTimer = 1.0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
 
         // Deal 5 cards to each player and reset progress
         for (const p of this.players.values()) {
@@ -179,6 +183,11 @@ class FreigabeRouletteGame {
         const card = curr.hand[cardIdx];
         const target = targetPlayerId ? this.players.get(targetPlayerId) : null;
 
+        // Reaktionskarten wirken automatisch, wenn man angegriffen wird (siehe applyBlocker)
+        if (card.category === 'reaction') {
+            return { success: false, msg: 'Reaktionskarten wirken automatisch, wenn du angegriffen wirst.' };
+        }
+
         // Target validation
         if (card.target === 'enemy' && (!target || target.id === curr.id)) {
             return { success: false, msg: 'Bitte einen gegnerischen Spieler wählen!' };
@@ -216,14 +225,7 @@ class FreigabeRouletteGame {
         // 2. ComN Blocker (Stein im Weg / Agentur / Meeting / DSFA / Wording)
         else if (card.category === 'blocker') {
             if (card.target === 'enemy' && target) {
-                // Check if target is shielded
-                if (target.shielded) {
-                    this.logs.unshift(`🛡️ ${target.name} ist durch den Chef-Bypass geschützt! Angriff verpufft.`);
-                } else {
-                    target.progress = Math.max(0, target.progress - card.penalty);
-                    if (card.skipTurn) target.skipped = true;
-                    this.logs.unshift(`🪨 ${curr.name} wirft "${card.title}" auf ${target.name} (-${card.penalty}% ➔ ${target.progress}%)`);
-                }
+                this.applyBlocker(curr, target, card);
             } else if (card.target === 'all_enemies') {
                 for (const other of this.players.values()) {
                     if (other.id !== curr.id && !other.shielded) {
@@ -252,6 +254,7 @@ class FreigabeRouletteGame {
         }
 
         if (window.soundFX) window.soundFX.playClick();
+        this.turnTimer = ROULETTE_TURN_LIMIT; // jede Aktion verlängert den Zug
 
         // Check if player exhausted turn cards
         if (this.cardsPlayedThisTurn >= this.maxCardsPerTurn) {
@@ -261,21 +264,54 @@ class FreigabeRouletteGame {
         return { success: true };
     }
 
+    // Nimmt die erste Karte mit dieser id aus der Hand (null, wenn keine da ist)
+    takeCard(player, cardId) {
+        const idx = player.hand.findIndex(c => c.id === cardId);
+        if (idx === -1) return null;
+        const [card] = player.hand.splice(idx, 1);
+        this.discardPile.push(card);
+        return card;
+    }
+
+    // Blocker auf einen Gegner: Chef-Bypass schützt, "Problem gefunden!" blockt, "Nicht zuständig" leitet um
+    applyBlocker(attacker, target, card) {
+        const hit = (victim) => {
+            if (victim.shielded) {
+                this.logs.unshift(`🛡️ ${victim.name} ist durch den Chef-Bypass geschützt! Angriff verpufft.`);
+                return;
+            }
+            victim.progress = Math.max(0, victim.progress - (card.penalty || 0));
+            if (card.skipTurn) victim.skipped = true;
+            this.logs.unshift(`🪨 ${attacker.name} wirft "${card.title}" auf ${victim.name} (-${card.penalty || 0}% ➔ ${victim.progress}%)`);
+        };
+        if (target.shielded) return hit(target);
+        if (this.takeCard(target, 'problem_gefunden')) {
+            this.logs.unshift(`🛑 ${target.name}: "Problem gefunden!" – der Angriff "${card.title}" wird geblockt.`);
+            return;
+        }
+        if (this.takeCard(target, 'nicht_zustaendig')) {
+            const idx = this.playerOrder.indexOf(target.id);
+            const next = this.players.get(this.playerOrder[(idx + 1) % this.playerOrder.length]);
+            if (next && next.id !== target.id) {
+                this.logs.unshift(`😴 ${target.name} ist nicht zuständig – der Angriff geht an ${next.name}!`);
+                return hit(next);
+            }
+        }
+        hit(target);
+    }
+
     endTurn() {
         if (this.status !== 'PLAYING') return;
-
-        const curr = this.getCurrentPlayer();
-        if (curr) {
-            curr.shielded = false; // Reset shield at turn end
-        }
 
         // Advance to next unskipped player
         this.turnIndex = (this.turnIndex + 1) % this.playerOrder.length;
         this.cardsPlayedThisTurn = 0;
         this.botActionTimer = 1.0;
+        this.turnTimer = ROULETTE_TURN_LIMIT;
 
         const nextP = this.getCurrentPlayer();
         if (nextP) {
+            nextP.shielded = false; // Chef-Bypass hält bis zum eigenen nächsten Zug
             if (nextP.skipped) {
                 nextP.skipped = false;
                 this.logs.unshift(`🗣️ ${nextP.name} sitzt im 4-Stunden-Alignment und setzt aus!`);
@@ -295,6 +331,13 @@ class FreigabeRouletteGame {
             this.botActionTimer -= dt;
             if (this.botActionTimer <= 0) {
                 this.runBotTurn(curr);
+            }
+        } else if (curr) {
+            // Zug-Timer: ein untätiger Mensch blockiert sonst das ganze Spiel
+            this.turnTimer -= dt;
+            if (this.turnTimer <= 0) {
+                this.logs.unshift(`⏰ ${curr.name} war zu langsam – der Zug verfällt.`);
+                this.endTurn();
             }
         }
     }

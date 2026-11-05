@@ -3,7 +3,7 @@
 
 # Tanks:
 - [x] steuerkreuz bei tanks ist erst durch scrollen sichtbar. besser so ein virtueller analog stick? -> Erledigt: Steuerkreuz durch einen ergonomischen virtuellen Analog-Joystick mit Touch-/Maus-Erkennung ersetzt. Viewport auf `100dvh` fixiert (kein Scrollen mehr nötig).
-- [ ] ⭐ **Tank-Steuerung mit zwei Analog-Sticks (Handy-Controller):** Linker Stick fährt (Richtung = Fahrtrichtung), rechter Stick zielt und feuert beim Loslassen bzw. Auslenken. Mit nur einem Stick plus Feuer-Taste ist das Spiel auf dem Handy kaum spielbar. Braucht Anpassung in `games/tank.js` (Fahr- und Zielrichtung getrennt, Host prüft die Eingaben) und `ui/pad.js`.
+- [x] ⭐ **Tank-Steuerung mit zwei Analog-Sticks (Handy-Controller):** Linker Stick fährt, rechter Stick zielt, voll auslenken = Feuer. -> Erledigt: `TankGame.setTwinStick` (freie Fahrtrichtung, Zielen getrennt, Wandgleiten, Peer-Werte werden geprüft) plus zwei Sticks in `ui/pad.js`; Tastatur und Bots bleiben unverändert.
 
 # montagsmaler:
 - [x] zeit läuft nicht runter? -> Erledigt: Der Timer-Countdown wird nun jede Sekunde (`Math.ceil(timeLeft)`) und bei Buchstaben-Hinweisen autoritativ synchronisiert und im UI aktualisiert.
@@ -18,13 +18,18 @@
 - [x] Icons auf Bälle schwer zu erkennen -> Erledigt: Bälle vergrößert, mit kontraststarkem dunklem Kreis-Kern, leuchtendem Neon-Ring und vergrößerten 22-30px Emojis + Namens-Tag unter Bodenbällen versehen.
 
 # uno
-- [ ] **UNO auf dem Handy: eigene Karten nicht sichtbar, kein Scrollen.** Im Querformat (möglicherweise auch hochkant, je nach Gerät) sind die eigenen Handkarten nicht zu sehen und der Bereich lässt sich nicht scrollen. Das Querformat hat kein eigenes Layout (das Handy-Layout gilt nur für Hochformat bis 640 px Breite); `.uno-container` hat feste Höhe (`100dvh`), die Handkarten liegen unten und werden abgeschnitten. Auf echten Geräten prüfen, Hand sichtbar/scrollbar machen, ggf. Quer-Layout (Tisch links, Hand rechts oder oben kompakt).
+- [x] **UNO auf dem Handy: eigene Karten nicht sichtbar, kein Scrollen.** -> Erledigt: Ursache war u. a. `94vh` (höher als der sichtbare Bereich mobiler Browser) – jetzt `dvh`; eigenes Querformat-Layout (Tisch links, Hand rechts, scrollbar), Reaktionen auch im Querformat eingeklappt.
 
 # comn kartenspiel
 - [x] Text auf Karten ragt unten hinaus -> Erledigt: Kartengröße auf `124px x 176px` erweitert, `overflow: hidden`, Textgrößen und Abstände optimiert, sodass alle Beschreibungen sauber und vollständig hineinpassen.
 - [x] Irgendwie zu wenige Karten -> Erledigt: Deck von 54 auf 99 Karten und von 12 auf 18 einzigartige satirische Kartentypen erweitert (neu: KI ins Dashboard gebaut, Stiller Feature-Flag, Doppelter Espresso, Datenschutz-Bedenken, Corporate Wording, Vorstandspräsentation).
 
 ---
+
+# Code-Review-Funde (offen)
+- [x] **Zug-Timer bei UNO und Roulette:** -> Erledigt: UNO 45 s (automatischer Zug, der Spieler bleibt ein Mensch), Roulette 60 s (Zug verfällt); jede Aktion setzt den Timer zurück. Codenames hat bereits einen einstellbaren Rundentimer.
+- [x] **UNO: einmal ziehen und Passen:** -> Erledigt: pro Zug nur noch einmal ziehen (außer bei offener Strafe), danach spielen oder „Passen ➔“. „UNO!“-Pflicht/+4-Anfechtung bleiben bewusst weg.
+- [x] **Curve: Frontalcrash unabhängig von der Spielerreihenfolge:** -> Erledigt: Kollisionen werden gegen den Stand vor dem Tick geprüft, neue Segmente danach eingetragen, Punkte nur an Überlebende des Ticks; Rundensieger wird sofort (nicht einen Tick später) ermittelt.
 
 # 💡 Feature-Ideen für mehr Teambuilding-Spaß
 

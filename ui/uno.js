@@ -50,6 +50,8 @@ function renderUnoSnapshot(snap) {
     lastUnoSnap = snap;
 
     const isMyTurn = snap.currentTurnPlayerId === myPlayerId;
+    const btnPass = document.getElementById('btn-uno-pass');
+    if (btnPass) btnPass.style.display = (isMyTurn && snap.drewThisTurn && snap.status === 'PLAYING') ? 'inline-flex' : 'none';
     if (unoTurnIndicator) {
         const pendingText = snap.pendingDraw > 0 ? ` · ⚠️ +${snap.pendingDraw} offen` : '';
         unoTurnIndicator.textContent = (isMyTurn ? 'AM ZUG: DU' : `AM ZUG: ${snap.currentTurnName}`) + pendingText;
@@ -199,6 +201,19 @@ if (btnUnoDraw) {
             } else {
                 networkManager.sendToHost('UNO_DRAW', {});
             }
+        }
+    });
+}
+
+// Passen nach dem Ziehen
+const btnUnoPass = document.getElementById('btn-uno-pass');
+if (btnUnoPass) {
+    btnUnoPass.addEventListener('click', () => {
+        if (networkManager.isHost) {
+            unoGame.passTurn(myPlayerId);
+            broadcastUnoState();
+        } else {
+            networkManager.sendToHost('UNO_PASS', {});
         }
     });
 }

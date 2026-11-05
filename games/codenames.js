@@ -200,6 +200,7 @@ class CodenamesGame {
 
     giveClue(clue, count, playerId = null) {
         if (this.gameStatus !== 'PLAYING') return false;
+        if (this.clueWord) return false; // pro Zug nur ein Hinweis
         if (playerId) {
             const p = this.players.get(playerId);
             if (!p || p.team !== this.currentTurn || p.role !== 'spymaster') return false;
