@@ -63,13 +63,13 @@
 
     function sanitizeName(value) {
         const name = (typeof value === 'string' ? value : '')
+            // eslint-disable-next-line no-control-regex -- stripping control chars is intended
             .replace(/[\u0000-\u001f\u007f<>]/g, '')
             .trim()
             .slice(0, MAX_NAME_LENGTH);
         return name || 'Player';
     }
 
-    const shuffle = window.shuffleArray;
 
     // Color Setup
     const randomInitialColorIdx = Math.floor(Math.random() * PLAYER_COLORS.length);
@@ -305,7 +305,7 @@
             });
 
             showScreen(lobbyScreen);
-        } catch (err) {
+        } catch {
             alert('Verbindung fehlgeschlagen. Überprüfe den Code!');
         } finally {
             btnJoinRoom.disabled = false;
@@ -1126,7 +1126,6 @@
     const cnCurrentClueDisplay = document.getElementById('cn-current-clue-display');
     const codenamesLog = document.getElementById('codenames-log');
 
-    let latestCodenamesSnap = null;
 
     function setCodenamesTeamAndRole(team, role) {
         if (networkManager.isHost) {
@@ -1165,7 +1164,6 @@
 
     function renderCodenamesBoard(remoteSnap = null) {
         const snap = remoteSnap || codenamesGame.getSnapshot(myPlayerId);
-        latestCodenamesSnap = snap;
 
         cnScoreRed.textContent = snap.scoreRed;
         cnScoreBlue.textContent = snap.scoreBlue;
@@ -2261,7 +2259,6 @@
     const rouletteRoomPill = document.getElementById('roulette-room-pill');
     const rouletteTurnCards = document.getElementById('roulette-turn-cards');
     const rouletteRoster = document.getElementById('roulette-roster');
-    const rouletteDrawPile = document.getElementById('roulette-draw-pile');
     const rouletteDrawCount = document.getElementById('roulette-draw-count');
     const rouletteDiscardSlot = document.getElementById('roulette-discard-slot');
     const rouletteLogList = document.getElementById('roulette-log-list');

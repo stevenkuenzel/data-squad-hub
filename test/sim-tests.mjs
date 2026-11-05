@@ -212,9 +212,9 @@ assert(successfulBounces > 180, `Paddle bounce detection triggered reliably (${s
 // ----------------------------------------------------
 console.log('\n--- TEST 3: MONTAGSMALER (SKRIBBL) ---');
 const skribbl = new sandbox.SkribblGame();
-const drawer = skribbl.addPlayer('drawer1', 'Kuenstler', '#00f3ff');
-const guesser1 = skribbl.addPlayer('guess1', 'Rater 1', '#ff00ff');
-const guesser2 = skribbl.addPlayer('guess2', 'Rater 2', '#39ff14');
+skribbl.addPlayer('drawer1', 'Kuenstler', '#00f3ff');
+skribbl.addPlayer('guess1', 'Rater 1', '#ff00ff');
+skribbl.addPlayer('guess2', 'Rater 2', '#39ff14');
 
 skribbl.startMatch(3);
 assert(skribbl.status === 'CHOOSING', 'Game starts in CHOOSING state');
@@ -493,7 +493,6 @@ assert(uno.awaitingColorChoice === false, 'Color choice resolved and play resume
 // 8. Bot AI turn execution
 uno.turnIndex = uno.playerOrder.indexOf('uBot');
 assert(uno.getCurrentPlayer().isBot === true, 'Turn advanced to Bot');
-const botHandCount = uBot.hand.length;
 // Update with enough time for botActionTimer
 uno.botActionTimer = 0.05;
 uno.update(0.1);
@@ -550,7 +549,6 @@ assert(dev.hasBall !== null && dev.hasBall.type === 'release', 'Player picks up 
 // 4. Ball Throw
 dev.inputThrow = true;
 dev.aimAngle = 0; // aim right towards ComM
-const ballCountBefore = db.balls.length;
 db.update(0.05);
 assert(dev.hasBall === null, 'Player released held ball upon throw');
 const thrownBall = db.balls.find(b => b.state === 'FLYING' && b.thrownBy === 'dev1');

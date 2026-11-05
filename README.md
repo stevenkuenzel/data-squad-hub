@@ -42,6 +42,12 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 # Lokalen HTTP-Server starten (z. B. mit Python):
 python -m http.server 8000
 
+# Einmalig Dev-Abhängigkeiten (ESLint) installieren:
+npm install
+
+# Code-Stil & typische Fehler prüfen:
+npm run lint
+
 # Automatisierte Physik- & Regel-Simulationstests ausführen:
 npm test
 ```
@@ -59,7 +65,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **Freigabe-Roulette:** Prüft 54-Karten-Deck (Fortschritt, ComM-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
 - **Sicherheit:** Simuliert bösartige Peers – fremde Zeichen-/Lösch-/Wortwahl-Aktionen, ungültige Striche, Zugbeenden durch das falsche Team, Rollenwechsel des Spionchefs mitten im Spiel und kaputte Eingabewerte.
 
-Die Tests laufen bei jedem Push und Pull Request automatisch per GitHub Actions (`.github/workflows/test.yml`).
+Linter und Tests laufen bei jedem Push auf `master` und bei jedem Pull Request automatisch per GitHub Actions (`.github/workflows/test.yml`).
 
 ---
 

@@ -174,8 +174,6 @@ class CurveGame {
         this.powerUpSpawnTimer = 3.5;
 
         // Position players in random positions pointing towards center
-        const playerCount = this.players.size;
-        let index = 0;
 
         const margin = 180;
         const width = ARENA_WIDTH - margin * 2;
@@ -194,7 +192,6 @@ class CurveGame {
             player.recentSegments = [];
             player.lastX = player.x;
             player.lastY = player.y;
-            index++;
         }
     }
 

@@ -6,14 +6,17 @@ on:
   pull_request:
 
 jobs:
-  sim-tests:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Syntax check
-        run: for f in *.js games/*.js; do node --check "$f"; done
+          cache: npm
+      - name: Install dev dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
       - name: Simulation tests
         run: npm test
