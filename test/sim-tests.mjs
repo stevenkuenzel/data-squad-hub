@@ -36,12 +36,14 @@ const pongSrc = readFileSync('./games/pong.js', 'utf-8');
 const skribblSrc = readFileSync('./games/skribbl.js', 'utf-8');
 const codenamesSrc = readFileSync('./games/codenames.js', 'utf-8');
 const curveSrc = readFileSync('./game.js', 'utf-8');
+const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 
 runInContext(tankSrc, sandbox);
 runInContext(pongSrc, sandbox);
 runInContext(skribblSrc, sandbox);
 runInContext(codenamesSrc, sandbox);
 runInContext(curveSrc, sandbox);
+runInContext(unoSrc, sandbox);
 
 let passed = 0;
 let failed = 0;
@@ -121,6 +123,19 @@ tank.update(0.05);
 const bouncedBullet = tank.bullets.find(b => b.id === 999);
 assert(bouncedBullet && bouncedBullet.vx > 0, 'Bullet reflects off wall with inverted velocity');
 assert(bouncedBullet && bouncedBullet.bounces === 1, 'Bullet bounce counter increments correctly');
+
+// Test Bot wall avoidance & anti-jitter behavior
+// Place bot 30px in front of left wall facing left (angle = PI)
+bot.x = 60;
+bot.y = 150;
+bot.angle = Math.PI;
+bot.avoidTimer = 0;
+bot.avoidDir = 0;
+// Update bot AI
+tank.updateTankBot(bot, 0.05);
+assert(bot.avoidTimer > 0, 'Bot detects obstacle ahead and commits to avoidance maneuver');
+assert(bot.avoidDir !== 0, 'Bot chooses clear steering direction away from wall');
+assert(bot.inputBack === false, 'Bot does not jitter backwards into oscillation cycle');
 
 
 // ----------------------------------------------------
@@ -301,6 +316,91 @@ assert(curve.state === 'COUNTDOWN', 'Curve arena enters COUNTDOWN state');
 curve.state = 'PLAYING';
 curve.update(0.1);
 assert(curve.players.get('c1').alive, 'Players remain alive on initial movement');
+
+// ----------------------------------------------------
+// TEST SUITE 6: UNO (CARD GAME & ANTI-CHEAT ENGINE)
+// ----------------------------------------------------
+console.log('\n--- TEST 6: UNO CARD ENGINE ---');
+const uno = new sandbox.UnoGame();
+const u1 = uno.addPlayer('u1', 'Player 1', '#00f3ff', false);
+const u2 = uno.addPlayer('u2', 'Player 2', '#ff0055', false);
+const uBot = uno.addPlayer('uBot', 'Bot Uno', '#39ff14', true);
+
+// 1. Deck generation
+const testDeck = uno.createDeck();
+assert(testDeck.length === 108, `Standard Uno deck contains exactly 108 cards (got ${testDeck.length})`);
+const wildCount = testDeck.filter(c => c.color === 'wild').length;
+assert(wildCount === 8, `Deck has 8 wild cards (4 Wild + 4 Wild Draw 4)`);
+
+// 2. Match start & initial deal
+uno.startMatch();
+assert(uno.status === 'PLAYING', 'UNO match enters PLAYING status');
+assert(u1.hand.length === 7, 'Player 1 dealt exactly 7 cards');
+assert(u2.hand.length === 7, 'Player 2 dealt exactly 7 cards');
+assert(uBot.hand.length === 7, 'Bot dealt exactly 7 cards');
+assert(uno.discardPile.length === 1, 'Discard pile initialized with 1 top card');
+assert(uno.activeColor !== 'wild', 'Active color is resolved to one of the 4 colors');
+
+// 3. Card play legality
+const topCard = uno.getTopCard();
+const matchingColorCard = { id: 9001, color: uno.activeColor, value: '5' };
+const matchingValueCard = { id: 9002, color: 'unmatchedColor', value: topCard.value };
+const wildCard = { id: 9003, color: 'wild', value: 'wild' };
+const illegalCard = { id: 9004, color: 'differentColor', value: 'differentValue999' };
+
+assert(uno.isCardPlayable(matchingColorCard) === true, 'Card with matching color is playable');
+assert(uno.isCardPlayable(matchingValueCard) === true, 'Card with matching value is playable');
+assert(uno.isCardPlayable(wildCard) === true, 'Wild card is always playable');
+assert(uno.isCardPlayable(illegalCard) === false, 'Card without color or value match is rejected');
+
+// 4. Anti-Cheat Snapshot: Masking opponent hands
+const u1Snap = uno.getSnapshot('u1');
+assert(u1Snap.myHand.length === u1.hand.length, 'Player snapshot contains full hand for self');
+const opp2Data = u1Snap.players.find(p => p.id === 'u2');
+assert(opp2Data && typeof opp2Data.cardCount === 'number' && opp2Data.hand === undefined,
+    'Opponent cards are strictly masked: snapshot only reveals card count, preventing DevTools cheating');
+
+// 5. Action card mechanics: Draw 2
+const activeBefore = uno.getCurrentPlayer();
+const nextPlayerBefore = uno.getNextPlayer(1);
+const nextHandCountBefore = nextPlayerBefore.hand.length;
+
+// Inject Draw 2 card into active player's hand and top pile
+uno.discardPile = [{ id: 8888, color: 'red', value: '0' }];
+uno.activeColor = 'red';
+activeBefore.hand.push({ id: 8889, color: 'red', value: 'draw2' });
+const playRes = uno.playCard(activeBefore.id, 8889);
+assert(playRes.success === true, 'Successfully played Draw 2 card');
+assert(nextPlayerBefore.hand.length === nextHandCountBefore + 2, 'Next player drew exactly 2 cards');
+assert(uno.getCurrentPlayer().id !== nextPlayerBefore.id, 'Next player was skipped after drawing 2');
+
+// 6. Action card mechanics: Reverse in 3-player game
+const prevDir = uno.direction;
+const revActive = uno.getCurrentPlayer();
+uno.discardPile = [{ id: 7777, color: 'blue', value: '0' }];
+uno.activeColor = 'blue';
+revActive.hand.push({ id: 7778, color: 'blue', value: 'reverse' });
+uno.playCard(revActive.id, 7778);
+assert(uno.direction === -prevDir, 'Reverse card inverted play direction in 3-player game');
+
+// 7. Wild card & Color Choice
+const wildActive = uno.getCurrentPlayer();
+wildActive.hand.push({ id: 6666, color: 'wild', value: 'wild' });
+const wildRes = uno.playCard(wildActive.id, 6666);
+assert(wildRes.awaitColor === true && uno.awaitingColorChoice === true, 'Playing wild card requires color selection');
+uno.chooseWildColor(wildActive.id, 'green');
+assert(uno.activeColor === 'green', 'Chosen wild color set to green');
+assert(uno.awaitingColorChoice === false, 'Color choice resolved and play resumes');
+
+// 8. Bot AI turn execution
+uno.turnIndex = uno.playerOrder.indexOf('uBot');
+assert(uno.getCurrentPlayer().isBot === true, 'Turn advanced to Bot');
+const botHandCount = uBot.hand.length;
+// Update with enough time for botActionTimer
+uno.botActionTimer = 0.05;
+uno.update(0.1);
+assert(uno.turnIndex !== uno.playerOrder.indexOf('uBot'), 'Bot executed turn and passed turn index');
+
 
 console.log('\n========================================');
 console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);

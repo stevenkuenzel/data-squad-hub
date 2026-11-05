@@ -34,7 +34,8 @@
         codenames: document.getElementById('game-codenames'),
         skribbl: document.getElementById('game-skribbl'),
         tank: document.getElementById('game-tank'),
-        pong: document.getElementById('game-pong')
+        pong: document.getElementById('game-pong'),
+        uno: document.getElementById('game-uno')
     };
 
     // State
@@ -136,6 +137,7 @@
     const skribblGame = new SkribblGame();
     const tankGame = new TankGame();
     const octaPongGame = new OctaPongGame();
+    const unoGame = new UnoGame();
 
     function getActiveGameInstance() {
         switch (activeGameType) {
@@ -144,6 +146,7 @@
             case 'skribbl': return skribblGame;
             case 'tank': return tankGame;
             case 'pong': return octaPongGame;
+            case 'uno': return unoGame;
             default: return curveGame;
         }
     }
@@ -211,11 +214,13 @@
             codenames: 'Codenames',
             skribbl: 'Montagsmaler',
             tank: 'Tank Trouble',
-            pong: 'Octa-Pong'
+            pong: 'Octa-Pong',
+            uno: 'UNO'
         };
         lobbyGameTitle.textContent = titles[gameType] || 'Lobby';
         curveSettings.style.display = gameType === 'curve' ? 'block' : 'none';
         btnAddBot.style.display = (gameType === 'codenames' || gameType === 'skribbl') ? 'none' : 'block';
+        lobbyMaxPlayers.textContent = (gameType === 'tank' || gameType === 'pong' || gameType === 'uno') ? '8' : '12';
         updateLobbyInstructions(gameType);
     }
 
@@ -429,6 +434,13 @@
             if (isHost) {
                 octaPongGame.startMatch();
             }
+        } else if (gameType === 'uno') {
+            document.getElementById('uno-room-code').textContent = networkManager.roomCode || 'SOLO';
+            if (isHost) {
+                unoGame.startMatch();
+                broadcastUnoState();
+            }
+            renderUnoSnapshot(unoGame.getSnapshot(myPlayerId));
         }
     }
 
@@ -552,6 +564,23 @@
                 '📱 <strong>Mobile:</strong> <code>◀</code> und <code>▶</code> Touch-Buttons links und rechts.'
             ],
             tip: '🌀 <strong>Schnitt & Speed:</strong> Triffst du den Ball mit der Ecke deines Schlägers, wird er mit extra Schnitt und höherem Tempo abgelenkt!'
+        },
+        uno: {
+            title: '🎴 UNO (Kult-Kartenspiel)',
+            goal: 'Werde als Erster alle deine Handkarten los! Passe Farbe oder Zahl an und spiele taktische Aktionskarten.',
+            roles: [
+                '🎴 <strong>Zahlenkarten (0-9):</strong> Passen auf gleiche Zahl oder gleiche Farbe.',
+                '🚫 <strong>Aussetzen:</strong> Überspringt den nächsten Spieler.',
+                '🔄 <strong>Richtungswechsel:</strong> Dreht die Spielreihenfolge um.',
+                '➕2 <strong>Zieh 2:</strong> Nächster Spieler zieht 2 Karten und setzt aus.',
+                '🌈 <strong>Farbwahl & Farbwahl +4:</strong> Jederzeit spielbar; wähle die nächste Spielfarbe!'
+            ],
+            controls: [
+                'Tippe auf eine leuchtende Karte in deiner Hand, um sie auszuspielen.',
+                'Tippe auf den Nachziehstapel ("ZIEHEN"), falls du keine passende Karte hast.',
+                'Klicke rechtzeitig auf "🔔 UNO!", wenn du nur noch 1 oder 2 Karten hast!'
+            ],
+            tip: '💡 <strong>Taktik:</strong> Hebe dir Farbwahl- und +4-Karten für den perfekten Moment auf, um das Spielgeschehen abrupt zu drehen!'
         }
     };
 
@@ -1385,6 +1414,209 @@
     }
 
     // ==========================================
+    // GAME 6: UNO
+    // ==========================================
+    const unoTurnIndicator = document.getElementById('uno-turn-indicator');
+    const unoActiveColorBadge = document.getElementById('uno-active-color-badge');
+    const unoOpponentsBar = document.getElementById('uno-opponents-bar');
+    const btnUnoDraw = document.getElementById('btn-uno-draw');
+    const unoDeckCount = document.getElementById('uno-deck-count');
+    const unoTopCardContainer = document.getElementById('uno-top-card-container');
+    const unoHandCards = document.getElementById('uno-hand-cards');
+    const btnCallUno = document.getElementById('btn-call-uno');
+    const unoColorModal = document.getElementById('uno-color-modal');
+    const unoWinnerOverlay = document.getElementById('uno-winner-overlay');
+    const unoWinnerText = document.getElementById('uno-winner-text');
+
+    let pendingWildCardId = null;
+
+    function renderUnoCardElement(card, isPlayable = false) {
+        const div = document.createElement('div');
+        div.className = `uno-card color-${card.color}` + (isPlayable ? ' playable' : ' unplayable');
+        div.setAttribute('data-card-id', card.id);
+
+        const valMap = {
+            skip: '🚫',
+            reverse: '🔄',
+            draw2: '+2',
+            wild: '🌈',
+            wild4: '+4'
+        };
+        const displayVal = valMap[card.value] || card.value;
+
+        div.innerHTML = `
+            <span class="card-corner top">${displayVal}</span>
+            <div class="uno-card-center"><span>${displayVal}</span></div>
+            <span class="card-corner bottom">${displayVal}</span>
+        `;
+        return div;
+    }
+
+    function renderUnoSnapshot(snap) {
+        if (!snap) return;
+
+        const isMyTurn = snap.currentTurnPlayerId === myPlayerId;
+        if (unoTurnIndicator) {
+            unoTurnIndicator.textContent = isMyTurn ? 'AM ZUG: DU' : `AM ZUG: ${snap.currentTurnName}`;
+            unoTurnIndicator.style.color = isMyTurn ? 'var(--cyan)' : '#f59e0b';
+        }
+
+        // Active color badge
+        if (unoActiveColorBadge) {
+            const colorLabels = {
+                red: '🔴 Rot',
+                blue: '🔵 Blau',
+                green: '🟢 Grün',
+                yellow: '🟡 Gelb'
+            };
+            unoActiveColorBadge.textContent = `Farbe: ${colorLabels[snap.activeColor] || snap.activeColor}`;
+            const colorStyleMap = {
+                red: '#ef4444',
+                blue: '#3b82f6',
+                green: '#10b981',
+                yellow: '#f59e0b'
+            };
+            unoActiveColorBadge.style.color = colorStyleMap[snap.activeColor] || '#fff';
+        }
+
+        // Deck count
+        if (unoDeckCount) unoDeckCount.textContent = snap.drawPileCount;
+
+        // Top discard card
+        if (unoTopCardContainer) {
+            unoTopCardContainer.innerHTML = '';
+            if (snap.topCard) {
+                const topEl = renderUnoCardElement(snap.topCard, false);
+                unoTopCardContainer.appendChild(topEl);
+            }
+        }
+
+        // Opponents roster
+        if (unoOpponentsBar) {
+            unoOpponentsBar.innerHTML = '';
+            (snap.players || []).forEach(p => {
+                if (p.id === myPlayerId) return; // Don't show self in opponents row
+                const b = document.createElement('div');
+                b.className = 'uno-opponent-badge' + (p.isCurrentTurn ? ' active-turn' : '');
+                b.innerHTML = `
+                    <span style="color: ${p.color}; font-weight: bold;">${p.name}${p.isBot ? ' 🤖' : ''}</span>
+                    <span class="cards-tag">${p.cardCount} 🎴</span>
+                    ${p.calledUno ? '<span style="color: #f59e0b; font-weight: bold;">UNO!</span>' : ''}
+                `;
+                unoOpponentsBar.appendChild(b);
+            });
+        }
+
+        // My hand cards
+        if (unoHandCards) {
+            unoHandCards.innerHTML = '';
+            (snap.myHand || []).forEach(card => {
+                const canPlay = isMyTurn && !snap.awaitingColorChoice && (
+                    card.color === 'wild' ||
+                    card.color === snap.activeColor ||
+                    (snap.topCard && card.value === snap.topCard.value)
+                );
+
+                const cardEl = renderUnoCardElement(card, canPlay);
+                if (canPlay) {
+                    cardEl.addEventListener('click', () => {
+                        if (card.color === 'wild') {
+                            pendingWildCardId = card.id;
+                            if (unoColorModal) unoColorModal.style.display = 'flex';
+                        } else {
+                            if (networkManager.isHost) {
+                                unoGame.playCard(myPlayerId, card.id);
+                                broadcastUnoState();
+                            } else {
+                                networkManager.sendToHost('UNO_PLAY', { cardId: card.id });
+                            }
+                        }
+                    });
+                }
+                unoHandCards.appendChild(cardEl);
+            });
+        }
+
+        // Winner overlay
+        if (snap.status === 'GAME_OVER' && snap.winner) {
+            if (unoWinnerOverlay) unoWinnerOverlay.style.display = 'flex';
+            if (unoWinnerText) unoWinnerText.textContent = `🏆 ${snap.winner} GEWINNT UNO!`;
+        } else {
+            if (unoWinnerOverlay) unoWinnerOverlay.style.display = 'none';
+        }
+    }
+
+    function broadcastUnoState() {
+        for (const conn of networkManager.connections.values()) {
+            if (conn.open) {
+                conn.send({
+                    type: 'UNO_STATE',
+                    payload: unoGame.getSnapshot(conn.peer)
+                });
+            }
+        }
+        renderUnoSnapshot(unoGame.getSnapshot(myPlayerId));
+    }
+
+    // Deck Draw button click
+    if (btnUnoDraw) {
+        btnUnoDraw.addEventListener('click', () => {
+            if (unoGame.status === 'PLAYING') {
+                const curr = unoGame.getCurrentPlayer();
+                if (curr && curr.id === myPlayerId) {
+                    if (networkManager.isHost) {
+                        unoGame.playerDrawCard(myPlayerId);
+                        broadcastUnoState();
+                    } else {
+                        networkManager.sendToHost('UNO_DRAW', {});
+                    }
+                }
+            }
+        });
+    }
+
+    // UNO call button
+    if (btnCallUno) {
+        btnCallUno.addEventListener('click', () => {
+            if (networkManager.isHost) {
+                unoGame.callUno(myPlayerId);
+                broadcastUnoState();
+            } else {
+                networkManager.sendToHost('UNO_CALL', {});
+            }
+        });
+    }
+
+    // Color picker buttons
+    document.querySelectorAll('.color-pick-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            const chosenCol = b.getAttribute('data-color');
+            if (unoColorModal) unoColorModal.style.display = 'none';
+            if (pendingWildCardId) {
+                if (networkManager.isHost) {
+                    unoGame.playCard(myPlayerId, pendingWildCardId, chosenCol);
+                    broadcastUnoState();
+                } else {
+                    networkManager.sendToHost('UNO_PLAY', { cardId: pendingWildCardId, color: chosenCol });
+                }
+                pendingWildCardId = null;
+            }
+        });
+    });
+
+    // Play again button
+    const btnPlayAgainUno = document.querySelector('.btn-play-again-uno');
+    if (btnPlayAgainUno) {
+        btnPlayAgainUno.addEventListener('click', () => {
+            if (unoWinnerOverlay) unoWinnerOverlay.style.display = 'none';
+            if (networkManager.isHost) {
+                unoGame.startMatch();
+                broadcastUnoState();
+            }
+        });
+    }
+
+    // ==========================================
     // ROUTE GAME-SPECIFIC NETWORKING
     // ==========================================
     function handleHostGameEvent(type, payload, senderId) {
@@ -1423,6 +1655,18 @@
         } else if (type === 'SK_GUESS') {
             const res = skribblGame.handleGuess(senderId, payload.text);
             handleSkribblGuessResult(res);
+        } else if (type === 'UNO_PLAY') {
+            unoGame.playCard(senderId, payload.cardId, payload.color);
+            broadcastUnoState();
+        } else if (type === 'UNO_DRAW') {
+            unoGame.playerDrawCard(senderId);
+            broadcastUnoState();
+        } else if (type === 'UNO_CALL') {
+            unoGame.callUno(senderId);
+            broadcastUnoState();
+        } else if (type === 'UNO_COLOR') {
+            unoGame.chooseWildColor(senderId, payload.color);
+            broadcastUnoState();
         }
     }
 
@@ -1455,6 +1699,8 @@
             } else if (payload.chatMsg) {
                 addSkChatMsg(payload.chatMsg.name, payload.chatMsg.text, false);
             }
+        } else if (type === 'UNO_STATE') {
+            renderUnoSnapshot(payload);
         }
     }
 
@@ -1482,6 +1728,13 @@
                 tankGame.update(dt);
             } else if (activeGameType === 'pong') {
                 octaPongGame.update(dt);
+            } else if (activeGameType === 'uno') {
+                const prevTurn = unoGame.turnIndex;
+                const prevStatus = unoGame.status;
+                unoGame.update(dt);
+                if (unoGame.turnIndex !== prevTurn || unoGame.status !== prevStatus) {
+                    broadcastUnoState();
+                }
             }
 
             // Broadcast states at ~35Hz

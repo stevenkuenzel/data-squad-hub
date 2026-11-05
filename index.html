@@ -111,6 +111,20 @@
                             <button class="icon-btn btn-card-help" data-game="pong" title="Anleitung">❓</button>
                         </div>
                     </div>
+
+                    <!-- 6. UNO -->
+                    <div class="game-card" data-game="uno">
+                        <div class="game-card-icon">🎴</div>
+                        <div class="game-card-info">
+                            <h3>UNO</h3>
+                            <p>Der Kult-Kartenklassiker! Lege Farben & Zahlen, spiele Richtungswechsel und rufe rechtzeitig "UNO!".</p>
+                            <span class="game-card-meta">2 - 8 Spieler • Kartenspiel & Bots</span>
+                        </div>
+                        <div class="card-btn-row">
+                            <button class="btn btn-secondary btn-sm btn-host-game" data-game="uno">Hosten</button>
+                            <button class="icon-btn btn-card-help" data-game="uno" title="Anleitung">❓</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -401,9 +415,80 @@
                 <button class="touch-btn" id="pong-touch-right">▶</button>
             </div>
         </div>
+
+        <!-- ================= 8. GAME VIEW: UNO ================= -->
+        <div id="game-uno" class="game-view">
+            <div class="uno-container">
+                <!-- Top HUD -->
+                <div class="uno-header">
+                    <div class="hud-left">
+                        <button class="btn-hub-back icon-btn" title="Zurück zum Hub">◂</button>
+                        <div class="hud-pill"><span id="uno-turn-indicator" style="font-weight: bold; color: var(--cyan);">AM ZUG: DU</span></div>
+                        <div class="hud-pill" id="uno-room-pill" style="cursor: pointer;"><span>RAUM:</span><strong id="uno-room-code">-----</strong></div>
+                    </div>
+                    <div class="hud-pill"><span id="uno-active-color-badge" style="font-weight: bold;">Farbe: 🔴 Rot</span></div>
+                    <div class="hud-right">
+                        <button class="icon-btn btn-instructions-toggle" data-game="uno" title="Spielanleitung">❓</button>
+                        <button class="icon-btn btn-mute-toggle" title="Sound">🔊</button>
+                    </div>
+                </div>
+
+                <!-- Opponents Roster Strip -->
+                <div class="uno-opponents-bar" id="uno-opponents-bar"></div>
+
+                <!-- Center Table: Draw Pile & Discard Pile -->
+                <div class="uno-table">
+                    <div class="uno-pile-container">
+                        <!-- Draw Pile Deck -->
+                        <div class="uno-deck" id="btn-uno-draw" title="1 Karte ziehen">
+                            <div class="uno-deck-inner">
+                                <span style="font-size: 1.8rem;">🎴</span>
+                                <span class="deck-count" id="uno-deck-count">84</span>
+                            </div>
+                            <span class="deck-label">ZIEHEN</span>
+                        </div>
+
+                        <!-- Discard Pile (Top Card) -->
+                        <div class="uno-discard" id="uno-top-card-container"></div>
+                    </div>
+                </div>
+
+                <!-- Player Hand & Action Controls -->
+                <div class="uno-player-section">
+                    <div class="uno-action-bar">
+                        <span id="uno-hand-title" style="font-size: 0.9rem; font-weight: bold; color: #fff;">Deine Karten:</span>
+                        <button id="btn-call-uno" class="btn btn-warning btn-sm" title="UNO rufen bei 1-2 Karten!">🔔 UNO!</button>
+                    </div>
+
+                    <!-- Horizontally scrollable hand carousel -->
+                    <div class="uno-hand-container" id="uno-hand-cards"></div>
+                </div>
+
+                <!-- Wild Color Choice Modal -->
+                <div class="overlay-center" id="uno-color-modal" style="display: none;">
+                    <div class="round-over-box" style="padding: 24px;">
+                        <h3 style="margin-top: 0; color: #fff; font-size: 1.3rem;">Wähle die nächste Farbe:</h3>
+                        <div class="uno-color-picker">
+                            <button class="color-pick-btn color-red" data-color="red">🔴 Rot</button>
+                            <button class="color-pick-btn color-blue" data-color="blue">🔵 Blau</button>
+                            <button class="color-pick-btn color-green" data-color="green">🟢 Grün</button>
+                            <button class="color-pick-btn color-yellow" data-color="yellow">🟡 Gelb</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Winner Overlay -->
+                <div class="overlay-center" id="uno-winner-overlay" style="display: none;">
+                    <div class="round-over-box">
+                        <h2 class="winner-title" id="uno-winner-text">SIEG!</h2>
+                        <button class="btn btn-primary btn-play-again-uno" style="margin-top: 15px; width: 100%;">Nochmal spielen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ================= 8. INSTRUCTIONS MODAL ================= -->
+    <!-- ================= 9. INSTRUCTIONS MODAL ================= -->
     <div id="modal-instructions" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
@@ -417,6 +502,7 @@
                 <button class="inst-tab" data-game="skribbl">🎨 Montagsmaler</button>
                 <button class="inst-tab" data-game="tank">💥 Tank Trouble</button>
                 <button class="inst-tab" data-game="pong">🏓 Octa-Pong</button>
+                <button class="inst-tab" data-game="uno">🎴 UNO</button>
             </div>
             <div class="instructions-body" id="instructions-body"></div>
         </div>
@@ -430,6 +516,7 @@
     <script src="games/skribbl.js"></script>
     <script src="games/tank.js"></script>
     <script src="games/pong.js"></script>
+    <script src="games/uno.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -186,14 +186,31 @@ window.MeinNeuesSpiel = MeinNeuesSpiel;
      }
      ```
   3. **Munitionslimit:** Maximal 5 Projektile pro Spieler gleichzeitig zulassen.
+  4. **Wand-Zittern & Whisker-Navigation (Labyrinthe):**
+     * **Problem:** Wenn Bots bei Wandkontakt einfach nur `inputBack = true` setzen, fahren sie 1px zurück, haben im nächsten Frame wieder freie Sicht und schalten sofort wieder auf `inputFwd = true`. Das führt zu schnellem Zittern (Oszillation bei 50Hz) an der ersten Wand.
+     * **Lösung:** 3-Feeler Whisker-Raycasting (`centerAhead`, `leftFeeler`, `rightFeeler`) mit zeitgebundenem Avoidance-Timer:
+       ```javascript
+       if (centerHit && bot.avoidTimer <= 0) {
+           bot.avoidDir = (!leftHit && rightHit) ? -1 : (leftHit && !rightHit) ? 1 : (Math.random() < 0.5 ? -1 : 1);
+           bot.avoidTimer = 0.8 + Math.random() * 0.4; // 1 Sekunde fest abbiegen
+       }
+       if (bot.avoidTimer > 0) {
+           bot.inputFwd = true;
+           bot.inputLeft = bot.avoidDir < 0;
+           bot.inputRight = bot.avoidDir > 0;
+           return;
+       }
+       ```
+     * **Wichtig bei dünnen Wänden:** Feeler müssen mit `!this.hasLineOfSight(bot.x, bot.y, feelerX, feelerY)` geprüft werden (Strahl-Schnittmenge), damit der Feeler-Punkt bei hoher Geschwindigkeit nicht einfach über eine dünne Wand hinwegspringt.
 
 ### d) Rollen-Isolation & Datensicherheit
-* **Problem (Montagsmaler & Codenames Erfahrung):**
+* **Problem (Montagsmaler, Codenames & UNO Erfahrung):**
   * Montagsmaler: Wenn der aktive Zeichner Begriffe im Chat tippen kann, leakt er versehentlich das geheime Wort.
   * Codenames: Wenn unaufgedeckte Kartenfarben an Ermittler übertragen werden, können Spieler diese im Browser-DevTool (F12) auslesen.
+  * UNO: Werden alle Handkarten der Gegner über das P2P-Netzwerk übertragen, kann jeder Spieler über die Browser-Konsole alle Karten der Mitspieler einsehen.
 * **Lösung:**
   * **Eingabeschnittstellen physikalisch sperren:** Chat-Feld und Senden-Button für den Zeichner bzw. bereits erfolgreiche Rater mit `disabled = true` versehen.
-  * **Targeted Snapshots:** In `getSnapshot(forPlayerId)` verdeckte Kartentypen für Ermittler mit `type: 'hidden'` maskieren. Nur der Spionchef erhält das unmaskierte Farbraster.
+  * **Targeted Snapshots:** In `getSnapshot(forPlayerId)` verdeckte Kartentypen für Ermittler mit `type: 'hidden'` maskieren. Bei Kartenspielen (UNO) nur `cardCount: p.hand.length` für Gegner übertragen und ausschließlich für `forPlayerId` das unmaskierte `myHand` Array mitliefern.
 
 ### e) Mobile Touch-Steuerung & Responsive Skalierung
 * **Canvas-Skalierung:** Das Spielfeld hat immer feste interne Koordinaten (z. B. $1200 \times 800$), wird im CSS jedoch fluid mit `width: 100%; height: auto; max-height: calc(100vh - 160px);` skaliert.

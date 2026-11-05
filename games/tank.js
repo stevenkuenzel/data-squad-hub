@@ -345,6 +345,7 @@ class TankGame {
 
     updateTankBot(bot, dt) {
         bot.shootCooldown = Math.max(0, (bot.shootCooldown || 0) - dt);
+        bot.avoidTimer = Math.max(0, (bot.avoidTimer || 0) - dt);
 
         // Find closest enemy tank
         let target = null;
@@ -359,6 +360,42 @@ class TankGame {
             }
         }
 
+        // Whisker raycasts for smooth maze navigation without wall jitter
+        const feelerDist = 52;
+        const centerAheadX = bot.x + Math.cos(bot.angle) * feelerDist;
+        const centerAheadY = bot.y + Math.sin(bot.angle) * feelerDist;
+        const centerHit = !this.hasLineOfSight(bot.x, bot.y, centerAheadX, centerAheadY) || this.checkTankWallCollision(centerAheadX, centerAheadY);
+
+        if (centerHit && bot.avoidTimer <= 0) {
+            // Wall directly ahead! Check left and right feelers to pick open corridor
+            const leftFeelerX = bot.x + Math.cos(bot.angle - 0.75) * feelerDist;
+            const leftFeelerY = bot.y + Math.sin(bot.angle - 0.75) * feelerDist;
+            const rightFeelerX = bot.x + Math.cos(bot.angle + 0.75) * feelerDist;
+            const rightFeelerY = bot.y + Math.sin(bot.angle + 0.75) * feelerDist;
+
+            const leftHit = !this.hasLineOfSight(bot.x, bot.y, leftFeelerX, leftFeelerY) || this.checkTankWallCollision(leftFeelerX, leftFeelerY);
+            const rightHit = !this.hasLineOfSight(bot.x, bot.y, rightFeelerX, rightFeelerY) || this.checkTankWallCollision(rightFeelerX, rightFeelerY);
+
+            if (!leftHit && rightHit) {
+                bot.avoidDir = -1; // Turn left
+            } else if (leftHit && !rightHit) {
+                bot.avoidDir = 1;  // Turn right
+            } else {
+                bot.avoidDir = Math.random() < 0.5 ? -1 : 1;
+            }
+            bot.avoidTimer = 0.8 + Math.random() * 0.4; // Commit to navigating around corner
+        }
+
+        if (bot.avoidTimer > 0) {
+            // Maneuver smoothly around corner into open space
+            bot.inputFwd = true;
+            bot.inputBack = false;
+            bot.inputLeft = bot.avoidDir < 0;
+            bot.inputRight = bot.avoidDir > 0;
+            bot.inputShoot = false;
+            return;
+        }
+
         if (target) {
             const hasSight = this.hasLineOfSight(bot.x, bot.y, target.x, target.y);
             const desiredAngle = Math.atan2(target.y - bot.y, target.x - bot.x);
@@ -368,14 +405,8 @@ class TankGame {
 
             bot.inputLeft = angleDiff < -0.15;
             bot.inputRight = angleDiff > 0.15;
-
-            // Obstacle check directly ahead
-            const lookAheadX = bot.x + Math.cos(bot.angle) * 36;
-            const lookAheadY = bot.y + Math.sin(bot.angle) * 36;
-            const obstacleAhead = this.checkTankWallCollision(lookAheadX, lookAheadY);
-
-            bot.inputFwd = !obstacleAhead && Math.abs(angleDiff) < 0.75 && (minDist > 140 || !hasSight);
-            bot.inputBack = obstacleAhead;
+            bot.inputFwd = Math.abs(angleDiff) < 0.8 && (minDist > 140 || !hasSight);
+            bot.inputBack = false;
 
             // Shoot only when:
             // 1. Aimed directly towards enemy (|angleDiff| < 0.22)
@@ -390,6 +421,7 @@ class TankGame {
             }
         } else {
             bot.inputFwd = true;
+            bot.inputBack = false;
             bot.inputLeft = Math.random() < 0.05;
             bot.inputRight = Math.random() < 0.05;
             bot.inputShoot = false;
