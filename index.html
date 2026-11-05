@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Curve Arena - Multiplayer WebRTC</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- PeerJS WebRTC Library -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- ================= HOME SCREEN ================= -->
+        <div id="home-screen" class="screen active">
+            <div class="card">
+                <div class="logo-container">
+                    <h1 class="title">Curve Arena</h1>
+                    <p class="subtitle">Multiplayer Browser Arcade • P2P WebRTC</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="player-name">Dein Spielername</label>
+                    <input type="text" id="player-name" maxlength="15" value="Player 1" placeholder="Name eingeben...">
+                </div>
+
+                <div class="input-group">
+                    <label>Farbe wählen</label>
+                    <div class="color-picker" id="color-picker">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <div class="btn-grid">
+                    <button id="btn-host-room" class="btn btn-primary">
+                        <span>Raum erstellen (Host)</span>
+                    </button>
+
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="join-code-input" placeholder="CODE (z.B. AB123)" style="text-transform: uppercase; font-family: 'Orbitron', monospace; font-weight: bold; letter-spacing: 2px;">
+                        <button id="btn-join-room" class="btn btn-secondary" style="white-space: nowrap;">Beitreten</button>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 6px;">
+                        <button id="btn-vs-bot" class="btn btn-secondary btn-sm" style="flex: 1;">
+                            Solo vs. Bots
+                        </button>
+                        <button id="btn-local-2p" class="btn btn-secondary btn-sm" style="flex: 1;">
+                            1 Tastatur (2P)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= LOBBY SCREEN ================= -->
+        <div id="lobby-screen" class="screen">
+            <div class="card">
+                <div class="logo-container">
+                    <h2 class="title" style="font-size: 1.8rem;">Spiel-Lobby</h2>
+                    <p class="subtitle" id="lobby-role-text">Warte auf Mitspieler...</p>
+                </div>
+
+                <div class="room-badge">
+                    <div>
+                        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;">Raum-Code</div>
+                        <span id="display-room-code" class="room-code-text">-----</span>
+                    </div>
+                    <button id="btn-copy-link" class="btn btn-secondary btn-sm">Link kopieren</button>
+                </div>
+
+                <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">
+                    Spieler (<span id="player-count">1</span>/6)
+                </div>
+                <ul id="lobby-player-list" class="player-list">
+                    <!-- Populated dynamically -->
+                </ul>
+
+                <div class="btn-grid" id="host-lobby-controls">
+                    <button id="btn-add-bot" class="btn btn-secondary">
+                        + Bot hinzufügen
+                    </button>
+                    <button id="btn-start-game" class="btn btn-primary">
+                        Spiel starten
+                    </button>
+                </div>
+
+                <div id="client-lobby-notice" style="display: none; text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-top: 15px;">
+                    Der Host startet die Runde in Kürze...
+                </div>
+
+                <button id="btn-leave-lobby" class="btn btn-danger btn-sm" style="margin-top: 15px; width: 100%;">
+                    Lobby verlassen
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= GAMEPLAY SCREEN ================= -->
+        <div id="game-screen" class="screen">
+            <!-- HUD -->
+            <div class="hud-bar">
+                <div class="hud-left">
+                    <div class="hud-pill">
+                        <span>RUNDE</span>
+                        <strong id="hud-round-display">1 / 5</strong>
+                    </div>
+                    <div class="hud-pill" id="hud-room-pill" style="cursor: pointer;" title="Klicken zum Kopieren">
+                        <span>RAUM:</span>
+                        <strong id="hud-room-code">-----</strong>
+                    </div>
+                </div>
+
+                <div class="hud-scores" id="hud-scores-container">
+                    <!-- Dynamic player score badges -->
+                </div>
+
+                <div class="hud-right">
+                    <div class="hud-pill" id="hud-ping-pill" style="display: none;">
+                        <span id="hud-ping-text">0 ms</span>
+                    </div>
+                    <button class="icon-btn" id="btn-mute" title="Sound ein/aus">🔊</button>
+                    <button class="icon-btn" id="btn-fullscreen" title="Vollbild">⛶</button>
+                    <button class="icon-btn" id="btn-quit" title="Zurück zur Lobby">✕</button>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport -->
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas" width="1200" height="800"></canvas>
+            </div>
+
+            <!-- Overlays -->
+            <div class="overlay-center" id="countdown-overlay" style="display: none;">
+                <div class="countdown-display" id="countdown-number">3</div>
+            </div>
+
+            <div class="overlay-center" id="round-over-overlay" style="display: none;">
+                <div class="round-over-box">
+                    <h2 class="winner-title" id="round-winner-text" style="color: var(--cyan);">RUNDE VORBEI</h2>
+                    <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 12px;">Nächste Runde beginnt gleich...</p>
+                </div>
+            </div>
+
+            <div class="overlay-center" id="match-over-overlay" style="display: none;">
+                <div class="round-over-box">
+                    <h2 class="winner-title" id="match-winner-text" style="color: #ffaa00;">🏆 SIEGER!</h2>
+                    <p id="match-winner-sub" style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 20px;">hat das Match gewonnen!</p>
+                    <button id="btn-play-again" class="btn btn-primary" style="width: 100%;">Noch einmal spielen</button>
+                </div>
+            </div>
+
+            <!-- Mobile Touch Steering -->
+            <div class="touch-controls">
+                <button class="touch-btn" id="touch-left">◀</button>
+                <button class="touch-btn" id="touch-right">▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="audio.js"></script>
+    <script src="network.js"></script>
+    <script src="game.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
