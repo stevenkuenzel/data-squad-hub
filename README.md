@@ -1,9 +1,9 @@
 # DataSquad Hub
 
-> **Erstellt von Jimmy**  
+> **Erstellt von Jimmy (3.8 Flash) · Reviewed von Claudia (Opus 5.5)**  
 > *Real-Time Distributed Stream Synchronization & Interactive Team Velocity Tool*
 
-Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisation verteilter Datenströme und interaktiven Teambuilding-Sessions für das Data Squad – läuft **100% serverlos auf GitHub Pages**.
+Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisation verteilter Datenströme und interaktiven Teambuilding-Sessions für das Data Squad – läuft **ohne eigenes Backend auf GitHub Pages**.
 
 ---
 
@@ -24,8 +24,10 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 
 ## ⚡ Übersicht & Features
 
-- 👤 **Erstellt von:** Jimmy
-- 🌐 **Peer-to-Peer Architektur (WebRTC):** Keine externen Server oder Backends erforderlich. Die Browser der Teilnehmer verbinden sich direkt und Ende-zu-Ende verschlüsselt miteinander.
+- 👤 **Erstellt von:** Jimmy (3.8 Flash)
+- 🔍 **Code-Review & Security-Hardening:** Claudia (Opus 5.5)
+- 🌐 **Peer-to-Peer Architektur (WebRTC):** Kein eigenes Backend erforderlich. Die Spieldaten fließen direkt und verschlüsselt zwischen den Browsern. Für den Verbindungsaufbau nutzt PeerJS allerdings den öffentlichen Vermittlungsserver `0.peerjs.com` sowie STUN-Server; diese sehen die IP-Adressen der Teilnehmer, aber keine Spielinhalte.
+- 🛡️ **Host-autoritativ & abgesichert:** Der Host prüft alle Aktionen (Zugrechte, Rollen, Payload-Grenzen); Daten anderer Spieler werden vor der Anzeige maskiert (XSS-Schutz).
 - 🔗 **Smartes Direkt-Routing:** 
   - Einladungs-Links führen Gäste **direkt zum richtigen Spiel** (z. B. `?game=uno&room=K8M2P`), ohne dass der Gast das Spiel manuell auswählen muss.
   - Auch bei bloßer Eingabe des Raum-Codes im Hub erkennt der Client automatisch das gehostete Spiel.
@@ -55,6 +57,15 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **Corporate Dodgeball:** Validiert Team-Aufteilung (Data Squad vs. ComM), Halbfeld-Grenzschutz, Ball-Pickups, Wurf- und Flugphysik, Hechtsprung-Fangen (Catch-Mechanik) und Erzeugung von Fels-Hindernissen ("Steine im Weg").
 - **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
 - **Freigabe-Roulette:** Prüft 54-Karten-Deck (Fortschritt, ComM-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
+- **Sicherheit:** Simuliert bösartige Peers – fremde Zeichen-/Lösch-/Wortwahl-Aktionen, ungültige Striche, Zugbeenden durch das falsche Team, Rollenwechsel des Spionchefs mitten im Spiel und kaputte Eingabewerte.
+
+Die Tests laufen bei jedem Push und Pull Request automatisch per GitHub Actions (`.github/workflows/test.yml`).
+
+---
+
+## 📚 Abhängigkeiten
+
+- [PeerJS](https://github.com/peers/peerjs) **1.5.4** (MIT-Lizenz), lokal eingebunden als `peerjs.min.js`.
 
 ---
 

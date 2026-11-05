@@ -30,7 +30,8 @@ const sandbox = {
 sandbox.window = sandbox;
 createContext(sandbox);
 
-// Load game files into sandbox
+// Load game files into sandbox (shared helpers first)
+runInContext(readFileSync('./games/utils.js', 'utf-8'), sandbox);
 const tankSrc = readFileSync('./games/tank.js', 'utf-8');
 const pongSrc = readFileSync('./games/pong.js', 'utf-8');
 const skribblSrc = readFileSync('./games/skribbl.js', 'utf-8');

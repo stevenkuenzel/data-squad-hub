@@ -14,6 +14,7 @@ class NetworkManager {
         this.connectedPeers = new Set();
         this.ping = 0;
         this.lastPingSent = 0;
+        this.pingInterval = null;
     }
 
     generateRoomCode() {
@@ -181,11 +182,19 @@ class NetworkManager {
     }
 
     startPingInterval() {
-        setInterval(() => {
+        this.stopPingInterval(); // avoid stacking intervals on re-join
+        this.pingInterval = setInterval(() => {
             if (this.hostConn && this.hostConn.open) {
                 this.sendToHost('PING', null, { t: performance.now() });
             }
         }, 2000);
+    }
+
+    stopPingInterval() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
     }
 
     sendTo(peerId, rawMsg) {
@@ -215,6 +224,7 @@ class NetworkManager {
     }
 
     disconnect() {
+        this.stopPingInterval();
         if (this.peer) {
             this.peer.destroy();
             this.peer = null;

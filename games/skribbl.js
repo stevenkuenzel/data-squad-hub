@@ -78,7 +78,7 @@ class SkribblGame {
     }
 
     buildTurnQueue() {
-        this.turnQueue = Array.from(this.players.keys()).sort(() => Math.random() - 0.5);
+        this.turnQueue = shuffleArray(Array.from(this.players.keys()));
     }
 
     startNextTurn() {
@@ -98,7 +98,7 @@ class SkribblGame {
         }
 
         // Pick 3 random distinct words
-        const shuffled = [...SKRIBBL_WORDS].sort(() => Math.random() - 0.5);
+        const shuffled = shuffleArray([...SKRIBBL_WORDS]);
         this.wordChoices = [shuffled[0], shuffled[1], shuffled[2]];
         this.secretWord = '';
         this.strokes = [];

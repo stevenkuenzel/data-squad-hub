@@ -85,7 +85,7 @@ class CodenamesGame {
 
     startNewGame() {
         // Pick 25 random unique words
-        const shuffledWords = [...CODENAMES_WORDS].sort(() => Math.random() - 0.5).slice(0, 25);
+        const shuffledWords = shuffleArray([...CODENAMES_WORDS]).slice(0, 25);
 
         // Decide starting team randomly
         this.startingTeam = Math.random() < 0.5 ? 'red' : 'blue';
@@ -97,12 +97,12 @@ class CodenamesGame {
         this.scoreBlue = this.totalBlue;
 
         // Card types: 1 Assassin, starting team 9, other 8, 7 neutral
-        const types = [
+        const types = shuffleArray([
             'assassin',
             ...Array(this.totalRed).fill('red'),
             ...Array(this.totalBlue).fill('blue'),
             ...Array(7).fill('neutral')
-        ].sort(() => Math.random() - 0.5);
+        ]);
 
         this.board = shuffledWords.map((word, idx) => ({
             id: idx,

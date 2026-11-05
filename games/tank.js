@@ -131,12 +131,12 @@ class TankGame {
         this.status = 'PLAYING';
 
         // Spawn players in random free locations
-        const spawns = [
+        const spawns = shuffleArray([
             { x: 100, y: 100 }, { x: TANK_ARENA_W - 100, y: 100 },
             { x: 100, y: TANK_ARENA_H - 100 }, { x: TANK_ARENA_W - 100, y: TANK_ARENA_H - 100 },
             { x: TANK_ARENA_W / 2, y: 100 }, { x: TANK_ARENA_W / 2, y: TANK_ARENA_H - 100 },
             { x: 100, y: TANK_ARENA_H / 2 }, { x: TANK_ARENA_W - 100, y: TANK_ARENA_H / 2 }
-        ].sort(() => Math.random() - 0.5);
+        ]);
 
         let sIdx = 0;
         for (const p of this.players.values()) {
