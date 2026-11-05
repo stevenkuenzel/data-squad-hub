@@ -787,6 +787,62 @@ assert(p1Snap.players.every(p => !p.hand), 'Snapshot hides opponent hand cards (
 assert(typeof p1Snap.drawPileCount === 'number', 'Snapshot contains draw pile count');
 
 
+// ==========================================
+// TEST SUITE 9: SECURITY / MALICIOUS PEER INPUT
+// ==========================================
+console.log('\n--- TEST 9: SECURITY (MALICIOUS PEER INPUT) ---');
+{
+
+// Skribbl: only the drawer may draw, clear or choose a word
+const secSk = new sandbox.SkribblGame();
+secSk.addPlayer('sd1', 'Drawer', '#00f3ff');
+secSk.addPlayer('sd2', 'Guesser', '#ff00ff');
+secSk.startMatch(1);
+const skDrawer = secSk.activeDrawerId;
+const skOther = skDrawer === 'sd1' ? 'sd2' : 'sd1';
+assert(secSk.chooseWord(secSk.wordChoices[0], skOther) === false, 'Skribbl: non-drawer cannot choose the word');
+assert(secSk.chooseWord(secSk.wordChoices[0], skDrawer) === true, 'Skribbl: drawer can choose the word');
+
+const okStroke = { x1: 10, y1: 10, x2: 20, y2: 20, color: '#ff0000', size: 4 };
+assert(secSk.addStroke(okStroke, skOther) === null, 'Skribbl: non-drawer strokes are rejected');
+assert(secSk.addStroke(okStroke, skDrawer) !== null, 'Skribbl: valid drawer stroke is accepted');
+assert(secSk.addStroke({ ...okStroke, color: 'red;background:url(x)' }, skDrawer) === null, 'Skribbl: stroke with invalid color is rejected');
+assert(secSk.addStroke({ ...okStroke, x1: 'abc' }, skDrawer) === null, 'Skribbl: stroke with non-numeric coords is rejected');
+const bigStroke = secSk.addStroke({ ...okStroke, size: 99999, x2: 1e9 }, skDrawer);
+assert(bigStroke && bigStroke.size <= 32 && bigStroke.x2 <= 4000, 'Skribbl: stroke size and coords are clamped');
+assert(secSk.clearCanvas(skOther) === false, 'Skribbl: non-drawer cannot clear the canvas');
+assert(secSk.handleGuess(skOther, { evil: true }).rejected === true, 'Skribbl: non-string guess is rejected without crashing');
+
+// Codenames: turn and role rules
+const secCn = new sandbox.CodenamesGame();
+secCn.addPlayer('r_spy', 'RedSpy');
+secCn.addPlayer('b_spy', 'BlueSpy');
+secCn.addPlayer('r_op', 'RedOp');
+secCn.addPlayer('b_op', 'BlueOp');
+secCn.assignTeamAndRole('r_spy', 'red', 'spymaster');
+secCn.assignTeamAndRole('b_spy', 'blue', 'spymaster');
+secCn.assignTeamAndRole('r_op', 'red', 'operative');
+secCn.assignTeamAndRole('b_op', 'blue', 'operative');
+secCn.startNewGame();
+const activeOp = secCn.currentTurn === 'red' ? 'r_op' : 'b_op';
+const idleOp = secCn.currentTurn === 'red' ? 'b_op' : 'r_op';
+const turnBefore = secCn.currentTurn;
+assert(secCn.endTurn(idleOp) === false && secCn.currentTurn === turnBefore, 'Codenames: other team cannot end the active turn');
+assert(secCn.assignTeamAndRole('r_spy', 'red', 'operative') === false, 'Codenames: spymaster cannot switch back to operative mid-game');
+assert(secCn.assignTeamAndRole(idleOp, null, 'spymaster') === false, 'Codenames: second spymaster per team is rejected mid-game');
+assert(secCn.endTurn(activeOp) === true && secCn.currentTurn !== turnBefore, 'Codenames: active team can end its own turn');
+const spyId = secCn.currentTurn === 'red' ? 'r_spy' : 'b_spy';
+secCn.giveClue('x'.repeat(500), 999, spyId);
+assert(secCn.clueWord.length <= 30 && secCn.clueCount <= 9, 'Codenames: clue length and count are limited');
+
+// Dodgeball: non-finite aim angle is ignored
+const secDb = new sandbox.DodgeballGame();
+const secDbP = secDb.addPlayer('dbx', 'Aimer', '#00f3ff');
+const aimBefore = secDbP.aimAngle;
+secDb.setInput('dbx', false, false, false, false, false, false, NaN);
+assert(secDbP.aimAngle === aimBefore, 'Dodgeball: NaN aim angle is ignored');
+}
+
 console.log('\n========================================');
 console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('========================================\n');

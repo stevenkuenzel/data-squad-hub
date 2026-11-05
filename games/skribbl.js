@@ -23,6 +23,11 @@ const SKRIBBL_WORDS = [
     "Hose", "Hemd", "Kleid", "Schuh", "Socke", "Hut", "Mütze", "Schal", "Handschuh", "Gürtel"
 ];
 
+// Limits for data coming from other peers
+const SKRIBBL_MAX_STROKES = 20000;
+const SKRIBBL_MAX_COORD = 4000;
+const SKRIBBL_MAX_GUESS_LENGTH = 100;
+
 class SkribblGame {
     constructor() {
         this.players = new Map(); // id -> { id, name, score, hasGuessed, color }
@@ -101,29 +106,58 @@ class SkribblGame {
         this.timeLeft = 15; // 15 seconds to pick word
     }
 
-    chooseWord(word) {
-        if (!this.wordChoices.includes(word)) return;
+    // playerId is optional: internal calls (timeouts) skip the drawer check
+    isDrawer(playerId) {
+        return playerId == null || playerId === this.activeDrawerId;
+    }
+
+    chooseWord(word, playerId = null) {
+        if (this.status !== 'CHOOSING' || !this.isDrawer(playerId)) return false;
+        if (!this.wordChoices.includes(word)) return false;
         this.secretWord = word.trim().toUpperCase();
         this.revealedHint = this.secretWord.replace(/[A-ZÄÖÜß]/g, '_');
         this.status = 'DRAWING';
         this.timeLeft = 60; // 60 seconds drawing round
         this.strokes = [];
+        return true;
     }
 
-    addStroke(stroke) {
-        if (this.status !== 'DRAWING') return;
-        this.strokes.push(stroke);
+    /**
+     * Validates a stroke and stores a cleaned copy.
+     * Returns the cleaned stroke, or null if rejected.
+     */
+    addStroke(stroke, playerId = null) {
+        if (this.status !== 'DRAWING' || !this.isDrawer(playerId)) return null;
+        if (!stroke || typeof stroke !== 'object') return null;
+        if (this.strokes.length >= SKRIBBL_MAX_STROKES) return null;
+
+        const coord = v => Number.isFinite(v) ? Math.round(Math.min(SKRIBBL_MAX_COORD, Math.max(0, v))) : null;
+        const clean = {
+            x1: coord(stroke.x1),
+            y1: coord(stroke.y1),
+            x2: coord(stroke.x2),
+            y2: coord(stroke.y2),
+            color: /^#[0-9a-fA-F]{6}$/.test(stroke.color) ? stroke.color : null,
+            size: Number.isFinite(stroke.size) ? Math.min(32, Math.max(1, Math.round(stroke.size))) : null
+        };
+        if (Object.values(clean).some(v => v === null)) return null;
+
+        this.strokes.push(clean);
+        return clean;
     }
 
-    clearCanvas() {
+    clearCanvas(playerId = null) {
+        if (!this.isDrawer(playerId)) return false;
         this.strokes = [];
+        return true;
     }
 
     handleGuess(playerId, rawText) {
         const p = this.players.get(playerId);
-        if (!p || this.status !== 'DRAWING') {
+        if (!p || this.status !== 'DRAWING' || typeof rawText !== 'string') {
             return { isMatch: false, rejected: true };
         }
+        rawText = rawText.slice(0, SKRIBBL_MAX_GUESS_LENGTH);
 
         // Active drawer cannot guess or send guesses to chat
         if (playerId === this.activeDrawerId) {

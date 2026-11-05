@@ -193,7 +193,7 @@ class DodgeballGame {
         p.inputRight = !!right;
         p.inputThrow = !!throwBall;
         p.inputDash = !!dash;
-        if (typeof aimAngle === 'number') {
+        if (Number.isFinite(aimAngle)) {
             p.aimAngle = aimAngle;
         }
     }

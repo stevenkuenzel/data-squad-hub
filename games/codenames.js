@@ -122,8 +122,22 @@ class CodenamesGame {
     assignTeamAndRole(id, team, role) {
         const p = this.players.get(id);
         if (p) {
-            if (team && ['red', 'blue', 'spectator'].includes(team)) p.team = team;
-            if (role && ['spymaster', 'operative'].includes(role)) p.role = role;
+            const newTeam = ['red', 'blue', 'spectator'].includes(team) ? team : p.team;
+            const newRole = ['spymaster', 'operative'].includes(role) ? role : p.role;
+
+            if (this.gameStatus === 'PLAYING') {
+                // A spymaster has seen the key card: no switching team or role mid-game
+                if (p.role === 'spymaster' && (newRole !== 'spymaster' || newTeam !== p.team)) return false;
+                // Only one spymaster per team
+                if (newRole === 'spymaster' && p.role !== 'spymaster') {
+                    const taken = Array.from(this.players.values())
+                        .some(o => o.id !== id && o.team === newTeam && o.role === 'spymaster');
+                    if (taken) return false;
+                }
+            }
+
+            p.team = newTeam;
+            p.role = newRole;
             const teamLabel = p.team === 'red' ? 'Team Rot' : (p.team === 'blue' ? 'Team Blau' : 'Zuschauer');
             const roleLabel = p.role === 'spymaster' ? 'Spionchef 🕵️' : 'Ermittler 👥';
             this.logs.unshift(`${p.name} ist jetzt ${teamLabel} (${roleLabel})`);
@@ -138,8 +152,10 @@ class CodenamesGame {
             const p = this.players.get(playerId);
             if (!p || p.team !== this.currentTurn || p.role !== 'spymaster') return false;
         }
-        this.clueWord = String(clue).trim().toUpperCase();
-        this.clueCount = parseInt(count, 10) || 1;
+        const clueWord = String(clue ?? '').trim().toUpperCase().slice(0, 30);
+        if (!clueWord) return false;
+        this.clueWord = clueWord;
+        this.clueCount = Math.min(9, Math.max(1, parseInt(count, 10) || 1));
         this.guessesLeft = this.clueCount + 1; // standard rules: count + 1 bonus guess
         const teamName = this.currentTurn === 'red' ? 'Team Rot' : 'Team Blau';
         this.logs.unshift(`${teamName} Spionchef gibt Hinweis: "${this.clueWord} ${this.clueCount}"`);
@@ -204,13 +220,19 @@ class CodenamesGame {
         return card;
     }
 
-    endTurn() {
+    endTurn(playerId = null) {
+        if (playerId) {
+            // Only members of the active team may end their own turn
+            const p = this.players.get(playerId);
+            if (this.gameStatus !== 'PLAYING' || !p || p.team !== this.currentTurn) return false;
+        }
         this.currentTurn = this.currentTurn === 'red' ? 'blue' : 'red';
         this.clueWord = '';
         this.clueCount = 0;
         this.guessesLeft = 0;
         const nextTeam = this.currentTurn === 'red' ? 'Team Rot' : 'Team Blau';
         this.logs.unshift(`Zugwechsel! ${nextTeam} ist an der Reihe.`);
+        return true;
     }
 
     /**

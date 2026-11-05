@@ -44,6 +44,30 @@
     let activeGameType = 'curve';
     let myPlayerId = 'p-' + Math.floor(Math.random() * 100000);
     const MAX_HUB_PLAYERS = 12;
+    const MAX_NAME_LENGTH = 15;
+
+    // Escape any text before it goes into innerHTML (names, logs, clues come from other peers)
+    function esc(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Only allow plain hex colors in style attributes
+    function safeColor(value) {
+        return /^#[0-9a-fA-F]{3,8}$/.test(value) ? value : '#cccccc';
+    }
+
+    function sanitizeName(value) {
+        const name = (typeof value === 'string' ? value : '')
+            .replace(/[\u0000-\u001f\u007f<>]/g, '')
+            .trim()
+            .slice(0, MAX_NAME_LENGTH);
+        return name || 'Player';
+    }
 
     function shuffle(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -355,17 +379,28 @@
     // NETWORK EVENT HANDLER
     // ==========================================
     networkManager.onEvent = (type, payload, senderId) => {
+        if (!payload || typeof payload !== 'object') payload = {};
+        try {
+            handleNetworkEvent(type, payload, senderId);
+        } catch (err) {
+            // A malformed packet from one peer must never crash the host loop
+            console.warn(`[Net] Ignored malformed '${type}' from ${senderId}:`, err);
+        }
+    };
+
+    function handleNetworkEvent(type, payload, senderId) {
         const g = getActiveGameInstance();
 
         // HOST
         if (networkManager.isHost) {
             if (type === 'JOIN') {
+                if (g.players.has(senderId)) return; // no re-join / renaming
                 if (g.players.size >= MAX_HUB_PLAYERS) {
                     networkManager.sendTo(senderId, { type: 'ROOM_FULL', payload: { msg: 'Raum voll.' } });
                     return;
                 }
                 const assignedColor = getUnusedColor();
-                g.addPlayer(senderId, payload.name, assignedColor, false);
+                g.addPlayer(senderId, sanitizeName(payload.name), assignedColor, false);
                 // Inform client which game is running!
                 networkManager.sendTo(senderId, {
                     type: 'ROOM_INFO',
@@ -405,7 +440,7 @@
                 handleClientGameEvent(type, payload);
             }
         }
-    };
+    }
 
     // ==========================================
     // LAUNCH GAME ARENAS
@@ -1052,7 +1087,7 @@
                 for (const eff of myEffects) {
                     const pill = document.createElement('div');
                     pill.className = `curve-effect-pill ${eff.type}`;
-                    pill.innerHTML = `<span>${eff.icon}</span> <span>${eff.label}: ${eff.remaining.toFixed(1)}s</span>`;
+                    pill.innerHTML = `<span>${esc(eff.icon)}</span> <span>${esc(eff.label)}: ${(Number(eff.remaining) || 0).toFixed(1)}s</span>`;
                     effectsBar.appendChild(pill);
                 }
             }
@@ -1128,8 +1163,7 @@
 
     btnEndTurn.addEventListener('click', () => {
         if (networkManager.isHost) {
-            codenamesGame.endTurn();
-            broadcastCodenamesState();
+            if (codenamesGame.endTurn(myPlayerId)) broadcastCodenamesState();
         } else {
             networkManager.sendToHost('CN_END_TURN', {});
         }
@@ -1219,7 +1253,7 @@
             codenamesBoard.appendChild(el);
         });
 
-        codenamesLog.innerHTML = (snap.logs || []).map(l => `<div>• ${l}</div>`).join('');
+        codenamesLog.innerHTML = (snap.logs || []).map(l => `<div>• ${esc(l)}</div>`).join('');
     }
 
     function broadcastCodenamesState() {
@@ -1279,6 +1313,7 @@
     });
 
     btnSkClear.addEventListener('click', () => {
+        if (!skribblGame.isDrawer(myPlayerId)) return;
         skCtx.fillStyle = '#ffffff';
         skCtx.fillRect(0, 0, skribblCanvas.width, skribblCanvas.height);
         if (networkManager.isHost) {
@@ -1383,6 +1418,11 @@
     }
 
     function renderSkribblSnapshot(snap) {
+        if (!networkManager.isHost) {
+            // Clients need the drawer/status locally for the drawing guards
+            skribblGame.activeDrawerId = snap.activeDrawerId;
+            skribblGame.status = snap.status;
+        }
         skTimeLeft.textContent = `${snap.timeLeft}s`;
         skRoundNum.textContent = `${snap.currentRound} / ${snap.totalRounds}`;
         skWordHint.textContent = snap.displayWord;
@@ -1444,7 +1484,7 @@
             div.style.marginBottom = '4px';
             div.style.borderRadius = '4px';
             div.style.background = p.hasGuessed ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.03)';
-            div.innerHTML = `<strong>${p.name}</strong><br><span style="color: var(--cyan);">${p.score} Pkt</span>`;
+            div.innerHTML = `<strong>${esc(p.name)}</strong><br><span style="color: var(--cyan);">${esc(p.score)} Pkt</span>`;
             skPlayersList.appendChild(div);
         });
     }
@@ -1543,8 +1583,8 @@
         for (const p of tankGame.players.values()) {
             const badge = document.createElement('div');
             badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
-            badge.style.borderLeft = `3px solid ${p.color}`;
-            badge.innerHTML = `<span style="color: ${p.color};">${p.name}</span><span>${p.score}</span>`;
+            badge.style.borderLeft = `3px solid ${safeColor(p.color)}`;
+            badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${esc(p.name)}</span><span>${esc(p.score)}</span>`;
             tankScoresContainer.appendChild(badge);
         }
 
@@ -1664,9 +1704,9 @@
         for (const p of octaPongGame.players.values()) {
             const badge = document.createElement('div');
             badge.className = 'score-badge' + (!p.alive ? ' dead' : '');
-            badge.style.borderLeft = `3px solid ${p.color}`;
-            const hearts = '❤️'.repeat(Math.max(0, p.lives));
-            badge.innerHTML = `<span style="color: ${p.color};">${p.name}</span><span>${hearts || '💀'}</span>`;
+            badge.style.borderLeft = `3px solid ${safeColor(p.color)}`;
+            const hearts = '❤️'.repeat(Math.min(10, Math.max(0, Number(p.lives) || 0)));
+            badge.innerHTML = `<span style="color: ${safeColor(p.color)};">${esc(p.name)}</span><span>${hearts || '💀'}</span>`;
             pongScoresContainer.appendChild(badge);
         }
 
@@ -1716,9 +1756,9 @@
         const displayVal = valMap[card.value] || card.value;
 
         div.innerHTML = `
-            <span class="card-corner top">${displayVal}</span>
-            <div class="uno-card-center"><span>${displayVal}</span></div>
-            <span class="card-corner bottom">${displayVal}</span>
+            <span class="card-corner top">${esc(displayVal)}</span>
+            <div class="uno-card-center"><span>${esc(displayVal)}</span></div>
+            <span class="card-corner bottom">${esc(displayVal)}</span>
         `;
         return div;
     }
@@ -1770,8 +1810,8 @@
                 const b = document.createElement('div');
                 b.className = 'uno-opponent-badge' + (p.isCurrentTurn ? ' active-turn' : '');
                 b.innerHTML = `
-                    <span style="color: ${p.color}; font-weight: bold;">${p.name}${p.isBot ? ' 🤖' : ''}</span>
-                    <span class="cards-tag">${p.cardCount} 🎴</span>
+                    <span style="color: ${safeColor(p.color)}; font-weight: bold;">${esc(p.name)}${p.isBot ? ' 🤖' : ''}</span>
+                    <span class="cards-tag">${esc(p.cardCount)} 🎴</span>
                     ${p.calledUno ? '<span style="color: #f59e0b; font-weight: bold;">UNO!</span>' : ''}
                 `;
                 unoOpponentsBar.appendChild(b);
@@ -2273,12 +2313,12 @@
 
         div.innerHTML = `
             <div class="roulette-card-header">
-                <span>${catLabel}</span>
-                <span>${valBadge}</span>
+                <span>${esc(catLabel)}</span>
+                <span>${esc(valBadge)}</span>
             </div>
-            <div class="roulette-card-center-icon">${card.icon}</div>
-            <div class="roulette-card-title">${card.title}</div>
-            <div class="roulette-card-desc">${card.desc}</div>
+            <div class="roulette-card-center-icon">${esc(card.icon)}</div>
+            <div class="roulette-card-title">${esc(card.title)}</div>
+            <div class="roulette-card-desc">${esc(card.desc)}</div>
         `;
         return div;
     }
@@ -2302,7 +2342,7 @@
                     btn.style.textAlign = 'left';
                     btn.style.display = 'flex';
                     btn.style.justifyContent = 'space-between';
-                    btn.innerHTML = `<span style="color:${player.color}">● ${player.name}</span><span>${player.progress}% Fortschritt</span>`;
+                    btn.innerHTML = `<span style="color:${safeColor(player.color)}">● ${esc(player.name)}</span><span>${esc(player.progress)}% Fortschritt</span>`;
                     btn.addEventListener('click', () => {
                         if (rouletteTargetModal) rouletteTargetModal.style.display = 'none';
                         executeRoulettePlay(pendingRouletteCardUid, player.id);
@@ -2380,11 +2420,11 @@
                 const skipIcon = p.skipped ? ' 🗣️' : '';
                 card.innerHTML = `
                     <div class="roulette-player-info">
-                        <strong style="color: ${p.color};">${p.name}${shieldIcon}${skipIcon}</strong>
-                        <span>${p.progress}% (${p.cardCount} Karten)</span>
+                        <strong style="color: ${safeColor(p.color)};">${esc(p.name)}${shieldIcon}${skipIcon}</strong>
+                        <span>${esc(p.progress)}% (${esc(p.cardCount)} Karten)</span>
                     </div>
                     <div class="roulette-progress-wrapper">
-                        <div class="roulette-progress-bar" style="width: ${p.progress}%; background: ${p.color};"></div>
+                        <div class="roulette-progress-bar" style="width: ${Math.min(100, Math.max(0, Number(p.progress) || 0))}%; background: ${safeColor(p.color)};"></div>
                     </div>
                 `;
                 rouletteRoster.appendChild(card);
@@ -2405,7 +2445,7 @@
         }
 
         if (rouletteLogList) {
-            rouletteLogList.innerHTML = (snap.logs || []).map(log => `<div>${log}</div>`).join('');
+            rouletteLogList.innerHTML = (snap.logs || []).map(log => `<div>${esc(log)}</div>`).join('');
         }
 
         if (rouletteHandCards) {
@@ -2452,6 +2492,9 @@
     // ROUTE GAME-SPECIFIC NETWORKING
     // ==========================================
     function handleHostGameEvent(type, payload, senderId) {
+        // Only peers that joined the lobby may act in a game
+        if (!getActiveGameInstance().players.has(senderId)) return;
+
         if (type === 'INPUT') {
             if (activeGameType === 'curve') {
                 curveGame.setPlayerInput(senderId, payload.left, payload.right);
@@ -2467,23 +2510,22 @@
             codenamesGame.revealCard(payload.cardId, senderId);
             broadcastCodenamesState();
         } else if (type === 'CN_END_TURN') {
-            codenamesGame.endTurn();
-            broadcastCodenamesState();
+            if (codenamesGame.endTurn(senderId)) broadcastCodenamesState();
         } else if (type === 'CN_ASSIGN') {
-            codenamesGame.assignTeamAndRole(senderId, payload.team, payload.role);
-            broadcastCodenamesState();
+            if (codenamesGame.assignTeamAndRole(senderId, payload.team, payload.role)) broadcastCodenamesState();
         } else if (type === 'SK_STROKE') {
-            skribblGame.addStroke(payload);
-            drawSkStroke(payload);
-            networkManager.broadcast('SK_STROKE', payload);
+            // addStroke checks the sender is the drawer and returns a cleaned copy
+            const stroke = skribblGame.addStroke(payload, senderId);
+            if (!stroke) return;
+            drawSkStroke(stroke);
+            networkManager.broadcast('SK_STROKE', stroke);
         } else if (type === 'SK_CLEAR') {
-            skribblGame.clearCanvas();
+            if (!skribblGame.clearCanvas(senderId)) return;
             skCtx.fillStyle = '#ffffff';
             skCtx.fillRect(0, 0, skribblCanvas.width, skribblCanvas.height);
             networkManager.broadcast('SK_CLEAR', {});
         } else if (type === 'SK_CHOOSE_WORD') {
-            skribblGame.chooseWord(payload.word);
-            broadcastSkribblState();
+            if (skribblGame.chooseWord(payload.word, senderId)) broadcastSkribblState();
         } else if (type === 'SK_GUESS') {
             const res = skribblGame.handleGuess(senderId, payload.text);
             handleSkribblGuessResult(res);

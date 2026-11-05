@@ -163,11 +163,11 @@ class NetworkManager {
     }
 
     _handleData(msg, senderId) {
-        if (!msg || typeof msg !== 'object') return;
+        if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string' || msg.type.length > 32) return;
 
         // Built-in Ping / Pong
         if (msg.type === 'PING') {
-            this.sendTo(senderId, { type: 'PONG', t: msg.t });
+            this.sendTo(senderId, { type: 'PONG', t: Number(msg.t) || 0 });
             return;
         }
         if (msg.type === 'PONG') {
