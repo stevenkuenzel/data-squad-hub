@@ -32,6 +32,8 @@ const sandbox = {
     Set: Set,
     String: String,
     parseInt: parseInt,
+    URL: URL,
+    encodeURIComponent: encodeURIComponent,
     Infinity: Infinity,
     performance: { now: () => Date.now() },
     soundFX: {
@@ -56,6 +58,8 @@ const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
 const rouletteSrc = readFileSync('./games/roulette.js', 'utf-8');
 const eveningSrc = readFileSync('./games/evening.js', 'utf-8');
+const qrSrc = readFileSync('./games/qr.js', 'utf-8');
+const padSrc = readFileSync('./games/pad.js', 'utf-8');
 
 runInContext(tankSrc, sandbox);
 runInContext(pongSrc, sandbox);
@@ -66,6 +70,8 @@ runInContext(unoSrc, sandbox);
 runInContext(dodgeballSrc, sandbox);
 runInContext(rouletteSrc, sandbox);
 runInContext(eveningSrc, sandbox);
+runInContext(qrSrc, sandbox);
+runInContext(padSrc, sandbox);
 
 let passed = 0;
 let failed = 0;
@@ -1350,6 +1356,53 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(red === 3 && blue === 3, 'Team mixer: codenames teams are split evenly');
     const botP = mixCn.players.get('bot');
     assert(botP.role === 'spymaster', 'Team mixer: the bot keeps a spymaster seat');
+}
+
+// ----------------------------------------------------
+// TEST SUITE: QR-CODE & HANDY-CONTROLLER
+// ----------------------------------------------------
+{
+    console.log('--- QR-Code & Controller ---');
+    const link = sandbox.padBuildLink('https://example.github.io/data_squad_games/index.html?beamer=1#x', 'curve', 'ABCDE');
+    assert(link === 'https://example.github.io/data_squad_games/index.html?game=curve&room=ABCDE&pad=1', 'Pad: share link drops beamer params and sets pad=1');
+    assert(!sandbox.padBuildLink('https://x.de/', 'tank', 'ABCDE', false).includes('pad='), 'Pad: link without controller flag');
+
+    const qr1 = sandbox.qrEncode('A');
+    assert(qr1.version === 1 && qr1.size === 21 && qr1.modules.length === 21, 'QR: tiny text fits version 1 (21x21)');
+    const qr = sandbox.qrEncode(link);
+    assert(qr.version >= 3 && qr.version <= 6 && qr.size === qr.version * 4 + 17, `QR: share link fits a small version (v${qr.version})`);
+    const finderOk = [[0, 0], [qr.size - 7, 0], [0, qr.size - 7]].every(([ox, oy]) => {
+        for (let y = 0; y < 7; y++) {
+            for (let x = 0; x < 7; x++) {
+                const ring = Math.max(Math.abs(x - 3), Math.abs(y - 3));
+                if (qr.modules[oy + y][ox + x] !== (ring !== 2)) return false;
+            }
+        }
+        return true;
+    });
+    assert(finderOk, 'QR: all three finder patterns are drawn');
+    let timingOk = true;
+    for (let i = 8; i < qr.size - 8; i++) {
+        if (qr.modules[6][i] !== (i % 2 === 0) || qr.modules[i][6] !== (i % 2 === 0)) timingOk = false;
+    }
+    assert(timingOk, 'QR: timing patterns alternate');
+    assert(qr.modules[qr.size - 8][8] === true, 'QR: dark module is set');
+    assert(JSON.stringify(sandbox.qrEncode(link).modules) === JSON.stringify(qr.modules), 'QR: encoding is deterministic');
+    const longVer = sandbox.qrEncode('x'.repeat(200)).version;
+    assert(longVer >= 9 && longVer <= 10, 'QR: long text switches to a higher version');
+    let tooLong = false;
+    try { sandbox.qrEncode('x'.repeat(400)); } catch { tooLong = true; }
+    assert(tooLong, 'QR: over-long text is rejected');
+    const svg = sandbox.qrToSvg(qr, 4, 'red; fill:url(x)', '#fff');
+    assert(svg.startsWith('<svg') && !svg.includes('url('), 'QR: SVG output ignores unsafe colors');
+
+    const dirs = sandbox.padStickToDirs(30, -35, 40, 10);
+    assert(dirs.fwd && dirs.right && !dirs.back && !dirs.left, 'Stick: diagonal deflection sets two directions');
+    const idle = sandbox.padStickToDirs(3, -4, 40, 10);
+    assert(!idle.active && !idle.fwd && !idle.left, 'Stick: deadzone is ignored');
+    const far = sandbox.padStickToDirs(400, 0, 40, 10);
+    assert(Math.abs(far.x - 40) < 1e-9 && far.right, 'Stick: deflection is clamped to the radius');
+    assert(sandbox.padHasController('dodgeball') && !sandbox.padHasController('uno'), 'Pad: controllers exist for realtime games only');
 }
 
 console.log('\n========================================');

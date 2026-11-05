@@ -64,6 +64,9 @@ function updateLobbyUI() {
 
     playerCount.textContent = count;
     btnAddBot.disabled = count >= MAX_HUB_PLAYERS;
+    // Beamer ohne eigene Figur: erst starten, wenn jemand (oder ein Bot) mitspielt
+    btnStartGame.disabled = beamerMode && count === 0;
+    if (typeof refreshInvite === 'function') refreshInvite();
 }
 
 // Team assignment as the lobby shows it (host: game state, guests: last LOBBY_UPDATE)
@@ -114,6 +117,8 @@ function setupLobbyForGame(gameType) {
 async function hostLobby(gameType, evening = false) {
     resetSessionState();
     eveningMode = evening;
+    beamerMode = isBeamerRequested();
+    document.body.classList.toggle('beamer-mode', beamerMode);
     setupLobbyForGame(gameType);
     if (window.soundFX) window.soundFX.playClick();
 
@@ -124,12 +129,17 @@ async function hostLobby(gameType, evening = false) {
 
         hostLobbyControls.style.display = 'flex';
         clientLobbyNotice.style.display = 'none';
-        lobbyRoleText.textContent = 'Du bist der Host. Lade dein Team ein!';
+        lobbyRoleText.textContent = beamerMode
+            ? '📺 Beamer-Modus: Mitspieler scannen den QR-Code und steuern per Handy.'
+            : 'Du bist der Host. Lade dein Team ein!';
 
         const g = getActiveGameInstance();
         clearGamePlayers(g);
-        g.addPlayer(myPlayerId, getPlayerName(), selectedColor, false);
-        setProfile(myPlayerId, myAvatar, myHat);
+        // Der Beamer-Rechner belegt keinen Spieler-Platz
+        if (!beamerMode) {
+            g.addPlayer(myPlayerId, getPlayerName(), selectedColor, false);
+            setProfile(myPlayerId, myAvatar, myHat);
+        }
 
         updateLobbyUI();
         updateGameSettingsVisibility();
@@ -184,7 +194,7 @@ btnJoinRoom.addEventListener('click', () => {
 
 btnCopyLink.addEventListener('click', () => {
     if (!networkManager.roomCode) return;
-    const link = getShareableLink(activeGameType, networkManager.roomCode);
+    const link = getShareableLink(activeGameType, networkManager.roomCode, beamerMode);
     navigator.clipboard.writeText(link).then(() => {
         btnCopyLink.textContent = 'Kopiert! ✓';
         setTimeout(() => { btnCopyLink.textContent = 'Link kopieren'; }, 2000);

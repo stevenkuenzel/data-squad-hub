@@ -11,12 +11,16 @@ const spectators = new Map();    // Host: Spieler-ID -> { id, name, color } (ste
 let roomStarted = false;         // Host: läuft (oder lief) schon ein Spiel in diesem Raum?
 let isSpectator = false;         // Client: schaue ich nur zu?
 let eveningMode = false;         // Spieleabend-Raum? (gilt für Host und Gäste)
+let beamerMode = false;          // Host: reine Anzeige (Beamer) ohne eigene Spielfigur
+let padMode = false;             // Client: Handy-Controller statt Spielfeld
 
 function resetSessionState() {
     identities.clear();
     spectators.clear();
     roomStarted = false;
     eveningMode = false;
+    beamerMode = false;
+    document.body.classList.remove('beamer-mode');
     reconnecting = false;
     setSpectator(false);
     hideReconnectOverlay();
