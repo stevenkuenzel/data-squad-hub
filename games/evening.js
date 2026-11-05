@@ -107,13 +107,14 @@ function extractGameResult(gameType, g) {
             const winTeam = g.winner === 'Data Squad' ? 'squad' : 'comn';
             const win = players.filter(p => p.team === winTeam).map(p => p.id);
             const lose = players.filter(p => p.team !== winTeam).map(p => p.id);
-            return { ranking: [win, lose].filter(r => r.length > 0), teams: true, stats: g.stats || {} };
+            // Hat das Siegerteam keine Spieler, bekommt niemand den Siegerplatz
+            return { ranking: win.length > 0 ? [win, lose].filter(r => r.length > 0) : [[], lose], teams: true, stats: g.stats || {} };
         }
         case 'codenames': {
             if (g.gameStatus !== 'GAME_OVER' || !g.winner) return null;
             const win = players.filter(p => p.team === g.winner).map(p => p.id);
             const lose = players.filter(p => (p.team === 'red' || p.team === 'blue') && p.team !== g.winner).map(p => p.id);
-            return { ranking: [win, lose].filter(r => r.length > 0), teams: true, stats: g.stats || {} };
+            return { ranking: win.length > 0 ? [win, lose].filter(r => r.length > 0) : [[], lose], teams: true, stats: g.stats || {} };
         }
         default:
             return null;

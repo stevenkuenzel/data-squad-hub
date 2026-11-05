@@ -373,6 +373,11 @@ class SkribblGame {
             this.timeLeft -= dt;
             const drawer = this.players.get(this.activeDrawerId);
             if (this.timeLeft <= 0 || (drawer && drawer.isBot && this.timeLeft <= 13)) {
+                // Ein Zeichner, der erst nach der Wortauswahl zum Bot wurde (Verbindungsabbruch), kann nur Wörter
+                // zeichnen, die er kennt – sonst bliebe die Runde leer
+                if (drawer && drawer.isBot && !SKRIBBL_BOT_DRAWINGS[this.wordChoices[0]]) {
+                    this.wordChoices = shuffleArray(Object.keys(SKRIBBL_BOT_DRAWINGS)).slice(0, 3);
+                }
                 // Auto-pick first word (bots pick quickly)
                 this.chooseWord(this.wordChoices[0]);
             }

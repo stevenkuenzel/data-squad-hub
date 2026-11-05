@@ -1453,6 +1453,96 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(t1.twin === false, 'Twin: keyboard input switches back to classic controls');
 }
 
+// ----------------------------------------------------
+// TEST SUITE: BUGFIXES (Roulette, Codenames, Skribbl, Spieleabend)
+// ----------------------------------------------------
+{
+    console.log('--- Bugfixes ---');
+    const ROULETTE_CARDS_T = runInContext('ROULETTE_CARDS', sandbox);
+    const SK_DRAW_T = runInContext('SKRIBBL_BOT_DRAWINGS', sandbox);
+    const mkRoulette = () => {
+        const g = new sandbox.FreigabeRouletteGame();
+        ['a', 'b', 'c'].forEach(id => g.addPlayer(id, id, '#fff', false));
+        g.startMatch();
+        g.turnIndex = 0;
+        g.status = 'PLAYING';
+        return g;
+    };
+    const card = (id) => ({ ...ROULETTE_CARDS_T.find(c => c.id === id), uid: id + '-uid' });
+
+    // Chef-Bypass hält über das Zugende hinaus
+    let rg = mkRoulette();
+    const a = rg.players.get('a');
+    a.hand = [card('chef_genehmigung')];
+    rg.playCard('a', 'chef_genehmigung-uid');
+    rg.endTurn();
+    assert(a.shielded === true, 'Roulette: Chef-Bypass bleibt nach dem eigenen Zugende aktiv');
+    const b = rg.players.get('b');
+    b.hand = [card('stein_weg')];
+    const before = a.progress;
+    rg.playCard('b', 'stein_weg-uid', 'a');
+    assert(a.progress === before, 'Roulette: Chef-Bypass schützt vor einem Blocker im nächsten Zug');
+    rg.endTurn(); rg.endTurn();
+    assert(rg.getCurrentPlayer().id === 'a' && a.shielded === false, 'Roulette: Chef-Bypass endet beim eigenen nächsten Zug');
+
+    // Reaktionskarten
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('stein_weg')];
+    rg.players.get('b').hand = [card('problem_gefunden')];
+    rg.players.get('b').progress = 40;
+    rg.playCard('a', 'stein_weg-uid', 'b');
+    assert(rg.players.get('b').progress === 40 && rg.players.get('b').hand.length === 0, 'Roulette: "Problem gefunden!" blockt den Angriff und wird verbraucht');
+
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('stein_weg')];
+    rg.players.get('b').hand = [card('nicht_zustaendig')];
+    rg.players.get('b').progress = 40; rg.players.get('c').progress = 40;
+    rg.playCard('a', 'stein_weg-uid', 'b');
+    assert(rg.players.get('b').progress === 40 && rg.players.get('c').progress === 25, 'Roulette: "Nicht zuständig" leitet den Angriff an den nächsten Spieler um');
+
+    rg = mkRoulette();
+    rg.players.get('a').hand = [card('problem_gefunden')];
+    const played = rg.playCard('a', 'problem_gefunden-uid');
+    assert(played.success === false && rg.players.get('a').hand.length === 1 && rg.cardsPlayedThisTurn === 0, 'Roulette: Reaktionskarten lassen sich nicht aktiv ausspielen');
+
+    // Codenames: nur ein Hinweis pro Zug
+    const cnG = new sandbox.CodenamesGame();
+    cnG.addPlayer('s1', 'S1');
+    cnG.addPlayer('s2', 'S2');
+    cnG.startNewGame();
+    const spy = Array.from(cnG.players.values()).find(p => p.role === 'spymaster' && p.team === cnG.currentTurn);
+    if (spy) {
+        const ok1 = cnG.giveClue('TEST', 1, spy.id);
+        const left = cnG.guessesLeft;
+        const ok2 = cnG.giveClue('MEHR', 9, spy.id);
+        assert(ok1 && !ok2 && cnG.guessesLeft === left && cnG.clueWord === 'TEST', 'Codenames: ein zweiter Hinweis im selben Zug wird abgelehnt');
+    }
+
+    // Skribbl: Zeichner wird nach der Wortwahl zum Bot
+    const skB = new sandbox.SkribblGame();
+    skB.addPlayer('h', 'H', '#fff', false);
+    skB.addPlayer('x', 'X', '#fff', false);
+    skB.startMatch(1);
+    const drawerB = skB.players.get(skB.activeDrawerId);
+    drawerB.isBot = true;
+    skB.wordChoices = ['ZZZ-unbekannt', 'a', 'b'];
+    skB.updateTick(15);
+    assert(Object.keys(SK_DRAW_T).some(k => k.toUpperCase() === skB.secretWord), 'Skribbl: Bot-Zeichner bekommt nur Wörter, die er zeichnen kann');
+
+    // Spieleabend: Siegerteam ohne Spieler
+    const dbE = new sandbox.DodgeballGame();
+    dbE.addPlayer('s', 'S', '#fff', false, 'squad');
+    dbE.addPlayer('c', 'C', '#fff', false, 'squad');
+    dbE.status = 'MATCH_OVER';
+    dbE.winner = 'ComN';
+    const res = sandbox.extractGameResult('dodgeball', dbE);
+    assert(res && res.ranking[0].length === 0 && res.ranking[1].length === 2, 'Evening: leeres Siegerteam rückt das Verliererteam nicht auf Platz 1');
+    const evS = new sandbox.EveningSession();
+    evS.start(['dodgeball'], [{ id: 's', name: 'S', color: '#fff' }, { id: 'c', name: 'C', color: '#fff' }]);
+    evS.recordResult('dodgeball', res);
+    assert(evS.totals.s.wins === 0 && evS.totals.c.wins === 0, 'Evening: niemand bekommt einen Sieg, wenn das Siegerteam leer ist');
+}
+
 console.log('\n========================================');
 console.log(`RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('========================================\n');
