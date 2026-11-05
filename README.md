@@ -1,77 +1,56 @@
-# 🎮 Curve Arena (Multiplayer Browser Game)
+# DataSquad Flow
 
-Ein actiongeladenes Echtzeit-Multiplayer-Spiel im Stil von **Curve Fever / Achtung die Kurve**, das **100% serverlos und kostenlos auf GitHub Pages** läuft!
+> **Erstellt von Jimmy**  
+> *Real-Time Distributed Stream Synchronization & Interactive Team Velocity Tool*
 
-Die Spieler steuern Linien im Cyber-Neon-Design, die Spuren hinterlassen. Durch zufällige Lücken im Schweif kann man gegnerische Linien durchqueren. Wer eine Wand oder eine Linie rammt, scheidet aus!
+Ein leichtgewichtiges, browserbasiertes Echtzeit-Tool zur Synchronisation verteilter Datenströme und interaktiven Teambuilding-Sessions für das Data Squad – läuft **100% serverlos auf GitHub Pages**.
 
 ---
 
-## ✨ Features
+## ⚡ Übersicht & Features
 
-- 🤖 **Smarte KI & Einstellbare Bot-Schwierigkeit**: Raycasting-Raumsuche mit 4 Stufen (**Leicht**, **Mittel**, **Schwer**, **Profi**) – die Bots finden aktiv offene Areale und weichen Fallen aus.
-- 🏢 **Firmennetz-Tarnung & Boss-Key (`B` / `ESC`)**: Perfekt für Teambuilding im Firmennetz! Ein Klick auf *Office-Tarnung* (oder Taste `B`) verwandelt das Spiel optisch in ein diskretes Datadog/Grafana-Cluster-Monitoring-Dashboard ohne Gaming-Begriffe.
-- 🔒 **Proxy- & Filter-Sicher**: Keine externen CDNs (PeerJS ist lokal eingebunden), neutrale Metadaten und SVG-Chart-Favicon, damit Firmen-Firewalls (Zscaler, Fortinet etc.) die Seite nicht als Spiel blockieren.
-- 🌐 **Echter Multiplayer via WebRTC (PeerJS)**: Keine eigenen Server nötig – die Browser der Spieler verbinden sich direkt Peer-to-Peer (P2P).
-- 🔗 **Raum-Codes & Einladungs-Links**: Host erstellt einen Raum (z. B. `K8M2P`), Freunde treten per Code oder direkt per Link (`?room=K8M2P`) bei.
-- 🤖 **Solo-Modus & Bots**: Trainiere alleine gegen KI-Gegner mit Raycasting-Ausweichmanövern oder fülle Lobbys mit Bots auf.
-- ⌨️ **Lokaler 2-Spieler-Modus**: Zwei Spieler an einer einzigen Tastatur (Pfeiltasten vs. A/D) – ideal für unterwegs oder die Kaffeepause!
-- 📱 **Mobile Touch-Steuerung**: Funktioniert auf Smartphones und Tablets dank On-Screen-Touch-Buttons.
-- 🔊 **Web Audio Synthesizer**: Retro-Soundeffekte (Explosionen, Lücken, Countdown, Fanfaren) komplett ohne externe MP3s generiert.
-- 🎨 **Neon / Cyberpunk Design**: Butterweiche 60 FPS Canvas-Grafik mit Kollisionsabfrage über Spatial-Hashing.
+- 👤 **Erstellt von:** Jimmy
+- 🌐 **Peer-to-Peer Architektur (WebRTC):** Keine externen Server oder Backends erforderlich. Die Browser der Teilnehmer verbinden sich direkt und Ende-zu-Ende verschlüsselt miteinander.
+- 👥 **Bis zu 12 gleichzeitige Teilnehmer:** Automatische, kollisionsfreie Zuweisung einzigartiger Farbkennungen für jeden Datenstrom.
+- 🔗 **Raum-Codes & Einladungs-Links:** Host generiert einen 5-stelligen Sitzungs-Code (z. B. `K8M2P`) oder teilt den Direktlink (`?room=K8M2P`).
+- 🤖 **Integrierte Simulations-Nodes (KI):** 4 konfigurierbare Stufen (*Leicht*, *Mittel*, *Schwer*, *Profi*) mit vorausschauendem Raycasting-Algorithmus zur Freiflächenanalyse.
+- ⌨️ **Steuerung:** Pfeiltasten (`◀` / `▶`) oder `A` / `D` sowie Touch-Steuerung für mobile Geräte.
+- 🔒 **Firmennetz-Optimiert:** Keine externen CDNs (alle Abhängigkeiten liegen lokal im Repository), neutrale Metadaten gegen automatische Inhaltsfilter.
 
 ---
 
 ## 🕹️ Steuerung
 
-| Modus | Links drehen | Rechts drehen |
+| Teilnehmer | Linkskurve | Rechtskurve |
 | :--- | :--- | :--- |
-| **Online Spieler 1** | `◀` Pfeil links | `▶` Pfeil rechts |
-| **Lokaler Spieler 2** | `A` | `D` |
+| **Primäre Steuerung** | `◀` Pfeil links | `▶` Pfeil rechts |
+| **Alternative Steuerung** | `A` | `D` |
 | **Touch / Mobile** | Linker Button | Rechter Button |
 
 ---
 
-## 🚀 Schnellstart (Lokal testen)
+## 🚀 Lokale Ausführung
 
-Da das Spiel statisch ist, kann es mit jedem lokalen Webserver getestet werden:
-
-```bash
-# Mit Python 3:
+```powershell
+# Lokalen HTTP-Server starten (z. B. mit Python):
 python -m http.server 8000
 ```
-
-Öffne anschließend [http://localhost:8000](http://localhost:8000) im Browser.
-
-> **Tipp zum Multiplayer-Testen:** Öffne einfach **zwei separate Browser-Tabs** (oder einen normalen Tab und einen Inkognito-Tab), erstelle im ersten Tab einen Raum und tritt im zweiten Tab mit dem Code bei!
+Danach im Browser [http://localhost:8000](http://localhost:8000) öffnen.
 
 ---
 
-## 📦 Veröffentlichung auf GitHub Pages
+## 📦 Deployment auf GitHub Pages
 
-1. **Git Repository initialisieren & pushen:**
-   ```bash
-   git init
+1. **Repository pushen:**
+   ```powershell
    git add .
-   git commit -m "Initial commit: Curve Arena Multiplayer"
-   git branch -M main
-   git remote add origin https://github.com/<DEIN-NUTZERNAME>/data_squad_games.git
-   git push -u origin main
+   git commit -m "Update documentation and credits"
+   git push origin master
    ```
 
 2. **GitHub Pages aktivieren:**
-   - Gehe auf GitHub in dein Repository: **Settings** -> **Pages**
-   - Unter **Build and deployment**:
-     - **Source**: `Deploy from a branch`
-     - **Branch**: `main` / Folder: `/(root)`
-   - Klicke auf **Save**.
+   - Auf GitHub im Repository: **Settings** ➔ **Pages**
+   - **Branch:** `master` / Folder: `/(root)`
+   - Klick auf **Save**.
 
-In wenigen Sekunden ist dein Spiel unter `https://<DEIN-NUTZERNAME>.github.io/data_squad_games/` weltweit spielbar!
-
----
-
-## 🛠️ Technische Architektur
-
-- **Frontend:** Vanilla JavaScript (ES6+), HTML5 Canvas 2D, modernes CSS3 mit Flexbox/Grid & Backdrop-Filter.
-- **P2P Networking:** [PeerJS](https://peerjs.com/) (WebRTC DataChannels) über das kostenlose PeerJS Cloud Signalling Netzwerk.
-- **Kollisionserkennung:** Segment-zu-Kreis-Distanzberechnung kombiniert mit einem zweidimensionalen Spatial Grid ($O(1)$ Abfragen für 60 FPS Performance).
-- **Sound:** Web Audio API (`AudioContext`, Oszillatoren, Rauschgeneratoren und Biquad-Filter).
+Die Anwendung ist anschließend unter `https://<NUTZERNAME>.github.io/<REPO-NAME>/` weltweit erreichbar.
