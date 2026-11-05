@@ -182,7 +182,7 @@
         }
 
         playerCount.textContent = count;
-        btnAddBot.disabled = count >= 6;
+        btnAddBot.disabled = count >= 8;
     }
 
     // ==========================================
@@ -276,39 +276,6 @@
             if (window.soundFX) window.soundFX.playClick();
         });
     });
-
-    // Office Camouflage (Boss-Key B)
-    const btnToggleCamouflage = document.getElementById('btn-toggle-camouflage');
-    const camouflageBtnLabel = document.getElementById('camouflage-btn-label');
-    let isStealthMode = localStorage.getItem('curve_office_stealth') === 'true';
-
-    function applyStealthMode(active) {
-        isStealthMode = active;
-        localStorage.setItem('curve_office_stealth', active ? 'true' : 'false');
-
-        if (active) {
-            document.body.classList.add('stealth-mode');
-            if (camouflageBtnLabel) camouflageBtnLabel.textContent = 'Arcade-Modus (B)';
-            document.title = 'DataSquad Flow | Cluster Latency & Stream Matrix';
-
-            if (window.soundFX && !window.soundFX.muted) {
-                window.soundFX.muted = true;
-                btnMute.textContent = '🔇';
-            }
-        } else {
-            document.body.classList.remove('stealth-mode');
-            if (camouflageBtnLabel) camouflageBtnLabel.textContent = 'Office-Tarnung (B)';
-            document.title = 'DataSquad Flow';
-        }
-    }
-
-    if (btnToggleCamouflage) {
-        btnToggleCamouflage.addEventListener('click', () => {
-            applyStealthMode(!isStealthMode);
-        });
-    }
-
-    applyStealthMode(isStealthMode);
 
     // 1. Host Game
     btnHostRoom.addEventListener('click', async () => {
@@ -565,13 +532,6 @@
     }
 
     window.addEventListener('keydown', (e) => {
-        // Boss Key (B or Escape when not typing in text field)
-        if ((e.code === 'KeyB' || e.key === 'b' || e.key === 'B' || e.code === 'Escape') &&
-            document.activeElement.tagName !== 'INPUT') {
-            applyStealthMode(!isStealthMode);
-            return;
-        }
-
         let changed = false;
         const code = e.code;
         const key = e.key;
