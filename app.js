@@ -480,19 +480,26 @@
     // Local Keys
     const keys = {
         ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false,
-        KeyA: false, KeyD: false, KeyW: false, KeyS: false, Space: false
+        KeyA: false, KeyD: false, KeyW: false, KeyS: false, Space: false,
+        ShiftLeft: false, ShiftRight: false, KeyC: false, KeyF: false
     };
 
     window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyC' || e.code === 'KeyF') {
+            keys.ShiftLeft = true;
+        }
         if (e.code in keys) {
             keys[e.code] = true;
-            if (['game-curve', 'game-tank', 'game-pong'].some(id => document.getElementById(id).classList.contains('active'))) {
+            if (['game-curve', 'game-tank', 'game-pong', 'game-dodgeball'].some(id => document.getElementById(id).classList.contains('active'))) {
                 e.preventDefault();
             }
         }
     });
 
     window.addEventListener('keyup', (e) => {
+        if (e.code === 'KeyC' || e.code === 'KeyF') {
+            keys.ShiftLeft = false;
+        }
         if (e.code in keys) keys[e.code] = false;
     });
 
@@ -706,12 +713,12 @@
         },
         dodgeball: {
             title: '🤾 Corporate Dodgeball: Data Squad vs. ComM',
-            goal: 'Büro-Völkerball! Wirf das gegnerische Team ab. Data Squad (Links) wirft Code-Releases & Live-Dashboards, ComM (Rechts) wirft bürokratische Steine, Aktenordner & teure Agentur-Rechnungen!',
+            goal: 'Büro-Völkerball! Wirf das gegnerische Team ab. Data Squad (Links) wirft Code-Releases & Live-Dashboards, ComM (Rechts) wirft bürokratische Steine, Aktenordner, teure Rechnungen und "Das große ComM-Paket"!',
             controls: [
-                '💻 <strong>Desktop:</strong> <code>WASD</code> / Pfeiltasten = Bewegen | <code>Leertaste</code> / Klick = Werfen | <code>Shift</code> = Dash (Hechtsprung).',
-                '📱 <strong>Mobile:</strong> Virtuelles D-Pad links + <code>WURF</code> & <code>DASH</code> Knöpfe rechts.'
+                '💻 <strong>Desktop:</strong> <code>WASD</code> / Pfeile = Bewegen | <code>Leertaste</code> / Linksklick = Werfen | <code>Shift</code> / <code>Rechtsklick</code> / <code>C</code> = Hechtsprung & Fangen.',
+                '📱 <strong>Mobile:</strong> Virtuelles D-Pad links + <code>WURF</code> & <code>FANGEN / DASH</code> Knöpfe rechts.'
             ],
-            tip: '🎯 <strong>Catch-Mechanik:</strong> Wenn du im Dash / Hechtsprung in einen gegnerischen Wurf rollst, fängst du den Ball direkt aus der Luft! Vorsicht: 🪨 Steine im Weg bleiben nach dem Aufprall als echte Hindernisse auf dem Boden liegen!'
+            tip: '🎯 <strong>Catch-Mechanik:</strong> Drücke <code>Shift</code>, <code>Rechtsklick</code>, <code>C</code> oder den <code>FANGEN</code>-Knopf, wenn ein gegnerischer Ball auf dich zufliegt, um ihn direkt aus der Luft zu schnappen! Vorsicht vor dem <strong>"Großen ComM-Paket"</strong> (📦), das bei Einschlag in 3 neue Blocker explodiert!'
         },
         roulette: {
             title: '🎲 ComM: Freigabe-Roulette',
@@ -1903,10 +1910,19 @@
 
         dbCanvas.addEventListener('mousedown', (e) => {
             if (e.button === 0) dbMouseThrow = true;
+            if (e.button === 2) {
+                // Right click = Dash / Fangen!
+                e.preventDefault();
+                keys.ShiftLeft = true;
+                setTimeout(() => { keys.ShiftLeft = false; }, 320);
+            }
         });
 
-        window.addEventListener('mouseup', () => {
-            dbMouseThrow = false;
+        dbCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) dbMouseThrow = false;
+            if (e.button === 2) keys.ShiftLeft = false;
         });
     }
 
@@ -1996,39 +2012,77 @@
         // Draw Balls on Floor
         for (const b of dodgeballGame.balls) {
             if (b.state === 'FLOOR') {
+                const r = b.type === 'comm_package' ? 24 : 18;
                 dbCtx.save();
+                // Outer glow
                 dbCtx.shadowColor = b.color || '#00f3ff';
-                dbCtx.shadowBlur = 10;
-                dbCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                dbCtx.shadowBlur = 12;
+
+                // High contrast dark backing circle
+                dbCtx.fillStyle = '#0a0f1d';
                 dbCtx.beginPath();
-                dbCtx.arc(b.x, b.y, DB_BALL_RADIUS + 4, 0, Math.PI * 2);
+                dbCtx.arc(b.x, b.y, r, 0, Math.PI * 2);
                 dbCtx.fill();
 
-                dbCtx.font = '16px "Segoe UI Emoji", sans-serif';
+                // Bright neon border
+                dbCtx.strokeStyle = b.color || '#00f3ff';
+                dbCtx.lineWidth = b.type === 'comm_package' ? 3.5 : 2.5;
+                dbCtx.stroke();
+
+                // Crisp large emoji
+                dbCtx.shadowBlur = 0;
+                dbCtx.font = `${r + 5}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
                 dbCtx.textAlign = 'center';
                 dbCtx.textBaseline = 'middle';
                 dbCtx.fillText(b.icon || '📦', b.x, b.y + 1);
+
+                // Clear mini label below floor balls
+                dbCtx.font = 'bold 10px sans-serif';
+                dbCtx.fillStyle = b.color || '#fff';
+                const labelText = b.name.replace('Das große ', '');
+                dbCtx.fillText(labelText, b.x, b.y + r + 11);
+
                 dbCtx.restore();
             }
         }
 
-        // Draw Flying Balls (With Speed Trail)
+        // Draw Flying Balls (With Speed Trail & Aura)
         for (const b of dodgeballGame.balls) {
             if (b.state === 'FLYING') {
+                const r = b.type === 'comm_package' ? 26 : 20;
                 dbCtx.save();
-                dbCtx.shadowColor = b.color || '#fff';
-                dbCtx.shadowBlur = 18;
+
+                // Motion speed trail
+                if (b.vx !== 0 || b.vy !== 0) {
+                    const angle = Math.atan2(b.vy, b.vx);
+                    dbCtx.strokeStyle = b.color || '#00f3ff';
+                    dbCtx.lineWidth = r * 0.9;
+                    dbCtx.lineCap = 'round';
+                    dbCtx.beginPath();
+                    dbCtx.moveTo(b.x - Math.cos(angle) * (r * 1.6), b.y - Math.sin(angle) * (r * 1.6));
+                    dbCtx.lineTo(b.x, b.y);
+                    dbCtx.stroke();
+                }
 
                 // Glowing core
-                dbCtx.fillStyle = b.color || '#00f3ff';
+                dbCtx.shadowColor = b.color || '#fff';
+                dbCtx.shadowBlur = 22;
+                dbCtx.fillStyle = '#0a0f1d';
                 dbCtx.beginPath();
-                dbCtx.arc(b.x, b.y, DB_BALL_RADIUS + 3, 0, Math.PI * 2);
+                dbCtx.arc(b.x, b.y, r, 0, Math.PI * 2);
                 dbCtx.fill();
 
-                dbCtx.font = '18px "Segoe UI Emoji", sans-serif';
+                dbCtx.strokeStyle = b.color || '#00f3ff';
+                dbCtx.lineWidth = 3;
+                dbCtx.stroke();
+
+                // Crisp large emoji
+                dbCtx.shadowBlur = 0;
+                dbCtx.font = `${r + 7}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
                 dbCtx.textAlign = 'center';
                 dbCtx.textBaseline = 'middle';
                 dbCtx.fillText(b.icon || '📦', b.x, b.y + 1);
+
                 dbCtx.restore();
             }
         }

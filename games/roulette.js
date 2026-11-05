@@ -8,22 +8,28 @@
 
 const ROULETTE_CARDS = [
     // --- FORTSCHRITT (Data Squad) ---
-    { id: 'deploy_20', category: 'progress', title: 'Code-Deploy', icon: '🚀', value: 20, count: 6, desc: '+20% Fortschritt: Sauberes Feature gelauncht.' },
-    { id: 'pipeline_30', category: 'progress', title: 'Automatisierte Pipeline', icon: '⚡', value: 30, count: 4, desc: '+30% Fortschritt: CI/CD läuft vollautomatisch ohne Freigabe!' },
-    { id: 'hotfix_15', category: 'progress', title: 'Quick-Fix am Freitag', icon: '🔥', value: 15, count: 5, desc: '+15% Fortschritt: Schnell gemerged, bevor ComM es merkt.' },
-    { id: 'kaffee_10', category: 'progress', title: 'Kaffee-Sprint', icon: '☕', value: 10, count: 5, drawExtra: true, desc: '+10% Fortschritt & ziehe 1 extra Karte.' },
-    { id: 'night_shift_25', category: 'progress', title: 'Nachtschicht-Hack', icon: '🌙', value: 25, count: 4, desc: '+25% Fortschritt: Gearbeitet, während ComM schläft.' },
+    { id: 'deploy_20', category: 'progress', title: 'Code-Deploy', icon: '🚀', value: 20, count: 8, desc: '+20% Fortschritt: Feature erfolgreich live geschaltet.' },
+    { id: 'pipeline_30', category: 'progress', title: 'Automatisierte Pipeline', icon: '⚡', value: 30, count: 5, desc: '+30% Fortschritt: CI/CD läuft vollautomatisch ohne Freigabe!' },
+    { id: 'hotfix_15', category: 'progress', title: 'Quick-Fix am Freitag', icon: '🔥', value: 15, count: 7, desc: '+15% Fortschritt: Schnell gemerged, bevor ComM es merkt.' },
+    { id: 'kaffee_10', category: 'progress', title: 'Kaffee-Sprint', icon: '☕', value: 10, count: 6, drawExtra: true, desc: '+10% Fortschritt & ziehe 1 extra Handkarte.' },
+    { id: 'night_shift_25', category: 'progress', title: 'Nachtschicht-Hack', icon: '🌙', value: 25, count: 5, desc: '+25% Fortschritt: Gearbeitet, während ComM schläft.' },
+    { id: 'ai_dashboard_20', category: 'progress', title: 'KI ins Dashboard gebaut', icon: '🤖', value: 20, count: 5, desc: '+20% Fortschritt: Stakeholder klatschen begeistert.' },
+    { id: 'feature_flag_25', category: 'progress', title: 'Stiller Feature-Flag', icon: '🚩', value: 25, count: 5, desc: '+25% Fortschritt: Live geschaltet, ohne ComM zu fragen.' },
+    { id: 'espresso_double', category: 'progress', title: 'Doppelter Espresso', icon: '🥤', value: 15, count: 4, drawCount: 2, desc: '+15% Fortschritt & ziehe 2 Handkarten!' },
 
     // --- COMM BLOCKER (Troll & Steine im Weg) ---
-    { id: 'stein_weg', category: 'blocker', title: 'Stein im Weg', icon: '🪨', target: 'enemy', penalty: 15, count: 6, desc: 'Fügt einem Gegner -15% Fortschritt zu („Müssen erst Stakeholder abholen“).' },
-    { id: 'agentur', category: 'blocker', title: 'Externe Agentur beauftragen', icon: '💸', target: 'enemy', penalty: 20, count: 5, desc: 'ComM lagert die Prüfung aus. Gegner verliert 20% Fortschritt durch sinnlose Mockups.' },
-    { id: 'ci_2018', category: 'blocker', title: 'CI-Handbuch von 2018', icon: '📐', target: 'all_enemies', penalty: 10, count: 3, desc: 'Alle Gegner verlieren 10% Fortschritt („Schriftart ist 1px zu schmal“).' },
-    { id: 'meeting_4h', category: 'blocker', title: '4-Stunden-Alignment', icon: '🗣️', target: 'enemy', skipTurn: true, count: 4, desc: 'Zwingt einen Gegner, seinen nächsten Zug im sinnlosen Meeting abzusitzen.' },
+    { id: 'stein_weg', category: 'blocker', title: 'Stein im Weg', icon: '🪨', target: 'enemy', penalty: 15, count: 8, desc: 'Gegner verliert 15% („Müssen erst Stakeholder abholen“).' },
+    { id: 'agentur', category: 'blocker', title: 'Externe Agentur', icon: '💸', target: 'enemy', penalty: 20, count: 7, desc: 'ComM lagert aus: Gegner verliert 20% durch endlose Mockups.' },
+    { id: 'ci_2018', category: 'blocker', title: 'CI-Handbuch 2018', icon: '📐', target: 'all_enemies', penalty: 10, count: 5, desc: 'Alle Gegner verlieren 10% („Schriftart ist 1px zu schmal“).' },
+    { id: 'meeting_4h', category: 'blocker', title: '4-Stunden-Alignment', icon: '🗣️', target: 'enemy', skipTurn: true, count: 5, desc: 'Zwingt einen Gegner, seinen nächsten Zug im Meeting abzusitzen.' },
+    { id: 'datenschutz_gate', category: 'blocker', title: 'Datenschutz-Bedenken', icon: '🔒', target: 'enemy', penalty: 20, count: 5, desc: 'Gegner verliert 20% („Müssen erst 40-Seiten DSFA prüfen“).' },
+    { id: 'wording_police', category: 'blocker', title: 'Corporate Wording', icon: '📋', target: 'enemy', penalty: 15, count: 5, desc: 'Gegner verliert 15% („Feature darf nicht Feature heißen“).' },
 
     // --- REAKTIONEN & VETOS ---
-    { id: 'problem_gefunden', category: 'reaction', title: 'Problem gefunden!', icon: '🛑', isCounter: true, count: 5, desc: 'KONTER: Blockt JEDE gegnerische Karte ab („Gute Lösung, aber hier ist ein neues Problem!“).' },
-    { id: 'nicht_zustaendig', category: 'reaction', title: 'Ich bin nicht zuständig', icon: '😴', isRedirect: true, count: 4, desc: 'Leitet einen eingehenden ComM-Angriff auf den nächsten Spieler um.' },
-    { id: 'chef_genehmigung', category: 'action', title: 'Chef-Bypass', icon: '👔', count: 3, desc: 'Löscht alle Steine im Weg und schützt dich 1 Runde vor ComM-Einwänden.' }
+    { id: 'problem_gefunden', category: 'reaction', title: 'Problem gefunden!', icon: '🛑', isCounter: true, count: 6, desc: 'Blockt Angriffe („Gute Lösung, aber hier ist ein neues Problem!“).' },
+    { id: 'nicht_zustaendig', category: 'reaction', title: 'Nicht zuständig', icon: '😴', isRedirect: true, count: 5, desc: 'Leitet einen ComM-Angriff einfach an den nächsten Spieler weiter.' },
+    { id: 'chef_genehmigung', category: 'action', title: 'Chef-Bypass', icon: '👔', count: 5, desc: 'Schützt dich 1 Runde vor allen ComM-Einwänden.' },
+    { id: 'vorstand_demo', category: 'action', title: 'Vorstandspräsentation', icon: '👑', value: 35, count: 3, desc: 'Direkter Segen vom Vorstand: +35% Fortschritt!' }
 ];
 
 class FreigabeRouletteGame {
@@ -86,6 +92,7 @@ class FreigabeRouletteGame {
                     penalty: template.penalty || 0,
                     target: template.target || null,
                     drawExtra: !!template.drawExtra,
+                    drawCount: template.drawCount || 0,
                     skipTurn: !!template.skipTurn,
                     isCounter: !!template.isCounter,
                     isRedirect: !!template.isRedirect,
@@ -187,7 +194,12 @@ class FreigabeRouletteGame {
             curr.progress = Math.min(100, curr.progress + card.value);
             this.logs.unshift(`🚀 ${curr.name} spielt "${card.title}" (+${card.value}% Fortschritt ➔ ${curr.progress}%)`);
 
-            if (card.drawExtra) {
+            if (card.drawCount) {
+                for (let k = 0; k < card.drawCount; k++) {
+                    curr.hand.push(this.drawCardFromPile());
+                }
+                this.logs.unshift(`🥤 ${curr.name} zieht ${card.drawCount} extra Handkarten!`);
+            } else if (card.drawExtra) {
                 const extra = this.drawCardFromPile();
                 curr.hand.push(extra);
                 this.logs.unshift(`☕ Kaffeeschub: ${curr.name} zieht 1 extra Karte!`);
@@ -201,7 +213,7 @@ class FreigabeRouletteGame {
                 return { success: true, won: true };
             }
         }
-        // 2. ComM Blocker (Stein im Weg / Agentur / Meeting)
+        // 2. ComM Blocker (Stein im Weg / Agentur / Meeting / DSFA / Wording)
         else if (card.category === 'blocker') {
             if (card.target === 'enemy' && target) {
                 // Check if target is shielded
@@ -225,6 +237,18 @@ class FreigabeRouletteGame {
         else if (card.id === 'chef_genehmigung') {
             curr.shielded = true;
             this.logs.unshift(`👔 ${curr.name} aktiviert Chef-Bypass! 1 Runde Schutz vor ComM-Einwänden.`);
+        }
+        // 4. Vorstandspräsentation (Mega-Progress Action)
+        else if (card.id === 'vorstand_demo') {
+            curr.progress = Math.min(100, curr.progress + card.value);
+            this.logs.unshift(`👑 Vorstandspräsentation! ${curr.name} erhält C-Level Segen (+${card.value}% ➔ ${curr.progress}%)`);
+            if (curr.progress >= 100) {
+                this.status = 'GAME_OVER';
+                this.winner = curr;
+                this.logs.unshift(`🎉 ${curr.name} erreicht 100% Go-Live! Data Squad triumphiert!`);
+                if (window.soundFX) window.soundFX.playWin();
+                return { success: true, won: true };
+            }
         }
 
         if (window.soundFX) window.soundFX.playClick();

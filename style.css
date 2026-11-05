@@ -1717,11 +1717,17 @@ canvas {
     background: linear-gradient(135deg, #ff0055, #ff5500);
     color: #fff;
     font-weight: 800;
-    width: 66px;
-    height: 66px;
+    width: 78px;
+    height: 78px;
     border-radius: 50%;
-    font-size: 0.82rem;
+    font-size: 0.68rem;
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+    text-align: center;
+    line-height: 1.15;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @media (max-width: 900px) {
@@ -1813,18 +1819,20 @@ canvas {
 }
 
 .roulette-card {
-    width: 105px;
-    height: 150px;
-    border-radius: 10px;
+    width: 124px;
+    height: 176px;
+    border-radius: 12px;
     border: 2px solid #fff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 8px;
+    padding: 8px 7px;
     position: relative;
     user-select: none;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     transition: transform 0.18s, box-shadow 0.18s;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .roulette-card.cat-progress {
@@ -1858,30 +1866,33 @@ canvas {
 .roulette-card-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 800;
 }
 
 .roulette-card-center-icon {
-    font-size: 2.2rem;
+    font-size: 1.85rem;
     text-align: center;
-    margin: 4px 0;
+    margin: 2px 0;
+    line-height: 1.1;
 }
 
 .roulette-card-title {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 900;
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.15;
     color: #fff;
 }
 
 .roulette-card-desc {
-    font-size: 0.62rem;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.60rem;
+    color: rgba(255, 255, 255, 0.9);
     text-align: center;
-    line-height: 1.15;
+    line-height: 1.18;
     margin-top: 2px;
+    max-height: 48px;
+    overflow: hidden;
 }
 
 .roulette-card.playable {

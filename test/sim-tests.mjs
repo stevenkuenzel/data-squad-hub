@@ -629,7 +629,29 @@ db.balls.push({
 db.update(0.05);
 assert(db.rocks.length > rockCountBefore, 'Stein im Weg leaves physical rock obstacle on the floor upon impact');
 
-// 8. Bot AI Dodge & Aim
+// 8. Special Attack: Das große ComM-Paket cluster detonation
+const rockCountBeforePkg = db.rocks.length;
+const ballCountBeforePkg = db.balls.length;
+db.balls.push({
+    id: 8888,
+    type: 'comm_package',
+    name: 'Das große ComM-Paket',
+    icon: '📦',
+    color: '#ffd700',
+    x: 800,
+    y: 400,
+    vx: 400,
+    vy: 0,
+    state: 'FLYING',
+    thrownBy: 'dev1',
+    thrownTeam: 'squad',
+    isCluster: true
+});
+db.update(0.05);
+assert(db.rocks.length > rockCountBeforePkg, 'ComM-Paket explosion places massive obstacle rock on impact');
+assert(db.balls.length > ballCountBeforePkg, 'ComM-Paket cluster detonates into multiple sub-projectiles (Rechnung, Ordner, Stein)');
+
+// 9. Bot AI Dodge & Aim
 commBot.alive = true;
 commBot.x = 900;
 commBot.y = 400;
@@ -671,6 +693,7 @@ const rBot = rGame.addPlayer('rBot', 'Bot ComM', '#f59e0b', true);
 const rDeck = rGame.createDeck();
 const expectedCards = sandbox.ROULETTE_CARDS.reduce((sum, t) => sum + t.count, 0);
 assert(rDeck.length === expectedCards, `Roulette deck contains all ${expectedCards} cards across categories`);
+assert(expectedCards >= 80, `Roulette deck expanded to ${expectedCards} cards (at least 80) for rich multi-player sessions`);
 assert(rDeck.every(c => c.uid && c.id && c.category && c.title), 'Every card has valid UID, category, title, and metadata');
 
 // 2. Match start & initial hand deal

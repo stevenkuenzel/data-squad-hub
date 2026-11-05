@@ -10,7 +10,7 @@ const DB_ARENA_W = 1200;
 const DB_ARENA_H = 800;
 const DB_CENTER_X = 600;
 const DB_PLAYER_RADIUS = 22;
-const DB_BALL_RADIUS = 12;
+const DB_BALL_RADIUS = 18;
 const DB_PLAYER_SPEED = 240;
 const DB_DASH_SPEED = 560;
 
@@ -20,7 +20,8 @@ const DB_BALL_TYPES = [
     { type: 'coffee', name: 'Kaffee-Becher', icon: '☕', color: '#ffaa00', speed: 490, damage: 1, desc: 'Vollgepackt mit Koffein' },
     { type: 'stone', name: 'Stein im Weg', icon: '🪨', color: '#ff0055', speed: 420, damage: 1, leavesRock: true, desc: 'Hinterlässt bürokratischen Felsen' },
     { type: 'folder', name: 'Aktenordner', icon: '📁', color: '#ff00aa', speed: 440, damage: 1, boomerang: true, desc: 'Feedback-Schleife' },
-    { type: 'bill', name: 'Agentur-Rechnung', icon: '💸', color: '#ffff00', speed: 470, damage: 1, desc: 'Teuer & schmerzhaft' }
+    { type: 'bill', name: 'Agentur-Rechnung', icon: '💸', color: '#ffff00', speed: 470, damage: 1, desc: 'Teuer & schmerzhaft' },
+    { type: 'comm_package', name: 'Das große ComM-Paket', icon: '📦', color: '#ffd700', speed: 380, damage: 2, isCluster: true, desc: 'Spezialangriff: Explodiert in Fels, Rechnung & Ordner!' }
 ];
 
 const DB_QUOTES = [
@@ -51,6 +52,7 @@ class DodgeballGame {
         this.winner = null;
         this.banner = null;       // { text, color, timer }
         this.ballSpawnTimer = 2.0;
+        this.packageSpawnTimer = 8.0;
         this.nextBallId = 1;
     }
 
@@ -240,6 +242,13 @@ class DodgeballGame {
             this.spawnCenterBall();
         }
 
+        // Air-Drop: Das große ComM-Paket
+        this.packageSpawnTimer -= dt;
+        if (this.packageSpawnTimer <= 0) {
+            this.packageSpawnTimer = 16.0 + Math.random() * 8.0;
+            this.spawnCommPackage();
+        }
+
         // 2. Update Rocks expiration
         for (let i = this.rocks.length - 1; i >= 0; i--) {
             this.rocks[i].life -= dt;
@@ -422,34 +431,42 @@ class DodgeballGame {
                 if (!enemy.alive || enemy.team === b.thrownTeam) continue;
 
                 const dist = Math.hypot(enemy.x - b.x, enemy.y - b.y);
-                if (dist <= DB_PLAYER_RADIUS + DB_BALL_RADIUS) {
-                    // Check if dashing: CATCH THE BALL!
-                    if (enemy.dashTimer > 0 && !enemy.hasBall) {
-                        enemy.hasBall = {
-                            type: b.type,
-                            name: b.name,
-                            icon: b.icon,
-                            color: b.color,
-                            leavesRock: b.leavesRock,
-                            bounces: b.bouncesLeft,
-                            boomerang: b.boomerang
-                        };
-                        this.balls.splice(i, 1);
-                        this.banner = {
-                            text: `🎯 GEFANGEN! ${enemy.name} fängt ${b.name} aus der Luft!`,
-                            color: enemy.color,
-                            timer: 2.2
-                        };
-                        if (window.soundFX) window.soundFX.playWin();
-                        break;
-                    }
+                const catchRadius = DB_PLAYER_RADIUS + DB_BALL_RADIUS + 10;
+                const hitRadius = DB_PLAYER_RADIUS + DB_BALL_RADIUS;
 
+                // CATCH CHECK: Dash / Hechtsprung active and player has open hands
+                if (dist <= catchRadius && enemy.dashTimer > 0 && !enemy.hasBall) {
+                    enemy.hasBall = {
+                        type: b.type,
+                        name: b.name,
+                        icon: b.icon,
+                        color: b.color,
+                        leavesRock: b.leavesRock,
+                        bounces: b.bouncesLeft,
+                        boomerang: b.boomerang,
+                        isCluster: b.isCluster
+                    };
+                    this.balls.splice(i, 1);
+                    this.banner = {
+                        text: `🎯 GEFANGEN! ${enemy.name} fängt ${b.name} ab!`,
+                        color: '#ffd700',
+                        timer: 2.2
+                    };
+                    this.spawnCatchSparks(enemy.x, enemy.y);
+                    if (window.soundFX) window.soundFX.playWin();
+                    break;
+                }
+
+                if (dist <= hitRadius) {
                     // Direct Hit!
-                    enemy.hp -= 1;
+                    const dmg = b.damage || 1;
+                    enemy.hp = Math.max(0, enemy.hp - dmg);
                     this.spawnHitExplosion(b.x, b.y, b.color);
 
-                    // If Stein: drop a rock obstacle where it hit
-                    if (b.leavesRock) {
+                    // Special Attack: Das große ComM-Paket
+                    if (b.isCluster) {
+                        this.triggerClusterExplosion(b.x, b.y, b.thrownTeam);
+                    } else if (b.leavesRock) {
                         this.rocks.push({
                             id: Math.random(),
                             x: b.x,
@@ -667,6 +684,112 @@ class DodgeballGame {
                 radius: 3 + Math.random() * 4,
                 life: 0.6,
                 maxLife: 0.6
+            });
+        }
+    }
+
+    spawnCommPackage() {
+        const pkgTemplate = DB_BALL_TYPES.find(b => b.type === 'comm_package') || DB_BALL_TYPES[0];
+        const x = 760 + Math.random() * 260;
+        const y = 140 + Math.random() * (DB_ARENA_H - 280);
+        this.balls.push({
+            id: this.nextBallId++,
+            type: pkgTemplate.type,
+            name: pkgTemplate.name,
+            icon: pkgTemplate.icon,
+            color: pkgTemplate.color,
+            speed: pkgTemplate.speed,
+            damage: pkgTemplate.damage,
+            isCluster: true,
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            state: 'FLOOR'
+        });
+        this.banner = {
+            text: '📦 LIEFERUNG: "Das große ComM-Paket" ist eingetroffen!',
+            color: '#ffd700',
+            timer: 3.0
+        };
+        if (window.soundFX) window.soundFX.playWin();
+    }
+
+    triggerClusterExplosion(x, y, thrownTeam) {
+        this.banner = {
+            text: '🚨 COMM-PAKET EXPLODIERT! 120 Seiten CI & 3 neue Blocker!',
+            color: '#ffd700',
+            timer: 3.0
+        };
+        // Drop an obstacle rock on the spot
+        this.rocks.push({
+            id: Math.random(),
+            x: x,
+            y: y,
+            radius: 24,
+            life: 8.0
+        });
+
+        // Burst 3 sub-projectiles outwards towards target court
+        const baseAngle = thrownTeam === 'squad' ? 0 : Math.PI;
+        const subTypes = [
+            DB_BALL_TYPES.find(t => t.type === 'stone'),
+            DB_BALL_TYPES.find(t => t.type === 'bill'),
+            DB_BALL_TYPES.find(t => t.type === 'folder')
+        ].filter(Boolean);
+
+        const offsets = [-0.35, 0, 0.35];
+        subTypes.forEach((tpl, idx) => {
+            const angle = baseAngle + offsets[idx];
+            const spd = tpl.speed * 0.85;
+            this.balls.push({
+                id: this.nextBallId++,
+                type: tpl.type,
+                name: tpl.name,
+                icon: tpl.icon,
+                color: tpl.color,
+                leavesRock: !!tpl.leavesRock,
+                bouncesLeft: tpl.bounces || 0,
+                boomerang: !!tpl.boomerang,
+                x: x + Math.cos(angle) * 22,
+                y: y + Math.sin(angle) * 22,
+                vx: Math.cos(angle) * spd,
+                vy: Math.sin(angle) * spd,
+                state: 'FLYING',
+                thrownBy: 'comm_cluster',
+                thrownTeam: thrownTeam
+            });
+        });
+
+        for (let k = 0; k < 25; k++) {
+            const pAngle = Math.random() * Math.PI * 2;
+            const pSpeed = 60 + Math.random() * 200;
+            this.particles.push({
+                x,
+                y,
+                vx: Math.cos(pAngle) * pSpeed,
+                vy: Math.sin(pAngle) * pSpeed,
+                color: k % 2 === 0 ? '#ffd700' : '#ff0055',
+                radius: 4 + Math.random() * 4,
+                life: 0.9,
+                maxLife: 0.9
+            });
+        }
+    }
+
+    spawnCatchSparks(x, y) {
+        for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 70 + Math.random() * 180;
+            this.particles.push({
+                x,
+                y,
+                vx: Math.cos(angle) * spd,
+                vy: Math.sin(angle) * spd,
+                color: '#ffd700',
+                radius: 3 + Math.random() * 3,
+                life: 0.7,
+                maxLife: 0.7
             });
         }
     }
