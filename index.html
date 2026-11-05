@@ -80,6 +80,19 @@
                     <!-- Populated dynamically -->
                 </ul>
 
+                <!-- Lobby Settings for Host -->
+                <div id="host-settings" style="margin: 12px 0; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #fff;">Lücken im Schweif</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Curve-Mechanik zum Durchqueren</div>
+                    </div>
+                    <button id="btn-toggle-gaps" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;">AN</button>
+                </div>
+
+                <div class="lobby-tip" style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; padding: 8px 12px; background: rgba(0, 243, 255, 0.05); border-left: 3px solid var(--cyan); border-radius: 4px;">
+                    💡 <strong>Hinweis:</strong> Die Lücken in den Linien sind das Kernelement von Curve Fever, damit du gegnerische Spuren kreuzen kannst!
+                </div>
+
                 <div class="btn-grid" id="host-lobby-controls">
                     <button id="btn-add-bot" class="btn btn-secondary">
                         + Bot hinzufügen
@@ -136,6 +149,9 @@
             <!-- Overlays -->
             <div class="overlay-center" id="countdown-overlay" style="display: none;">
                 <div class="countdown-display" id="countdown-number">3</div>
+                <div id="countdown-hint" style="font-size: 1rem; color: var(--cyan); margin-top: 10px; font-weight: 600; text-shadow: 0 0 10px rgba(0,243,255,0.5);">
+                    Steuerung: ◀ / ▶ oder A / D
+                </div>
             </div>
 
             <div class="overlay-center" id="round-over-overlay" style="display: none;">

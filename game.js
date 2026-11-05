@@ -102,6 +102,8 @@ class CurveGame {
         this.roundNumber = 1;
         this.maxRounds = 5;
         this.roundOverTimer = 0;
+        this.enableGaps = true;           // Option: true for Curve Fever gaps, false for solid Tron lines
+        this.clearSegmentsOnClients = false; // Flag to instruct clients to wipe old trails
 
         this.lastUpdateTime = performance.now();
         this.roundWinner = null;
@@ -121,6 +123,7 @@ class CurveGame {
     resetRound() {
         this.segments = [];
         this.newSegmentsQueue = [];
+        this.clearSegmentsOnClients = true;
         this.grid.clear();
         this.particles = [];
         this.nextSegmentId = 1;
@@ -276,21 +279,25 @@ class CurveGame {
             const nextX = p.x + Math.cos(p.angle) * stepDist;
             const nextY = p.y + Math.sin(p.angle) * stepDist;
 
-            // Gap management
-            if (p.gapRemaining > 0) {
-                p.gapRemaining -= dt;
-                p.isDrawing = false;
-                if (p.gapRemaining <= 0) {
-                    p.isDrawing = true;
-                    p.gapTimer = 2.0 + Math.random() * 3.0;
+            // Gap management (if enabled)
+            if (this.enableGaps) {
+                if (p.gapRemaining > 0) {
+                    p.gapRemaining -= dt;
+                    p.isDrawing = false;
+                    if (p.gapRemaining <= 0) {
+                        p.isDrawing = true;
+                        p.gapTimer = 2.0 + Math.random() * 3.0;
+                    }
+                } else {
+                    p.gapTimer -= dt;
+                    if (p.gapTimer <= 0) {
+                        p.gapRemaining = 0.35 + Math.random() * 0.15;
+                        p.isDrawing = false;
+                        if (window.soundFX) window.soundFX.playGap();
+                    }
                 }
             } else {
-                p.gapTimer -= dt;
-                if (p.gapTimer <= 0) {
-                    p.gapRemaining = 0.35 + Math.random() * 0.15;
-                    p.isDrawing = false;
-                    if (window.soundFX) window.soundFX.playGap();
-                }
+                p.isDrawing = true;
             }
 
             // Check collision for head at next position
@@ -491,12 +498,15 @@ class CurveGame {
             id: s.id,
             p: s.playerId,
             c: s.color,
-            x1: Math.round(s.x1 * 10) / 10,
-            y1: Math.round(s.y1 * 10) / 10,
-            x2: Math.round(s.x2 * 10) / 10,
-            y2: Math.round(s.y2 * 10) / 10
+            x1: Math.round(s.x1 * 100) / 100,
+            y1: Math.round(s.y1 * 100) / 100,
+            x2: Math.round(s.x2 * 100) / 100,
+            y2: Math.round(s.y2 * 100) / 100
         }));
         this.newSegmentsQueue = [];
+
+        const clearSegs = this.clearSegmentsOnClients;
+        this.clearSegmentsOnClients = false;
 
         return {
             state: this.state,
@@ -505,6 +515,8 @@ class CurveGame {
             countdown: Math.ceil(this.countdownTimer),
             roundWinner: this.roundWinner ? this.roundWinner.name : null,
             matchWinner: this.matchWinner ? this.matchWinner.name : null,
+            clearSegments: clearSegs,
+            enableGaps: this.enableGaps,
             heads,
             newSegs
         };
@@ -514,6 +526,15 @@ class CurveGame {
      * Apply snapshot on client
      */
     applySnapshot(snap) {
+        if (snap.clearSegments) {
+            this.segments = [];
+            this.particles = [];
+        }
+
+        if (snap.enableGaps !== undefined) {
+            this.enableGaps = snap.enableGaps;
+        }
+
         this.state = snap.state;
         this.roundNumber = snap.round;
         this.maxRounds = snap.maxRounds;

@@ -115,7 +115,7 @@ class NetworkManager {
                 console.log(`[Net] Client initialized with ID: ${id}. Connecting to host: ${hostPeerId}`);
 
                 const conn = this.peer.connect(hostPeerId, {
-                    reliable: false // low-latency UDP-style DataChannel for real-time controls
+                    reliable: true
                 });
 
                 conn.on('open', () => {

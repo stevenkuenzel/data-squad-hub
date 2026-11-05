@@ -27,6 +27,8 @@
     const btnLeaveLobby = document.getElementById('btn-leave-lobby');
     const hostLobbyControls = document.getElementById('host-lobby-controls');
     const clientLobbyNotice = document.getElementById('client-lobby-notice');
+    const btnToggleGaps = document.getElementById('btn-toggle-gaps');
+    const hostSettings = document.getElementById('host-settings');
 
     // Game Elements
     const canvas = document.getElementById('gameCanvas');
@@ -193,7 +195,12 @@
                 for (const p of payload.players) {
                     game.addPlayer(p.id, p.name, p.color, p.isBot);
                 }
+                game.segments = [];
+                game.particles = [];
                 game.maxRounds = payload.maxRounds;
+                if (payload.enableGaps !== undefined) {
+                    game.enableGaps = payload.enableGaps;
+                }
                 switchScreen(gameScreen);
             } else if (type === 'STATE') {
                 game.applySnapshot(payload);
@@ -218,6 +225,17 @@
     // HOME SCREEN ACTIONS
     // ==========================================
 
+    // Gap Toggle button (Host setting)
+    if (btnToggleGaps) {
+        btnToggleGaps.addEventListener('click', () => {
+            if (window.soundFX) window.soundFX.playClick();
+            game.enableGaps = !game.enableGaps;
+            btnToggleGaps.textContent = game.enableGaps ? 'AN' : 'AUS';
+            btnToggleGaps.style.color = game.enableGaps ? 'var(--cyan)' : 'var(--text-muted)';
+            btnToggleGaps.style.borderColor = game.enableGaps ? 'var(--cyan)' : 'var(--border-color)';
+        });
+    }
+
     // 1. Host Game
     btnHostRoom.addEventListener('click', async () => {
         if (window.soundFX) window.soundFX.playClick();
@@ -232,6 +250,7 @@
             hudPingPill.style.display = 'none';
 
             hostLobbyControls.style.display = 'flex';
+            if (hostSettings) hostSettings.style.display = 'flex';
             clientLobbyNotice.style.display = 'none';
             lobbyRoleText.textContent = 'Du bist der Host. Lade Freunde ein!';
 
@@ -268,6 +287,7 @@
             hudPingPill.style.display = 'flex';
 
             hostLobbyControls.style.display = 'none';
+            if (hostSettings) hostSettings.style.display = 'none';
             clientLobbyNotice.style.display = 'block';
             lobbyRoleText.textContent = 'Verbunden mit Raum ' + code;
 
@@ -373,7 +393,8 @@
 
         networkManager.broadcast('START_GAME', {
             players: playersList,
-            maxRounds: game.maxRounds
+            maxRounds: game.maxRounds,
+            enableGaps: game.enableGaps
         });
 
         switchScreen(gameScreen);
@@ -397,6 +418,19 @@
     btnPlayAgain.addEventListener('click', () => {
         matchOverOverlay.style.display = 'none';
         if (networkManager.isHost) {
+            const playersList = Array.from(game.players.values()).map(p => ({
+                id: p.id,
+                name: p.name,
+                color: p.color,
+                isBot: p.isBot
+            }));
+
+            networkManager.broadcast('START_GAME', {
+                players: playersList,
+                maxRounds: game.maxRounds,
+                enableGaps: game.enableGaps
+            });
+
             game.resetMatch();
             game.startCountdown();
         }
@@ -419,34 +453,50 @@
     // ==========================================
     // KEYBOARD & TOUCH INPUTS
     // ==========================================
+    function getPlayer1Input() {
+        if (isLocalMultiplayer) {
+            return {
+                left: !!keysPressed.ArrowLeft,
+                right: !!keysPressed.ArrowRight
+            };
+        }
+        // In online/singleplayer, allow BOTH Arrow keys and A/D keys
+        return {
+            left: !!(keysPressed.ArrowLeft || keysPressed.KeyA),
+            right: !!(keysPressed.ArrowRight || keysPressed.KeyD)
+        };
+    }
+
     function sendMyInput() {
-        const left = keysPressed.ArrowLeft;
-        const right = keysPressed.ArrowRight;
+        const p1 = getPlayer1Input();
 
         if (networkManager.isHost) {
-            game.setPlayerInput(myPlayerId, left, right);
+            game.setPlayerInput(myPlayerId, p1.left, p1.right);
             if (isLocalMultiplayer) {
-                game.setPlayerInput(localPlayer2Id, keysPressed.KeyA, keysPressed.KeyD);
+                game.setPlayerInput(localPlayer2Id, !!keysPressed.KeyA, !!keysPressed.KeyD);
             }
         } else {
-            networkManager.sendToHost('INPUT', { left, right });
+            networkManager.sendToHost('INPUT', { left: p1.left, right: p1.right });
         }
     }
 
     window.addEventListener('keydown', (e) => {
         let changed = false;
-        if (e.code === 'ArrowLeft' && !keysPressed.ArrowLeft) {
-            keysPressed.ArrowLeft = true;
-            changed = true;
-        } else if (e.code === 'ArrowRight' && !keysPressed.ArrowRight) {
-            keysPressed.ArrowRight = true;
-            changed = true;
-        } else if (isLocalMultiplayer && e.code === 'KeyA' && !keysPressed.KeyA) {
-            keysPressed.KeyA = true;
-            changed = true;
-        } else if (isLocalMultiplayer && e.code === 'KeyD' && !keysPressed.KeyD) {
-            keysPressed.KeyD = true;
-            changed = true;
+        const code = e.code;
+        const key = e.key;
+
+        if (code === 'ArrowLeft' || key === 'ArrowLeft') {
+            if (!keysPressed.ArrowLeft) { keysPressed.ArrowLeft = true; changed = true; }
+        } else if (code === 'ArrowRight' || key === 'ArrowRight') {
+            if (!keysPressed.ArrowRight) { keysPressed.ArrowRight = true; changed = true; }
+        } else if (code === 'KeyA' || key === 'a' || key === 'A') {
+            if (!keysPressed.KeyA) { keysPressed.KeyA = true; changed = true; }
+        } else if (code === 'KeyD' || key === 'd' || key === 'D') {
+            if (!keysPressed.KeyD) { keysPressed.KeyD = true; changed = true; }
+        }
+
+        if (gameScreen.classList.contains('active') && (code === 'ArrowLeft' || code === 'ArrowRight')) {
+            e.preventDefault();
         }
 
         if (changed) sendMyInput();
@@ -454,18 +504,17 @@
 
     window.addEventListener('keyup', (e) => {
         let changed = false;
-        if (e.code === 'ArrowLeft' && keysPressed.ArrowLeft) {
-            keysPressed.ArrowLeft = false;
-            changed = true;
-        } else if (e.code === 'ArrowRight' && keysPressed.ArrowRight) {
-            keysPressed.ArrowRight = false;
-            changed = true;
-        } else if (isLocalMultiplayer && e.code === 'KeyA' && keysPressed.KeyA) {
-            keysPressed.KeyA = false;
-            changed = true;
-        } else if (isLocalMultiplayer && e.code === 'KeyD' && keysPressed.KeyD) {
-            keysPressed.KeyD = false;
-            changed = true;
+        const code = e.code;
+        const key = e.key;
+
+        if (code === 'ArrowLeft' || key === 'ArrowLeft') {
+            if (keysPressed.ArrowLeft) { keysPressed.ArrowLeft = false; changed = true; }
+        } else if (code === 'ArrowRight' || key === 'ArrowRight') {
+            if (keysPressed.ArrowRight) { keysPressed.ArrowRight = false; changed = true; }
+        } else if (code === 'KeyA' || key === 'a' || key === 'A') {
+            if (keysPressed.KeyA) { keysPressed.KeyA = false; changed = true; }
+        } else if (code === 'KeyD' || key === 'd' || key === 'D') {
+            if (keysPressed.KeyD) { keysPressed.KeyD = false; changed = true; }
         }
 
         if (changed) sendMyInput();
@@ -494,6 +543,7 @@
     // ==========================================
     let lastTime = performance.now();
     let netBroadcastTimer = 0;
+    let clientInputTimer = 0;
 
     function gameLoop(now) {
         requestAnimationFrame(gameLoop);
@@ -511,6 +561,13 @@
                 netBroadcastTimer = 0;
                 const snapshot = game.getSnapshot();
                 networkManager.broadcast('STATE', snapshot);
+            }
+        } else {
+            // Client continuously streams input at 40Hz during active play
+            clientInputTimer += dt;
+            if (clientInputTimer >= 0.025) {
+                clientInputTimer = 0;
+                sendMyInput();
             }
         }
 
@@ -607,10 +664,16 @@
         for (const p of game.players.values()) {
             if (!p.alive) continue;
 
-            // Head Outer Glow
             ctx.save();
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 12;
+            if (!p.isDrawing) {
+                // Gap / Ghost Mode: transparent & white pulse
+                ctx.globalAlpha = 0.5;
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 18;
+            } else {
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+            }
 
             // Head Circle
             ctx.fillStyle = '#ffffff';
@@ -627,6 +690,15 @@
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(tipX, tipY);
             ctx.stroke();
+
+            // If in gap, draw a subtle ghost aura
+            if (!p.isDrawing) {
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, LINE_RADIUS + 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
 
             ctx.restore();
         }
