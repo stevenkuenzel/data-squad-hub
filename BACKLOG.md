@@ -68,9 +68,9 @@ Legende: ⭐ = großer Spaß-Effekt bei wenig Aufwand · 🧱 = größerer Umbau
 ---
 
 # 🛠️ Technische Schulden (aus dem Code-Review)
-- [ ] 🧱 `app.js` (~2.700 Zeilen) in ein UI-Modul pro Spiel aufteilen.
+- [x] `app.js` (~2.700 Zeilen) in ein UI-Modul pro Spiel aufteilen. -> Erledigt: 13 Dateien in `ui/` (core, lobby, help, routing, main + je ein Modul pro Spiel), geladen als klassische Scripts mit gemeinsamem Scope.
 - [ ] Branch-Schutz für `master` in den GitHub-Einstellungen: Merge nur mit grüner Pipeline.
-- [ ] E2E-Test (`test/e2e-playwright.mjs`) als manuell startbaren Workflow einrichten; Playwright als Dev-Abhängigkeit eintragen.
-- [ ] Zufallsabhängige Tests mit festem Zufalls-Seed deterministisch machen (Testanzahl schwankt aktuell zwischen 142 und 146).
-- [ ] README nennt beim Freigabe-Roulette noch 54 Karten, das Deck hat inzwischen 99.
-- [ ] Raumcodes mit `crypto.getRandomValues` statt `Math.random` erzeugen.
+- [x] E2E-Test (`test/e2e-playwright.mjs`) als manuell startbaren Workflow einrichten; Playwright als Dev-Abhängigkeit eintragen. -> Erledigt: `.github/workflows/e2e.yml` (manuell startbar), `playwright` in devDependencies.
+- [x] Zufallsabhängige Tests mit festem Zufalls-Seed deterministisch machen (Testanzahl schwankt aktuell zwischen 142 und 146). -> Erledigt: Seedbarer PRNG, `TEST_SEED` überschreibbar (Standard 1337).
+- [x] README nennt beim Freigabe-Roulette noch 54 Karten, das Deck hat inzwischen 99.
+- [x] Raumcodes mit `crypto.getRandomValues` statt `Math.random` erzeugen.

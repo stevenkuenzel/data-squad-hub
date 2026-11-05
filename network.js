@@ -20,11 +20,10 @@ class NetworkManager {
     generateRoomCode() {
         // 5 random uppercase alphanumeric chars (excluding confusing 0/O, 1/I)
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-        let code = '';
-        for (let i = 0; i < 5; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return code;
+        const bytes = new Uint8Array(5);
+        crypto.getRandomValues(bytes);
+        // 256 % 32 === 0, so the modulo introduces no bias
+        return Array.from(bytes, b => chars.charAt(b % chars.length)).join('');
     }
 
     prefixRoomId(code) {

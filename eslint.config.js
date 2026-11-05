@@ -23,7 +23,7 @@ export default [
     js.configs.recommended,
     {
         // Browser files are classic <script> tags sharing one global scope
-        files: ['*.js', 'games/**/*.js'],
+        files: ['*.js', 'games/**/*.js', 'ui/**/*.js'],
         ignores: ['eslint.config.js'],
         languageOptions: {
             ecmaVersion: 2022,
@@ -39,6 +39,11 @@ export default [
             'no-unused-vars': ['error', { args: 'none', vars: 'local' }],
             'no-redeclare': ['error', { builtinGlobals: false }]
         }
+    },
+    {
+        // ui/*.js share one global scope (former app.js closure); cross-file names can't be resolved per file
+        files: ['ui/**/*.js'],
+        rules: { 'no-undef': 'off', 'no-unused-vars': 'off', 'no-redeclare': 'off' }
     },
     {
         files: ['test/**/*.mjs', 'eslint.config.js'],

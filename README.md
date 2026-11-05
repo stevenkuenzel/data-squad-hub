@@ -62,7 +62,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **UNO:** Prüft Standard-Deck (108 Karten), Aktionskarten (+2, Farbwahl, +4, Richtungswechsel), Bot-Entscheidungsfindung und Anti-Cheat Hand-Maskierung.
 - **Corporate Dodgeball:** Validiert Team-Aufteilung (Data Squad vs. ComN), Halbfeld-Grenzschutz, Ball-Pickups, Wurf- und Flugphysik, Hechtsprung-Fangen (Catch-Mechanik) und Erzeugung von Fels-Hindernissen ("Steine im Weg").
 - **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
-- **Freigabe-Roulette:** Prüft 54-Karten-Deck (Fortschritt, ComN-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
+- **Freigabe-Roulette:** Prüft 99-Karten-Deck (Fortschritt, ComN-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
 - **Sicherheit:** Simuliert bösartige Peers – fremde Zeichen-/Lösch-/Wortwahl-Aktionen, ungültige Striche, Zugbeenden durch das falsche Team, Rollenwechsel des Spionchefs mitten im Spiel und kaputte Eingabewerte.
 
 Linter und Tests laufen bei jedem Push auf `master` und bei jedem Pull Request automatisch per GitHub Actions (`.github/workflows/test.yml`).

@@ -2,9 +2,9 @@
  * DataSquad Hub: Multi-Client Headless WebRTC E2E Test Suite (Playwright)
  * 
  * To run:
- *   npx playwright test
- * or:
- *   node test/e2e-playwright.mjs
+ *   npx playwright install chromium   (once)
+ *   npm run test:e2e
+ * In CI: manual workflow "E2E (manual)" (.github/workflows/e2e.yml)
  */
 
 import http from 'http';

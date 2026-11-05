@@ -121,7 +121,7 @@ window.MeinNeuesSpiel = MeinNeuesSpiel;
   }
   ```
 
-### Schritt 4: Registrierung in `app.js`
+### Schritt 4: Registrierung in `ui/` (neues Modul `ui/meinspiel.js`, in `index.html` vor `ui/routing.js` laden)
 1. Instanz anlegen: `const meinSpiel = new MeinNeuesSpiel();`
 2. In `getActiveGameInstance()` integrieren.
 3. In `gameScreens` eintragen: `meinspiel: document.getElementById('game-meinspiel')`.
@@ -130,7 +130,7 @@ window.MeinNeuesSpiel = MeinNeuesSpiel;
 6. In `gameLoop(dt)` Update ausführen (nur wenn `isHost`).
 7. In `render()` Canvas-Zeichenmethode einbinden.
 
-### Schritt 5: Touch-Controls anbinden (`app.js`)
+### Schritt 5: Touch-Controls anbinden (`ui/meinspiel.js`)
 * Nutze die `bindTouch()` Hilfsfunktion für zuverlässiges Multi-Touch auf Mobilgeräten:
   ```javascript
   bindTouch('meinspiel-touch-left', 'ArrowLeft');
@@ -143,7 +143,7 @@ window.MeinNeuesSpiel = MeinNeuesSpiel;
 
 ### Schritt 7: Kurzanleitung hinterlegen
 1. In `index.html` im `#modal-instructions` einen Tab und Inhalt anlegen.
-2. In `app.js` im `GAME_INSTRUCTIONS` Dictionary Ziel, Steuerung und Profi-Tipps hinterlegen.
+2. In `ui/help.js` im `GAME_INSTRUCTIONS` Dictionary Ziel, Steuerung und Profi-Tipps hinterlegen.
 
 ### Schritt 8: Automatisierte Tests ergänzen (`test/sim-tests.mjs`)
 * Füge eine Testsuite hinzu, die Rundenfortschritt, Kollisionen, Bot-Verhalten und Snapshot-Maskierung prüft.
