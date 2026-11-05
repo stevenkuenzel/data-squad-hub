@@ -518,7 +518,7 @@
                 '💻 <strong>Desktop-Tastatur:</strong> <code>◀</code> / <code>▶</code> oder <code>A</code> / <code>D</code> zum Lenken.',
                 '📱 <strong>Mobile Touch:</strong> <code>◀</code> und <code>▶</code> Touch-Buttons am unteren Bildschirmrand antippen.'
             ],
-            tip: '💡 <strong>Lücken-Mechanik:</strong> Deine Linie bekommt in regelmäßigen Abständen kurze Löcher. Nutze diese Lücken, um kreuzende Linien gefahrlos zu durchqueren!'
+            tip: '⚡ <strong>Mario-Kart Power-Ups:</strong> Sammle leuchtende Orbs auf dem Feld! 🔀 Invertiert die Steuerung aller Gegner, 🚀 schickt sie in den Hyper-Turbo, 🐘 zwingt sie zu dicken Barrieren, 👻 macht dich unverwundbar gegen Wände, 🐢 verleiht dir Slow-Mo-Präzision und 💣 detoniert eine Schockwelle, die Linien löscht!'
         },
         codenames: {
             title: '🕵️ Codenames (Team-Worträtsel)',
@@ -694,6 +694,16 @@
         });
     }
 
+    const btnTogglePowerups = document.getElementById('btn-toggle-powerups');
+    if (btnTogglePowerups) {
+        btnTogglePowerups.addEventListener('click', () => {
+            curveGame.powerUpsEnabled = !curveGame.powerUpsEnabled;
+            btnTogglePowerups.textContent = curveGame.powerUpsEnabled ? 'AN' : 'AUS';
+            btnTogglePowerups.className = `btn btn-sm ${curveGame.powerUpsEnabled ? 'btn-primary' : 'btn-secondary'}`;
+            if (window.soundFX) window.soundFX.playClick();
+        });
+    }
+
     document.querySelectorAll('#diff-selector .diff-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#diff-selector .diff-btn').forEach(b => b.classList.remove('active'));
@@ -722,8 +732,8 @@
         // Trails
         curveCtx.lineCap = 'round';
         curveCtx.lineJoin = 'round';
-        curveCtx.lineWidth = LINE_RADIUS * 2;
         for (const seg of curveGame.segments) {
+            curveCtx.lineWidth = seg.lineWidth || (LINE_RADIUS * 2);
             curveCtx.strokeStyle = seg.color;
             curveCtx.beginPath();
             curveCtx.moveTo(seg.x1, seg.y1);
@@ -731,21 +741,62 @@
             curveCtx.stroke();
         }
 
+        // Draw Power-Up Orbs
+        if (curveGame.powerUps && curveGame.powerUps.length > 0) {
+            const timeNow = performance.now();
+            for (const pu of curveGame.powerUps) {
+                const pulse = Math.sin(timeNow * 0.006 + pu.id) * 2.2;
+                const r = (pu.radius || 18) + pulse;
+
+                curveCtx.save();
+                curveCtx.shadowColor = pu.color || '#00f3ff';
+                curveCtx.shadowBlur = 18;
+                curveCtx.fillStyle = pu.color || '#00f3ff';
+                curveCtx.beginPath();
+                curveCtx.arc(pu.x, pu.y, r, 0, Math.PI * 2);
+                curveCtx.fill();
+
+                // Inner white badge
+                curveCtx.shadowBlur = 0;
+                curveCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                curveCtx.beginPath();
+                curveCtx.arc(pu.x, pu.y, r * 0.72, 0, Math.PI * 2);
+                curveCtx.fill();
+
+                // Icon
+                curveCtx.font = '16px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                curveCtx.textAlign = 'center';
+                curveCtx.textBaseline = 'middle';
+                curveCtx.fillText(pu.icon || '⚡', pu.x, pu.y + 1);
+                curveCtx.restore();
+            }
+        }
+
         // Heads
         for (const p of curveGame.players.values()) {
             if (!p.alive) continue;
+            const pEffects = (curveGame.activeEffects || []).filter(e => e.targetPlayerId === p.id);
+            const isGhost = pEffects.some(e => e.type === 'ghost');
+            const isInverted = pEffects.some(e => e.type === 'invert');
+            const isTurbo = pEffects.some(e => e.type === 'turbo');
+
             curveCtx.save();
-            if (!p.isDrawing) {
+            if (isGhost) {
+                // Ghostly pulsing aura
+                curveCtx.globalAlpha = 0.55;
+                curveCtx.shadowColor = '#00f3ff';
+                curveCtx.shadowBlur = 24;
+            } else if (!p.isDrawing) {
                 curveCtx.globalAlpha = 0.5;
                 curveCtx.shadowColor = '#ffffff';
                 curveCtx.shadowBlur = 18;
             } else {
                 curveCtx.shadowColor = p.color;
-                curveCtx.shadowBlur = 12;
+                curveCtx.shadowBlur = isTurbo ? 22 : 12;
             }
-            curveCtx.fillStyle = '#ffffff';
+            curveCtx.fillStyle = isGhost ? '#00f3ff' : '#ffffff';
             curveCtx.beginPath();
-            curveCtx.arc(p.x, p.y, LINE_RADIUS + 1, 0, Math.PI * 2);
+            curveCtx.arc(p.x, p.y, LINE_RADIUS + (isGhost ? 2 : 1), 0, Math.PI * 2);
             curveCtx.fill();
 
             const tipX = p.x + Math.cos(p.angle) * (LINE_RADIUS + 4);
@@ -756,6 +807,22 @@
             curveCtx.moveTo(p.x, p.y);
             curveCtx.lineTo(tipX, tipY);
             curveCtx.stroke();
+
+            // Status icon indicator above head
+            if (isInverted) {
+                curveCtx.font = '14px sans-serif';
+                curveCtx.textAlign = 'center';
+                curveCtx.fillText('🔀', p.x, p.y - 12);
+            } else if (isTurbo) {
+                curveCtx.font = '14px sans-serif';
+                curveCtx.textAlign = 'center';
+                curveCtx.fillText('🚀', p.x, p.y - 12);
+            } else if (isGhost) {
+                curveCtx.font = '14px sans-serif';
+                curveCtx.textAlign = 'center';
+                curveCtx.fillText('👻', p.x, p.y - 12);
+            }
+
             curveCtx.restore();
         }
 
@@ -785,6 +852,34 @@
             badge.appendChild(sName);
             badge.appendChild(sScore);
             curveScoresContainer.appendChild(badge);
+        }
+
+        // Power-Up Banner
+        const bannerEl = document.getElementById('curve-powerup-banner');
+        if (bannerEl) {
+            if (curveGame.banner && curveGame.banner.timer > 0) {
+                bannerEl.style.display = 'block';
+                bannerEl.textContent = curveGame.banner.text;
+                bannerEl.style.borderColor = curveGame.banner.color || 'var(--cyan)';
+                bannerEl.style.boxShadow = `0 0 25px ${curveGame.banner.color || 'rgba(0, 243, 255, 0.45)'}`;
+            } else {
+                bannerEl.style.display = 'none';
+            }
+        }
+
+        // Active Effects Bar
+        const effectsBar = document.getElementById('curve-effects-bar');
+        if (effectsBar) {
+            effectsBar.innerHTML = '';
+            if (curveGame.activeEffects) {
+                const myEffects = curveGame.activeEffects.filter(e => e.targetPlayerId === myPlayerId);
+                for (const eff of myEffects) {
+                    const pill = document.createElement('div');
+                    pill.className = `curve-effect-pill ${eff.type}`;
+                    pill.innerHTML = `<span>${eff.icon}</span> <span>${eff.label}: ${eff.remaining.toFixed(1)}s</span>`;
+                    effectsBar.appendChild(pill);
+                }
+            }
         }
 
         if (curveGame.state === 'COUNTDOWN') {

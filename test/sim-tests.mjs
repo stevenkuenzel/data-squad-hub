@@ -317,6 +317,60 @@ curve.state = 'PLAYING';
 curve.update(0.1);
 assert(curve.players.get('c1').alive, 'Players remain alive on initial movement');
 
+// --- Power-Ups & Troll-Items Tests ---
+// 1. Spawning
+curve.powerUps = [];
+curve.spawnPowerUp();
+assert(curve.powerUps.length === 1, 'Power-up orb spawned in arena');
+const spawnedPU = curve.powerUps[0];
+assert(spawnedPU.radius === 18 && typeof spawnedPU.x === 'number', 'Power-up has valid dimensions and coordinates');
+
+// 2. Invert Controls (Troll Item)
+const p1 = curve.players.get('c1');
+const p2 = curve.players.get('c2');
+p1.alive = true;
+p2.alive = true;
+p2.angle = 0;
+p2.inputLeft = true;
+p2.inputRight = false;
+
+// Trigger invert effect from p1 (targets others -> p2)
+curve.activatePowerUp(p1, { type: 'invert', name: 'Invert Controls', icon: '🔀', color: '#ff0055', target: 'others', duration: 4.0 });
+const p2Inverted = curve.activeEffects.some(e => e.targetPlayerId === p2.id && e.type === 'invert');
+assert(p2Inverted, 'Invert effect applied to opponent (p2)');
+
+// When p2 presses left under invert, angle should INCREASE (turn right instead of left)
+const angleBefore = p2.angle;
+curve.update(0.1);
+assert(p2.angle > angleBefore, 'Inverted controls: pressing Left turns Curve to the Right');
+
+// 3. Ghost / Phasing Mode (Self-Buff)
+// Create a solid wall segment directly ahead of p1
+p1.x = 200;
+p1.y = 200;
+p1.angle = 0; // heading right along x
+p1.inputLeft = false;
+p1.inputRight = false;
+curve.segments.push({ id: 9999, playerId: 'other', color: '#fff', x1: 205, y1: 150, x2: 205, y2: 250 });
+curve.grid.addSegment(curve.segments[curve.segments.length - 1]);
+
+// Activate ghost effect on p1
+curve.activatePowerUp(p1, { type: 'ghost', name: 'Geist-Modus', icon: '👻', color: '#00f3ff', target: 'self', duration: 3.0 });
+curve.update(0.1);
+assert(p1.alive === true, 'Ghost Mode: Player phases directly through crossing lines without crashing');
+
+// 4. Bomb / Cleanse detonation
+const segCountBefore = curve.segments.length;
+curve.activatePowerUp(p1, { type: 'bomb', name: 'Bombe', icon: '💣', color: '#ffe600', target: 'global', x: 205, y: 200 });
+const segCountAfter = curve.segments.length;
+assert(segCountAfter < segCountBefore, 'Bomb detonation successfully cleared line segments in blast radius');
+
+// 5. Snapshot sync of Power-Ups & Effects
+const curveSnap = curve.getSnapshot();
+assert(Array.isArray(curveSnap.powerUps), 'Snapshot contains active power-ups array');
+assert(Array.isArray(curveSnap.activeEffects), 'Snapshot contains active effects array');
+assert(curveSnap.banner !== null, 'Snapshot includes active power-up announcement banner');
+
 // ----------------------------------------------------
 // TEST SUITE 6: UNO (CARD GAME & ANTI-CHEAT ENGINE)
 // ----------------------------------------------------

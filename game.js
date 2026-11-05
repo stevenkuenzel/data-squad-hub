@@ -7,6 +7,7 @@ const ARENA_HEIGHT = 800;
 const SPEED = 160;             // Arena units per second
 const TURN_SPEED = 3.4;        // Radians per second
 const LINE_RADIUS = 3.5;       // Trail half-width
+const HEAD_RADIUS = 5.0;       // Head collision radius
 const GRID_CELL_SIZE = 50;     // Spatial hash cell size
 
 // Available vibrant player colors (14 distinct high-contrast colors for up to 12 players)
@@ -110,6 +111,15 @@ class SpatialGrid {
     }
 }
 
+const POWERUP_TYPES = [
+    { type: 'invert', name: 'Invert Controls', icon: '🔀', color: '#ff0055', target: 'others', duration: 4.5, desc: 'Steuerung aller Gegner vertauscht!' },
+    { type: 'turbo', name: 'Hyper-Turbo', icon: '🚀', color: '#ff5500', target: 'others', duration: 3.5, desc: 'Alle Gegner rasen mit 1.8x Speed!' },
+    { type: 'fat', name: 'Fat Lines', icon: '🐘', color: '#ff00aa', target: 'others', duration: 5.0, desc: 'Gegner zeichnen dicke Barrieren!' },
+    { type: 'ghost', name: 'Geist-Modus', icon: '👻', color: '#00f3ff', target: 'self', duration: 3.5, desc: 'Unverwundbar! Durchdringt alle Linien!' },
+    { type: 'slow', name: 'Slow-Motion', icon: '🐢', color: '#39ff14', target: 'self', duration: 4.0, desc: 'Präzisions-Schleichgang!' },
+    { type: 'bomb', name: 'Bombe / Cleanse', icon: '💣', color: '#ffe600', target: 'global', duration: 0, desc: 'Löscht alle Linien im Umkreis!' }
+];
+
 class CurveGame {
     constructor() {
         this.players = new Map(); // id -> PlayerState
@@ -127,6 +137,14 @@ class CurveGame {
         this.enableGaps = true;           // Option: true for Curve Fever gaps, false for solid Tron lines
         this.clearSegmentsOnClients = false; // Flag to instruct clients to wipe old trails
         this.botDifficulty = 'medium';    // 'easy', 'medium', 'hard', 'insane'
+
+        // Mario Kart Style Power-Ups
+        this.powerUpsEnabled = true;
+        this.powerUps = [];               // array of active orbs on field
+        this.activeEffects = [];          // array of currently running effects on players
+        this.powerUpSpawnTimer = 3.5;
+        this.banner = null;               // { text, color, timer }
+        this.nextPowerUpId = 1;
 
         this.lastUpdateTime = performance.now();
         this.roundWinner = null;
@@ -150,6 +168,10 @@ class CurveGame {
         this.grid.clear();
         this.particles = [];
         this.nextSegmentId = 1;
+        this.powerUps = [];
+        this.activeEffects = [];
+        this.banner = null;
+        this.powerUpSpawnTimer = 3.5;
 
         // Position players in random positions pointing towards center
         const playerCount = this.players.size;
@@ -278,6 +300,32 @@ class CurveGame {
 
         if (this.state !== 'PLAYING') return;
 
+        // Active Banner timer
+        if (this.banner) {
+            this.banner.timer -= dt;
+            if (this.banner.timer <= 0) this.banner = null;
+        }
+
+        // Active Effects countdowns
+        for (let i = this.activeEffects.length - 1; i >= 0; i--) {
+            const eff = this.activeEffects[i];
+            eff.remaining -= dt;
+            if (eff.remaining <= 0) {
+                this.activeEffects.splice(i, 1);
+            }
+        }
+
+        // Spawn Power-Ups periodically
+        if (this.powerUpsEnabled) {
+            this.powerUpSpawnTimer -= dt;
+            if (this.powerUpSpawnTimer <= 0) {
+                this.powerUpSpawnTimer = 4.0 + Math.random() * 3.5;
+                if (this.powerUps.length < 4) {
+                    this.spawnPowerUp();
+                }
+            }
+        }
+
         // Bot AI logic
         for (const p of this.players.values()) {
             if (p.isBot && p.alive) {
@@ -294,15 +342,34 @@ class CurveGame {
             aliveCount++;
             lastAlivePlayer = p;
 
-            // Turning
-            if (p.inputLeft && !p.inputRight) {
+            // Player effects lookup
+            const pEffects = this.activeEffects.filter(e => e.targetPlayerId === p.id);
+            const isInverted = pEffects.some(e => e.type === 'invert');
+            const isTurbo = pEffects.some(e => e.type === 'turbo');
+            const isSlow = pEffects.some(e => e.type === 'slow');
+            const isGhost = pEffects.some(e => e.type === 'ghost');
+            const isFat = pEffects.some(e => e.type === 'fat');
+
+            // Turning (Mario Kart Invert effect!)
+            let turnLeft = p.inputLeft;
+            let turnRight = p.inputRight;
+            if (isInverted) {
+                turnLeft = p.inputRight;
+                turnRight = p.inputLeft;
+            }
+
+            if (turnLeft && !turnRight) {
                 p.angle -= TURN_SPEED * dt;
-            } else if (p.inputRight && !p.inputLeft) {
+            } else if (turnRight && !turnLeft) {
                 p.angle += TURN_SPEED * dt;
             }
 
-            // Move forward
-            const stepDist = SPEED * dt;
+            // Move forward with speed modifiers
+            let speedMult = 1.0;
+            if (isTurbo) speedMult *= 1.85;
+            if (isSlow) speedMult *= 0.55;
+
+            const stepDist = SPEED * speedMult * dt;
             const nextX = p.x + Math.cos(p.angle) * stepDist;
             const nextY = p.y + Math.sin(p.angle) * stepDist;
 
@@ -327,8 +394,17 @@ class CurveGame {
                 p.isDrawing = true;
             }
 
-            // Check collision for head at next position
-            const hit = this.checkCollision(p, nextX, nextY);
+            // Check collision for head at next position (Ghost mode phases through!)
+            let hit = false;
+            if (!isGhost) {
+                hit = this.checkCollision(p, nextX, nextY);
+            } else {
+                // In ghost mode, deflect gently from boundary walls
+                if (nextX < 15 || nextX > ARENA_WIDTH - 15 || nextY < 15 || nextY > ARENA_HEIGHT - 15) {
+                    p.angle = Math.atan2(ARENA_HEIGHT / 2 - nextY, ARENA_WIDTH / 2 - nextX);
+                }
+            }
+
             if (hit) {
                 p.alive = false;
                 this.spawnExplosion(p.x, p.y, p.color);
@@ -343,12 +419,14 @@ class CurveGame {
                 continue;
             }
 
-            // Create new segment if drawing
+            // Create new segment if drawing (Fat Lines modifier creates thicker walls)
             if (p.isDrawing) {
+                const segLineWidth = isFat ? 8 : 4;
                 const seg = {
                     id: this.nextSegmentId++,
                     playerId: p.id,
                     color: p.color,
+                    lineWidth: segLineWidth,
                     x1: p.x,
                     y1: p.y,
                     x2: nextX,
@@ -368,6 +446,19 @@ class CurveGame {
 
             p.x = nextX;
             p.y = nextY;
+
+            // Power-Up pickup collision check
+            if (this.powerUpsEnabled) {
+                for (let i = this.powerUps.length - 1; i >= 0; i--) {
+                    const pu = this.powerUps[i];
+                    const dist = Math.hypot(p.x - pu.x, p.y - pu.y);
+                    if (dist <= HEAD_RADIUS + pu.radius) {
+                        this.powerUps.splice(i, 1);
+                        this.activatePowerUp(p, pu);
+                        break;
+                    }
+                }
+            }
         }
 
         this.updateParticles(dt);
@@ -399,20 +490,123 @@ class CurveGame {
         const nearby = this.grid.getNearbySegments(nextX, nextY, r * 2.5);
         const exclusionSet = new Set(player.recentSegments);
 
-        const checkRadiusSq = (r * 1.8) * (r * 1.8);
-
         for (const seg of nearby) {
             if (seg.playerId === player.id && exclusionSet.has(seg.id)) {
                 continue; // Skip own very recent neck
             }
 
+            const checkR = seg.lineWidth ? (seg.lineWidth / 2 + r * 0.9) : (r * 1.8);
             const distSq = distToSegmentSquared(nextX, nextY, seg.x1, seg.y1, seg.x2, seg.y2);
-            if (distSq <= checkRadiusSq) {
+            if (distSq <= checkR * checkR) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    spawnPowerUp() {
+        const template = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+        const margin = 120;
+        const x = margin + Math.random() * (ARENA_WIDTH - margin * 2);
+        const y = margin + Math.random() * (ARENA_HEIGHT - margin * 2);
+        this.powerUps.push({
+            id: this.nextPowerUpId++,
+            type: template.type,
+            name: template.name,
+            icon: template.icon,
+            color: template.color,
+            target: template.target,
+            duration: template.duration,
+            x,
+            y,
+            radius: 18
+        });
+    }
+
+    activatePowerUp(player, pu) {
+        if (window.soundFX) window.soundFX.playWin();
+
+        // Pickup explosion particles
+        for (let i = 0; i < 22; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 40 + Math.random() * 140;
+            this.particles.push({
+                x: pu.x,
+                y: pu.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: pu.color,
+                radius: 3 + Math.random() * 3,
+                life: 0.9,
+                maxLife: 0.9
+            });
+        }
+
+        this.banner = {
+            text: `${player.name} aktiviert ${pu.icon} ${pu.name.toUpperCase()}!`,
+            color: pu.color,
+            timer: 2.8
+        };
+
+        if (pu.type === 'bomb') {
+            // Detonate bomb: destroy all line segments in 170px radius
+            const bombRadiusSq = 170 * 170;
+            const remaining = [];
+            this.grid.clear();
+            for (const s of this.segments) {
+                const midX = (s.x1 + s.x2) / 2;
+                const midY = (s.y1 + s.y2) / 2;
+                const dSq = (midX - pu.x) * (midX - pu.x) + (midY - pu.y) * (midY - pu.y);
+                if (dSq > bombRadiusSq) {
+                    remaining.push(s);
+                    this.grid.addSegment(s);
+                }
+            }
+            this.segments = remaining;
+            this.clearSegmentsOnClients = true;
+            this.newSegmentsQueue = [...remaining];
+
+            // Shockwave particles
+            for (let i = 0; i < 50; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 90 + Math.random() * 260;
+                this.particles.push({
+                    x: pu.x,
+                    y: pu.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: '#ffe600',
+                    radius: 4 + Math.random() * 4,
+                    life: 1.1,
+                    maxLife: 1.1
+                });
+            }
+        } else if (pu.target === 'self') {
+            this.activeEffects.push({
+                id: Math.random(),
+                type: pu.type,
+                targetPlayerId: player.id,
+                remaining: pu.duration,
+                icon: pu.icon,
+                label: pu.name,
+                color: pu.color
+            });
+        } else if (pu.target === 'others') {
+            for (const other of this.players.values()) {
+                if (other.id !== player.id && other.alive) {
+                    this.activeEffects.push({
+                        id: Math.random(),
+                        type: pu.type,
+                        targetPlayerId: other.id,
+                        remaining: pu.duration,
+                        icon: pu.icon,
+                        label: pu.name,
+                        color: pu.color
+                    });
+                }
+            }
+        }
     }
 
     getRayClearance(bot, originX, originY, angle, maxDist, step = 14) {
@@ -586,6 +780,7 @@ class CurveGame {
             id: s.id,
             p: s.playerId,
             c: s.color,
+            w: s.lineWidth || 4,
             x1: Math.round(s.x1 * 100) / 100,
             y1: Math.round(s.y1 * 100) / 100,
             x2: Math.round(s.x2 * 100) / 100,
@@ -606,6 +801,30 @@ class CurveGame {
             clearSegments: clearSegs,
             enableGaps: this.enableGaps,
             botDifficulty: this.botDifficulty,
+            powerUpsEnabled: this.powerUpsEnabled,
+            powerUps: this.powerUps.map(pu => ({
+                id: pu.id,
+                type: pu.type,
+                name: pu.name,
+                icon: pu.icon,
+                color: pu.color,
+                x: Math.round(pu.x),
+                y: Math.round(pu.y),
+                radius: pu.radius
+            })),
+            activeEffects: this.activeEffects.map(e => ({
+                type: e.type,
+                targetPlayerId: e.targetPlayerId,
+                remaining: Math.round(e.remaining * 10) / 10,
+                icon: e.icon,
+                label: e.label,
+                color: e.color
+            })),
+            banner: this.banner ? {
+                text: this.banner.text,
+                color: this.banner.color,
+                timer: Math.round(this.banner.timer * 10) / 10
+            } : null,
             heads,
             newSegs
         };
@@ -627,6 +846,14 @@ class CurveGame {
         if (snap.botDifficulty !== undefined) {
             this.botDifficulty = snap.botDifficulty;
         }
+
+        if (snap.powerUpsEnabled !== undefined) {
+            this.powerUpsEnabled = snap.powerUpsEnabled;
+        }
+
+        if (snap.powerUps) this.powerUps = snap.powerUps;
+        if (snap.activeEffects) this.activeEffects = snap.activeEffects;
+        if (snap.banner !== undefined) this.banner = snap.banner;
 
         this.state = snap.state;
         this.roundNumber = snap.round;
@@ -652,6 +879,7 @@ class CurveGame {
                     id: s.id,
                     playerId: s.p,
                     color: s.c,
+                    lineWidth: s.w || 4,
                     x1: s.x1,
                     y1: s.y1,
                     x2: s.x2,
@@ -685,4 +913,7 @@ class CurveGame {
 window.CurveGame = CurveGame;
 window.ARENA_WIDTH = ARENA_WIDTH;
 window.ARENA_HEIGHT = ARENA_HEIGHT;
+window.LINE_RADIUS = LINE_RADIUS;
+window.HEAD_RADIUS = HEAD_RADIUS;
 window.PLAYER_COLORS = PLAYER_COLORS;
+window.POWERUP_TYPES = POWERUP_TYPES;

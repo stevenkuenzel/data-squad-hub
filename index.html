@@ -161,6 +161,13 @@
                     </div>
                     <div class="setting-row">
                         <div>
+                            <div class="setting-title">⚡ Mario-Kart Power-Ups</div>
+                            <div class="setting-desc">Troll-Items, Invert, Geist, Turbo & Bombe</div>
+                        </div>
+                        <button id="btn-toggle-powerups" class="btn btn-primary btn-sm">AN</button>
+                    </div>
+                    <div class="setting-row">
+                        <div>
                             <div class="setting-title">Bot-Schwierigkeit</div>
                             <div class="setting-desc">KI-Intelligenz einstellen</div>
                         </div>
@@ -214,6 +221,8 @@
             </div>
             <div class="canvas-wrapper">
                 <canvas id="curveCanvas" width="1200" height="800"></canvas>
+                <div id="curve-powerup-banner" class="curve-powerup-banner" style="display: none;"></div>
+                <div id="curve-effects-bar" class="curve-effects-bar"></div>
             </div>
             <div class="overlay-center" id="curve-countdown-overlay" style="display: none;">
                 <div class="countdown-display" id="curve-countdown-num">3</div>

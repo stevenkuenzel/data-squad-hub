@@ -11,7 +11,7 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 
 | Spiel | Spieleranzahl | Spielprinzip | Steuerung |
 | :--- | :--- | :--- | :--- |
-| **🐍 Curve Arena** | 2 – 12 Spieler | Tron-Linien & Ausweichmanöver mit Lücken-Mechanik | `◀` / `▶` oder `A` / `D` |
+| **🐍 Curve Arena** | 2 – 12 Spieler | Tron-Linien & Ausweichmanöver mit Mario-Kart Power-Ups & Lücken-Mechanik | `◀` / `▶` oder `A` / `D` |
 | **🕵️ Codenames** | 4 – 12 Spieler | Team Rot vs. Blau – Wörter auf Deutsch erraten | Maus / Touch (Klick) |
 | **🎨 Montagsmaler (Skribbl)** | 2 – 12 Spieler | Live-Zeichnen & Begriffe im Chat erraten | Maus / Touch + Tastatur |
 | **💥 Tank Trouble** | 2 – 8 Spieler | 2D-Panzer im Labyrinth mit abprallenden Querschlägern | `WASD` / Pfeile + `Leertaste` |
@@ -50,7 +50,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **Montagsmaler:** Verifiziert, dass der aktive Maler keine Begriffe tippen oder leaken kann und Punkte für Maler & Rater korrekt vergeben werden.
 - **Codenames:** Validiert 25-Karten-Verteilung (1 Attentäter, 9/8 Teamkarten), Spionchef/Ermittler-Maskierung und Rollenrechte.
 - **UNO:** Prüft Standard-Deck (108 Karten), Aktionskarten (+2, Farbwahl, +4, Richtungswechsel), Bot-Entscheidungsfindung und Anti-Cheat Hand-Maskierung.
-- **Curve Arena:** Testet Linienausbau, Lückengenerierung und Raumkoordinaten.
+- **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
 
 ---
 
