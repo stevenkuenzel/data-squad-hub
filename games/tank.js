@@ -765,6 +765,10 @@ class TankGame {
         this.mines = snap.mines || [];
         this.lasers = snap.lasers || [];
 
+        const tankIds = new Set(snap.tanks.map(t => t.id));
+        for (const id of Array.from(this.players.keys())) {
+            if (!tankIds.has(id)) this.players.delete(id);
+        }
         for (const t of snap.tanks) {
             let p = this.players.get(t.id);
             if (!p) p = this.addPlayer(t.id, t.name, t.color);

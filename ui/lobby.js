@@ -62,8 +62,10 @@ function updateLobbyUI() {
         lobbyPlayerList.appendChild(li);
     }
 
+    const maxPlayers = getMaxPlayers();
     playerCount.textContent = count;
-    btnAddBot.disabled = count >= MAX_HUB_PLAYERS;
+    lobbyMaxPlayers.textContent = String(maxPlayers);
+    btnAddBot.disabled = count >= maxPlayers;
     // Beamer ohne eigene Figur: erst starten, wenn jemand (oder ein Bot) mitspielt
     btnStartGame.disabled = beamerMode && count === 0;
     if (typeof refreshInvite === 'function') refreshInvite();
@@ -109,7 +111,7 @@ function setupLobbyForGame(gameType) {
     curveSettings.style.display = (gameType === 'curve' && !eveningMode) ? 'block' : 'none';
     btnAddBot.style.display = 'block';
     updateGameSettingsVisibility();
-    lobbyMaxPlayers.textContent = (gameType === 'tank' || gameType === 'pong' || gameType === 'uno' || gameType === 'dodgeball' || gameType === 'roulette') ? '8' : '12';
+    lobbyMaxPlayers.textContent = String(getMaxPlayers(gameType));
     updateLobbyInstructions(gameType);
 }
 
@@ -165,6 +167,7 @@ async function joinRoomWithCode(code, expectedGame = null) {
     }
 
     if (window.soundFX) window.soundFX.playClick();
+    padMode = isPadRequested();
     btnJoinRoom.disabled = true;
     btnJoinRoom.textContent = 'Verbinde...';
 
@@ -203,10 +206,11 @@ btnCopyLink.addEventListener('click', () => {
 
 btnAddBot.addEventListener('click', () => {
     const g = getActiveGameInstance();
-    if (g.players.size >= MAX_HUB_PLAYERS) return;
+    if (g.players.size >= getMaxPlayers()) return;
     if (window.soundFX) window.soundFX.playClick();
 
-    const botIdx = g.players.size;
+    let botIdx = 1;
+    while (g.players.has(`bot-${botIdx}`)) botIdx++;
     const botId = `bot-${botIdx}`;
     const botColor = getUnusedColor();
     const names = ['Cyber', 'Pulse', 'Shadow', 'Apex', 'Matrix', 'Volt', 'Titan', 'Viper', 'Nova', 'Echo'];
@@ -265,8 +269,6 @@ networkManager.onEvent = (type, payload, senderId) => {
 };
 
 function handleNetworkEvent(type, payload, senderId) {
-    const g = getActiveGameInstance();
-
     // HOST
     if (networkManager.isHost) {
         if (type === 'JOIN') {

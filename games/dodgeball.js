@@ -1043,11 +1043,18 @@ class DodgeballGame {
         }
 
         if (snap.players) {
+            const playerIds = new Set(snap.players.map(sp => sp.id));
+            for (const id of Array.from(this.players.keys())) {
+                if (!playerIds.has(id)) this.players.delete(id);
+            }
             for (const sp of snap.players) {
                 let p = this.players.get(sp.id);
                 if (!p) {
                     p = this.addPlayer(sp.id, sp.name, sp.color, sp.isBot, sp.team);
                 }
+                p.name = sp.name;
+                p.color = sp.color;
+                p.isBot = !!sp.isBot;
                 p.x = sp.x;
                 p.y = sp.y;
                 p.hp = sp.hp;

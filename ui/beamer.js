@@ -36,7 +36,7 @@ let renderedInviteSvg = '';
 
 function currentInviteLink() {
     if (!networkManager.isHost || !networkManager.roomCode) return '';
-    return getShareableLink(activeGameType, networkManager.roomCode, true);
+    return getShareableLink(activeGameType, networkManager.roomCode, beamerMode);
 }
 
 function inviteQrSvg(link) {

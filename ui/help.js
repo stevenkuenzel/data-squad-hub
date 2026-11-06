@@ -433,6 +433,8 @@ function renderCurve() {
     } else if (curveGame.state === 'ROUND_OVER' || curveGame.state === 'MATCH_OVER') {
         curveCountdownOverlay.style.display = 'none';
         curveWinnerOverlay.style.display = 'block';
+        const btnAgainCurve = document.querySelector('.btn-play-again-curve');
+        if (btnAgainCurve) btnAgainCurve.style.display = (curveGame.state === 'MATCH_OVER' && networkManager.isHost) ? 'block' : 'none';
         curveWinnerText.textContent = curveGame.matchWinner 
             ? `🏆 ${curveGame.matchWinner.name} GEWINNT DAS MATCH!` 
             : (curveGame.roundWinner ? `${curveGame.roundWinner.name} gewinnt die Runde!` : 'Unentschieden!');

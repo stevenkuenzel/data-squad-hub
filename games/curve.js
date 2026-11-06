@@ -789,7 +789,8 @@ class CurveGame {
     /**
      * Compact snapshot for client network sync
      */
-    getSnapshot() {
+    getSnapshot(forPlayerId) {
+        const isFullSync = !!forPlayerId;
         const heads = [];
         for (const p of this.players.values()) {
             heads.push({
@@ -805,7 +806,9 @@ class CurveGame {
             });
         }
 
-        const newSegs = this.newSegmentsQueue.map(s => ({
+        const savedQueue = this.newSegmentsQueue;
+        const sourceSegs = isFullSync ? this.segments : this.newSegmentsQueue;
+        const newSegs = sourceSegs.map(s => ({
             id: s.id,
             p: s.playerId,
             c: s.color,
@@ -817,8 +820,10 @@ class CurveGame {
         }));
         this.newSegmentsQueue = [];
 
-        const clearSegs = this.clearSegmentsOnClients;
-        this.clearSegmentsOnClients = false;
+        const clearSegs = isFullSync ? true : this.clearSegmentsOnClients;
+        if (isFullSync) this.newSegmentsQueue = savedQueue;
+        else this.clearSegmentsOnClients = false;
+
 
         return {
             state: this.state,
@@ -923,6 +928,10 @@ class CurveGame {
         }
 
         // Update heads
+        const headIds = new Set(snap.heads.map(h => h.id));
+        for (const id of Array.from(this.players.keys())) {
+            if (!headIds.has(id)) this.players.delete(id);
+        }
         for (const h of snap.heads) {
             let p = this.players.get(h.id);
             if (!p) {

@@ -32,7 +32,10 @@ const EVENING_ACHIEVEMENTS = [
     { id: 'marathon', game: 'curve', icon: '🏃', title: 'Dauerläufer', desc: '45 Sekunden in einer Runde überlebt', test: s => (s.survival || 0) >= 45 },
     { id: 'mindreader', game: 'skribbl', icon: '🧠', title: 'Gedankenleser', desc: '4 Begriffe erraten', test: s => (s.correct || 0) >= 4 },
     { id: 'detective', game: 'codenames', icon: '🔍', title: 'Meisterdetektiv', desc: '5 eigene Karten aufgedeckt', test: s => (s.found || 0) >= 5 },
-    { id: 'oops', game: 'codenames', icon: '☠️', title: 'Attentäter-Pech', desc: 'Den Attentäter aufgedeckt', test: s => (s.assassin || 0) >= 1 }
+    { id: 'oops', game: 'codenames', icon: '☠️', title: 'Attentäter-Pech', desc: 'Den Attentäter aufgedeckt', test: s => (s.assassin || 0) >= 1 },
+    { id: 'wall', game: 'pong', icon: '🧱', title: 'Bollwerk', desc: '8 Bälle in einer Partie abgewehrt', test: s => (s.saves || 0) >= 8 },
+    { id: 'saboteur', game: 'roulette', icon: '🪨', title: 'Bürokratie-Saboteur', desc: '3 Blocker in einer Partie geworfen', test: s => (s.blockers || 0) >= 3 },
+    { id: 'teflon', game: 'roulette', icon: '🛡️', title: 'Teflon-Projekt', desc: '2 ComN-Angriffe abgewehrt oder weitergeleitet', test: s => (s.blocked || 0) >= 2 }
 ];
 
 // Lustige Titel für die Zeremonie. stat 'wins' kommt aus der Gesamtwertung, alle anderen aus den Spielstatistiken.
@@ -46,7 +49,9 @@ const EVENING_AWARDS = [
     { id: 'hits', icon: '🎯', title: 'Volltreffer-König', unit: 'Treffer' },
     { id: 'correct', icon: '🕵️', title: 'Wort-Detektiv', unit: 'erratene Begriffe' },
     { id: 'found', icon: '🔍', title: 'Chefermittler', unit: 'Agenten gefunden' },
-    { id: 'draws', icon: '🃏', title: 'Kartensammler', unit: 'gezogene Karten' }
+    { id: 'draws', icon: '🃏', title: 'Kartensammler', unit: 'gezogene Karten' },
+    { id: 'saves', icon: '🏓', title: 'Torwart-Titan', unit: 'Paraden' },
+    { id: 'blockers', icon: '🚧', title: 'ComN-Ehrenmitglied', unit: 'Blocker' }
 ];
 
 // Gleiche Werte teilen sich einen Platz. entries: [{ id, value }] (höher = besser)

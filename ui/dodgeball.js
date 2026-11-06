@@ -378,6 +378,7 @@ function renderDodgeball() {
     } else if (dodgeballGame.status === 'ROUND_OVER' || dodgeballGame.status === 'MATCH_OVER') {
         if (countdownOverlay) countdownOverlay.style.display = 'none';
         if (winnerOverlay) winnerOverlay.style.display = 'block';
+        if (btnPlayAgainDb) btnPlayAgainDb.style.display = (dodgeballGame.status === 'MATCH_OVER' && networkManager.isHost) ? 'block' : 'none';
         if (winnerText) {
             winnerText.textContent = dodgeballGame.winner
                 ? `🏆 ${dodgeballGame.winner.toUpperCase()} GEWINNT DAS MATCH!`

@@ -15,20 +15,20 @@ const CODENAMES_WORDS = [
     "Känguru", "Schmetterling", "Eule", "Koala", "Schildkröte", "Panda", "Zebra", "Giraffe", "Tiger", "Nilpferd",
     "Kamel", "Flamingo", "Fuchs", "Waschbär", "Biber", "Igel", "Eichhörnchen", "Reh", "Hirsch", "Hamster",
     "Wal", "Delfin", "Hai", "Qualle", "Seestern", "Oktopus", "Krabbe", "Seepferdchen", "Robbe", "Eisbär",
-    "Kamel", "Faultier", "Chamäleon", "Fledermaus", "Biene", "Hummel", "Ameise", "Käfer", "Schnecke", "Muschel",
+    "Lama", "Faultier", "Chamäleon", "Fledermaus", "Biene", "Hummel", "Ameise", "Käfer", "Schnecke", "Muschel",
     "Palme", "Eiche", "Birke", "Tanne", "Kastanie", "Sonnenblume", "Tulpe", "Nelke", "Lavendel", "Klee",
     "Pilz", "Brot", "Brezel", "Croissant", "Butter", "Käse", "Milch", "Waffel", "Kaffee", "Tee",
     "Wasser", "Tasse", "Glas", "Flasche", "Teller", "Topf", "Pfanne", "Ofen", "Messer", "Gabel",
-    "Löffel", "Schere", "Schrank", "Stuhl", "Sofa", "Kissen", "Decke", "Teppich", "Lampe", "Kerze",
+    "Löffel", "Schere", "Schrank", "Stuhl", "Sofa", "Kissen", "Decke", "Teppich", "Lampe", "Laterne",
     "Schlüssel", "Tür", "Fenster", "Dach", "Mauer", "Pinsel", "Hammer", "Schraube", "Zange", "Säge",
     "Lineal", "Bleistift", "Buch", "Kalender", "Krawatte", "Hut", "Mütze", "Schal", "Handschuh", "Gürtel",
-    "Ring", "Kette", "Brille", "Kamm", "Seife", "Handtuch", "Kino", "Theater", "Museum", "Stadion"
+    "Ring", "Armband", "Brille", "Kamm", "Seife", "Handtuch", "Kino", "Theater", "Museum", "Stadion"
 ];
 
 // Themenwelten für die Bots: ein Bot-Spionchef gibt den Namen einer Kategorie als Hinweis,
 // Bot-Ermittler raten Karten aus der genannten Kategorie. (Keine Kategorie heißt wie ein Brettwort.)
 const CODENAMES_CATEGORIES = [
-    { clue: 'TIERE', words: ['Fliege', 'Frosch', 'Löwe', 'Wolf', 'Spinne', 'Adler', 'Elefant', 'Krokodil', 'Pinguin', 'Papagei', 'Känguru', 'Schmetterling', 'Eule', 'Koala', 'Schildkröte', 'Panda', 'Zebra', 'Giraffe', 'Tiger', 'Nilpferd', 'Kamel', 'Flamingo', 'Fuchs', 'Waschbär', 'Biber', 'Igel', 'Eichhörnchen', 'Reh', 'Hirsch', 'Hamster', 'Wal', 'Delfin', 'Hai', 'Qualle', 'Seestern', 'Oktopus', 'Krabbe', 'Seepferdchen', 'Robbe', 'Eisbär', 'Faultier', 'Chamäleon', 'Fledermaus', 'Biene', 'Hummel', 'Ameise', 'Käfer', 'Schnecke', 'Dinosaurier'] },
+    { clue: 'TIERE', words: ['Fliege', 'Frosch', 'Löwe', 'Wolf', 'Spinne', 'Adler', 'Elefant', 'Krokodil', 'Pinguin', 'Papagei', 'Känguru', 'Schmetterling', 'Eule', 'Koala', 'Schildkröte', 'Panda', 'Zebra', 'Giraffe', 'Tiger', 'Nilpferd', 'Kamel', 'Lama', 'Flamingo', 'Fuchs', 'Waschbär', 'Biber', 'Igel', 'Eichhörnchen', 'Reh', 'Hirsch', 'Hamster', 'Wal', 'Delfin', 'Hai', 'Qualle', 'Seestern', 'Oktopus', 'Krabbe', 'Seepferdchen', 'Robbe', 'Eisbär', 'Faultier', 'Chamäleon', 'Fledermaus', 'Biene', 'Hummel', 'Ameise', 'Käfer', 'Schnecke', 'Dinosaurier'] },
     { clue: 'MEER', words: ['Wal', 'Delfin', 'Hai', 'Qualle', 'Seestern', 'Oktopus', 'Krabbe', 'Seepferdchen', 'Robbe', 'Muschel', 'Insel', 'U-Boot', 'Leuchtturm', 'Anker', 'Boot', 'Pirat', 'Taucher'] },
     { clue: 'INSEKTEN', words: ['Fliege', 'Spinne', 'Biene', 'Hummel', 'Ameise', 'Käfer', 'Schmetterling', 'Schnecke'] },
     { clue: 'VÖGEL', words: ['Adler', 'Eule', 'Pinguin', 'Papagei', 'Flamingo', 'Feder'] },
@@ -36,17 +36,17 @@ const CODENAMES_CATEGORIES = [
     { clue: 'GETRÄNKE', words: ['Kaffee', 'Tee', 'Wasser', 'Milch', 'Tasse', 'Glas', 'Flasche'] },
     { clue: 'KÜCHE', words: ['Tasse', 'Glas', 'Flasche', 'Teller', 'Topf', 'Pfanne', 'Ofen', 'Messer', 'Gabel', 'Löffel'] },
     { clue: 'MÖBEL', words: ['Schrank', 'Stuhl', 'Sofa', 'Kissen', 'Decke', 'Teppich', 'Lampe', 'Bank', 'Spiegel', 'Leiter'] },
-    { clue: 'HAUS', words: ['Tür', 'Fenster', 'Dach', 'Mauer', 'Zaun', 'Schlüssel', 'Schloss', 'Garten', 'Kerze', 'Lampe'] },
+    { clue: 'HAUS', words: ['Tür', 'Fenster', 'Dach', 'Mauer', 'Zaun', 'Schlüssel', 'Schloss', 'Garten', 'Kerze', 'Lampe', 'Laterne'] },
     { clue: 'WERKZEUG', words: ['Nagel', 'Pinsel', 'Hammer', 'Schraube', 'Zange', 'Säge', 'Schere', 'Lineal', 'Bleistift', 'Leiter'] },
-    { clue: 'KLEIDUNG', words: ['Krawatte', 'Hut', 'Mütze', 'Schal', 'Handschuh', 'Gürtel', 'Brille', 'Krone', 'Ring'] },
-    { clue: 'GLITZER', words: ['Ring', 'Kette', 'Krone', 'Diamant', 'Gold', 'Spiegel', 'Stern'] },
+    { clue: 'KLEIDUNG', words: ['Krawatte', 'Hut', 'Mütze', 'Schal', 'Handschuh', 'Gürtel', 'Brille', 'Krone', 'Ring', 'Armband'] },
+    { clue: 'GLITZER', words: ['Ring', 'Kette', 'Armband', 'Krone', 'Diamant', 'Gold', 'Spiegel', 'Stern'] },
     { clue: 'FAHRZEUG', words: ['Boot', 'Zug', 'Fahrrad', 'Hubschrauber', 'Rakete', 'U-Boot'] },
     { clue: 'PFLANZEN', words: ['Rose', 'Kaktus', 'Palme', 'Eiche', 'Birke', 'Tanne', 'Kastanie', 'Sonnenblume', 'Tulpe', 'Nelke', 'Lavendel', 'Klee', 'Pilz'] },
     { clue: 'WILDNIS', words: ['Wald', 'Eiche', 'Birke', 'Tanne', 'Pilz', 'Wolf', 'Fuchs', 'Reh', 'Hirsch', 'Igel', 'Eichhörnchen', 'Lagerfeuer', 'Zelt', 'Biber'] },
     { clue: 'WELTALL', words: ['Stern', 'Mond', 'Planet', 'Komet', 'Rakete', 'Roboter'] },
     { clue: 'FANTASIE', words: ['Drache', 'Zwerg', 'Geist', 'Zauberer', 'Ritter', 'Mumie', 'Wikinger', 'Pirat', 'König', 'Krone', 'Schloss', 'Roboter'] },
     { clue: 'ORTE', words: ['Wüste', 'Wald', 'Insel', 'Vulkan', 'Schule', 'Garten', 'Kino', 'Theater', 'Museum', 'Stadion', 'Zirkus', 'Leuchtturm', 'Brücke'] },
-    { clue: 'CAMPING', words: ['Zelt', 'Lagerfeuer', 'Taschenlampe', 'Kompass', 'Schatzkarte', 'Wald'] },
+    { clue: 'CAMPING', words: ['Zelt', 'Lagerfeuer', 'Taschenlampe', 'Laterne', 'Kompass', 'Schatzkarte', 'Wald'] },
     { clue: 'BÜRO', words: ['Bleistift', 'Lineal', 'Buch', 'Kalender', 'Schere', 'Schule'] },
     { clue: 'KÄLTE', words: ['Eis', 'Eisbär', 'Schneemann', 'Pinguin', 'Robbe', 'Schal', 'Handschuh', 'Mütze'] }
 ];
@@ -417,3 +417,4 @@ class CodenamesGame {
 }
 
 window.CodenamesGame = CodenamesGame;
+window.CODENAMES_WORDS = CODENAMES_WORDS;

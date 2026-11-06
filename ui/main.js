@@ -4,16 +4,17 @@
  */
 
 // ==========================================
-// MAIN LOOP
+// MAIN LOOP (Simulation entkoppelt von rAF für Hintergrund-Tab-Stabilität)
 // ==========================================
-let lastTime = performance.now();
+let lastSimTime = performance.now();
 let netBroadcastTimer = 0;
 let clientInputTimer = 0;
 
-function masterLoop(now) {
-    requestAnimationFrame(masterLoop);
-    const dt = Math.min((now - lastTime) / 1000, 0.1);
-    lastTime = now;
+function simulationStep(now = performance.now()) {
+    const elapsed = (now - lastSimTime) / 1000;
+    if (elapsed < 0.004) return; // Doppel-Ticks zwischen rAF und setInterval vermeiden
+    const dt = Math.min(elapsed, 0.1);
+    lastSimTime = now;
 
     // 1. Host authoritative simulation
     if (networkManager.isHost) {
@@ -81,6 +82,11 @@ function masterLoop(now) {
             sendClientInputs();
         }
     }
+}
+
+function masterLoop(now) {
+    requestAnimationFrame(masterLoop);
+    simulationStep(now);
 
     // 2. Render active game (am Handy-Controller gibt es kein Spielfeld)
     if (padActive) return;
@@ -160,6 +166,8 @@ function updateHostLocalInputs() {
 }
 
 setInterval(updateHostLocalInputs, 20);
+// Fallback-Timer hält Host-Simulation & Broadcasts aktiv, wenn der Browser-Tab im Hintergrund ist
+setInterval(() => simulationStep(performance.now()), 25);
 requestAnimationFrame(masterLoop);
 
 // ==========================================

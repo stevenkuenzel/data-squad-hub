@@ -50,6 +50,7 @@ class FreigabeRouletteGame {
         this.botActionTimer = 0;
         this.turnTimer = ROULETTE_TURN_LIMIT;
         this.lastAction = null;
+        this.stats = {};
     }
 
     addPlayer(id, name, color, isBot = false) {
@@ -116,6 +117,7 @@ class FreigabeRouletteGame {
 
     startMatch() {
         if (this.players.size < 2) return false;
+        this.stats = {};
         this.drawPile = this.createDeck();
         this.discardPile = [];
         this.turnIndex = 0;
@@ -224,12 +226,15 @@ class FreigabeRouletteGame {
         }
         // 2. ComN Blocker (Stein im Weg / Agentur / Meeting / DSFA / Wording)
         else if (card.category === 'blocker') {
+            bumpStat(this, curr.id, 'blockers');
+            if (card.id === 'stein_weg') bumpStat(this, curr.id, 'rocks');
             if (card.target === 'enemy' && target) {
                 this.applyBlocker(curr, target, card);
             } else if (card.target === 'all_enemies') {
                 for (const other of this.players.values()) {
-                    if (other.id !== curr.id && !other.shielded) {
-                        other.progress = Math.max(0, other.progress - card.penalty);
+                    if (other.id !== curr.id) {
+                        if (other.shielded) bumpStat(this, other.id, 'blocked');
+                        else other.progress = Math.max(0, other.progress - card.penalty);
                     }
                 }
                 this.logs.unshift(`📐 CI-Handbuch 2018! Alle Gegner verlieren 10% Fortschritt.`);
@@ -277,6 +282,7 @@ class FreigabeRouletteGame {
     applyBlocker(attacker, target, card) {
         const hit = (victim) => {
             if (victim.shielded) {
+                bumpStat(this, victim.id, 'blocked');
                 this.logs.unshift(`🛡️ ${victim.name} ist durch den Chef-Bypass geschützt! Angriff verpufft.`);
                 return;
             }
@@ -286,10 +292,12 @@ class FreigabeRouletteGame {
         };
         if (target.shielded) return hit(target);
         if (this.takeCard(target, 'problem_gefunden')) {
+            bumpStat(this, target.id, 'blocked');
             this.logs.unshift(`🛑 ${target.name}: "Problem gefunden!" – der Angriff "${card.title}" wird geblockt.`);
             return;
         }
         if (this.takeCard(target, 'nicht_zustaendig')) {
+            bumpStat(this, target.id, 'blocked');
             const idx = this.playerOrder.indexOf(target.id);
             const next = this.players.get(this.playerOrder[(idx + 1) % this.playerOrder.length]);
             if (next && next.id !== target.id) {

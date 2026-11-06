@@ -18,7 +18,7 @@ const btnRouletteEndTurn = document.getElementById('btn-roulette-end-turn');
 const rouletteHandCards = document.getElementById('roulette-hand-cards');
 const rouletteTargetModal = document.getElementById('roulette-target-modal');
 const rouletteTargetButtons = document.getElementById('roulette-target-buttons');
-const btnRouletteCancelTarget = document.getElementById('btn-roulette-cancel-target');
+const btnRouletteCancelTarget = document.getElementById('btn-cancel-target') || document.getElementById('btn-roulette-cancel-target');
 const rouletteWinnerOverlay = document.getElementById('roulette-winner-overlay');
 const rouletteWinnerText = document.getElementById('roulette-winner-text');
 const btnPlayAgainRoulette = document.querySelector('.btn-play-again-roulette');
@@ -197,8 +197,9 @@ function renderRouletteSnapshot(snap) {
         const canPlay = isMyTurn && snap.cardsPlayedThisTurn < snap.maxCardsPerTurn && snap.status === 'PLAYING';
         if (snap.myHand) {
             snap.myHand.forEach(card => {
-                const el = renderRouletteCardElement(card, canPlay);
-                if (canPlay) {
+                const cardPlayable = canPlay && card.category !== 'reaction';
+                const el = renderRouletteCardElement(card, cardPlayable);
+                if (cardPlayable) {
                     el.addEventListener('click', () => handleRouletteCardClick(card));
                 }
                 rouletteHandCards.appendChild(el);
@@ -209,6 +210,7 @@ function renderRouletteSnapshot(snap) {
     if (rouletteWinnerOverlay) {
         if (snap.status === 'GAME_OVER' && snap.winner) {
             rouletteWinnerOverlay.style.display = 'block';
+            if (btnPlayAgainRoulette) btnPlayAgainRoulette.style.display = networkManager.isHost ? 'block' : 'none';
             if (rouletteWinnerText) {
                 rouletteWinnerText.textContent = `🎉 ${snap.winner.toUpperCase()} ERREICHT 100% GO-LIVE!`;
             }

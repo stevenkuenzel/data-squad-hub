@@ -1605,6 +1605,101 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     assert(r1.a === r2.a && r1.b === r2.b && r1.sa === r2.sa && r1.sb === r2.sb, 'Curve: Ergebnis eines Frontalcrashs hängt nicht von der Spielerreihenfolge ab');
     assert(r1.a === r1.b, 'Curve: bei einem Frontalcrash sterben beide gleichzeitig');
     assert(r1.sa === 0 && r1.sb === 0, 'Curve: gleichzeitig Gestorbene bekommen keine Punkte voneinander');
+
+    // --- Review Issue #1 Fixes (Pong Cap/Stats, Roulette Stats, Codenames Words) ---
+    const pong = new sandbox.OctaPongGame();
+    for (let i = 1; i <= 8; i++) {
+        const p = pong.addPlayer('p' + i, 'Player ' + i, '#fff', false);
+        assert(p !== null, `Pong: Spieler ${i}/8 erfolgreich hinzugefügt`);
+    }
+    const p9 = pong.addPlayer('p9', 'Player 9', '#fff', false);
+    assert(p9 === null && pong.players.size === 8, 'Pong: 9. Spieler wird abgewiesen (Max 8 Seiten)');
+    const uniqueSides = new Set(Array.from(pong.players.values()).map(p => p.sideIdx));
+    assert(uniqueSides.size === 8, 'Pong: Alle 8 Spieler haben eine eindeutige Seite (0..7)');
+
+    pong.startMatch();
+    pong.status = 'PLAYING';
+    const pOnSide0 = Array.from(pong.players.values()).find(p => p.sideIdx === 0);
+    pOnSide0.paddlePos = 0.5;
+    pong.balls = [{
+        id: 1,
+        x: 850,
+        y: 400,
+        vx: 540,
+        vy: 0,
+        speed: 540
+    }];
+    for (let t = 0; t < 10; t++) {
+        pong.update(0.02);
+    }
+    assert((pong.stats[pOnSide0.id]?.saves || 0) >= 1, 'Pong: Paddle-Abwehr erhöht stats.saves');
+
+    const roulCards = runInContext('ROULETTE_CARDS', sandbox);
+    const steinCard = { ...roulCards.find(c => c.id === 'stein_weg'), uid: 9991 };
+    const roul = new sandbox.FreigabeRouletteGame();
+    roul.addPlayer('u1', 'User 1', '#f00', false);
+    roul.addPlayer('u2', 'User 2', '#0f0', false);
+    roul.startMatch();
+    const curr = roul.getCurrentPlayer();
+    const other = roul.players.get(curr.id === 'u1' ? 'u2' : 'u1');
+    curr.hand.push(steinCard);
+    other.shielded = true;
+    roul.playCard(curr.id, 9991, other.id);
+    assert(roul.stats[curr.id]?.blockers === 1, 'Roulette: Blocker-Karte erhöht stats.blockers');
+    assert(roul.stats[curr.id]?.rocks === 1, 'Roulette: stein_weg erhöht stats.rocks');
+    assert(roul.stats[other.id]?.blocked === 1, 'Roulette: Abwehr durch Schutzschild erhöht stats.blocked beim Ziel');
+
+    const ev = new sandbox.EveningSession();
+    ev.start(['pong', 'roulette'], [
+        { id: 'u1', name: 'Alice', color: '#f00', isBot: false },
+        { id: 'u2', name: 'Bob', color: '#0f0', isBot: false }
+    ]);
+    const resPong = ev.recordResult('pong', {
+        ranking: [['u1'], ['u2']],
+        teams: false,
+        stats: { u1: { saves: 9 }, u2: { saves: 2 } }
+    });
+    assert(resPong.unlocked.some(a => a.playerId === 'u1' && a.id === 'wall'), 'Evening: Pong Achievement "Die Wand" (saves >= 8) wird freigeschaltet');
+
+    ev.next();
+    const resRoul = ev.recordResult('roulette', {
+        ranking: [['u1'], ['u2']],
+        teams: false,
+        stats: { u1: { blockers: 4, rocks: 2, blocked: 0 }, u2: { blockers: 0, rocks: 0, blocked: 3 } }
+    });
+    assert(resRoul.unlocked.some(a => a.playerId === 'u1' && a.id === 'saboteur'), 'Evening: Roulette Achievement "Saboteur" (blockers >= 3) wird freigeschaltet');
+    assert(resRoul.unlocked.some(a => a.playerId === 'u2' && a.id === 'teflon'), 'Evening: Roulette Achievement "Teflon-Architekt" (blocked >= 2) wird freigeschaltet');
+    const awards = ev.computeAwards();
+    assert(awards.some(a => a.id === 'saves' && a.playerId === 'u1'), 'Evening: Award "Torwart-Titan" (saves) wird vergeben');
+    assert(awards.some(a => a.id === 'blockers' && a.playerId === 'u1'), 'Evening: Award "ComN-Ehrenmitglied" (blockers) wird vergeben');
+    assert(awards.some(a => a.id === 'rocks' && a.playerId === 'u1'), 'Evening: Award "Steinewerfer" (rocks) wird vergeben');
+
+    const words = sandbox.window.CODENAMES_WORDS;
+    assert(Array.isArray(words) && words.length === 190, 'Codenames: Wortliste umfasst exakt 190 Wörter');
+    assert(new Set(words).size === words.length, 'Codenames: Wortliste enthält keine Duplikate');
+
+    // Curve: Full-Sync Snapshot (Rejoin/Spectator) leert nicht die Broadcast-Queue für andere Clients
+    const cgSync = new sandbox.CurveGame();
+    cgSync.addPlayer('p1', 'Alice', '#0ff', false);
+    cgSync.addPlayer('p2', 'Bob', '#f0f', false);
+    cgSync.enableGaps = false;
+    cgSync.resetMatch();
+    cgSync.state = 'PLAYING';
+    cgSync.update(0.05);
+    cgSync.getSnapshot(); // erster regulärer Broadcast leert initiales clearSegmentsOnClients
+    cgSync.update(0.05);
+    const pendingBefore = cgSync.newSegmentsQueue.length;
+    const totalSegs = cgSync.segments.length;
+    const rejoinSnap = cgSync.getSnapshot('p2'); // Einzel-Sync für Rejoiner
+    assert(rejoinSnap.clearSegments === true && rejoinSnap.newSegs.length === totalSegs, 'Curve: Einzel-Sync (getSnapshot(playerId)) liefert alle bisherigen Linien');
+    assert(cgSync.newSegmentsQueue.length === pendingBefore && pendingBefore > 0, 'Curve: Einzel-Sync leert nicht die inkrementelle Broadcast-Queue für andere Clients');
+
+    // Client applySnapshot entfernt veraltete Spieler
+    const cgClient = new sandbox.CurveGame();
+    cgClient.addPlayer('stale', 'Ghost', '#fff', false);
+    cgClient.applySnapshot(rejoinSnap);
+    assert(!cgClient.players.has('stale') && cgClient.players.has('p1'), 'Curve: applySnapshot entfernt nicht mehr vorhandene Spieler');
+
 }
 
 console.log('\n========================================');

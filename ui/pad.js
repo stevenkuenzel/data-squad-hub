@@ -24,7 +24,9 @@ padMode = isPadRequested();
 const PAD_KEY_CODES = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft'];
 
 function padReleaseAll() {
+    Object.keys(keys).forEach(code => { keys[code] = false; });
     PAD_KEY_CODES.forEach(code => { keys[code] = false; });
+    if (typeof dbMouseThrow !== 'undefined') dbMouseThrow = false;
     tankTwin.mx = tankTwin.my = 0;
     tankTwin.aim = null;
     tankTwin.fire = false;
@@ -147,9 +149,10 @@ function padStatusText() {
     const me = g.players && g.players.get(myPlayerId);
     if (isSpectator) return '👀 Du schaust zu und spielst in der nächsten Partie mit.';
     if (!me) return '';
-    if (g.status === 'COUNTDOWN' || g.status === 'LOBBY') return 'Gleich geht\'s los – such deine Figur auf dem Beamer!';
+    const st = g.status || g.state;
+    if (st === 'COUNTDOWN' || st === 'LOBBY') return 'Gleich geht\'s los – such deine Figur auf dem Beamer!';
     if (me.alive === false) return '💀 Ausgeschieden – schau zum Beamer.';
-    if (g.status === 'ROUND_OVER' || g.status === 'MATCH_OVER' || g.status === 'GAME_OVER') return 'Runde vorbei – schau zum Beamer.';
+    if (st === 'ROUND_OVER' || st === 'MATCH_OVER' || st === 'GAME_OVER') return 'Runde vorbei – schau zum Beamer.';
     return '';
 }
 
@@ -195,6 +198,13 @@ function updatePadVisibility(screenEl) {
 
 document.getElementById('pad-leave').addEventListener('click', () => {
     if (confirm('Controller verlassen und zum Hub zurückkehren?')) openHub();
+});
+
+const padShowGameBtn = document.getElementById('pad-show-game');
+if (padShowGameBtn) padShowGameBtn.addEventListener('click', () => {
+    padMode = false;
+    if (optPad) optPad.checked = false;
+    updatePadVisibility(gameViews[activeGameType]);
 });
 
 // Verliert die Seite den Fokus, dürfen keine Tasten hängen bleiben

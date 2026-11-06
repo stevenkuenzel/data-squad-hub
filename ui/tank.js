@@ -12,6 +12,15 @@ const tankRoundDisplay = document.getElementById('tank-round-display');
 const tankScoresContainer = document.getElementById('tank-scores-container');
 const tankWinnerOverlay = document.getElementById('tank-winner-overlay');
 const tankWinnerText = document.getElementById('tank-winner-text');
+const btnPlayAgainTank = document.querySelector('.btn-play-again-tank');
+if (btnPlayAgainTank) {
+    btnPlayAgainTank.addEventListener('click', () => {
+        tankWinnerOverlay.style.display = 'none';
+        if (networkManager.isHost) {
+            tankGame.startMatch(tankGame.maxRounds || 5);
+        }
+    });
+}
 
 function renderTank() {
     tankCtx.fillStyle = '#060810';
@@ -133,6 +142,7 @@ function renderTank() {
 
     if (tankGame.status === 'ROUND_OVER' || tankGame.status === 'MATCH_OVER') {
         tankWinnerOverlay.style.display = 'block';
+        if (btnPlayAgainTank) btnPlayAgainTank.style.display = (tankGame.status === 'MATCH_OVER' && networkManager.isHost) ? 'block' : 'none';
         tankWinnerText.textContent = tankGame.matchWinner 
             ? `🏆 ${tankGame.matchWinner.name} HAT GEWONNEN!` 
             : (tankGame.roundWinner ? `${tankGame.roundWinner.name} gewinnt die Runde!` : 'Unentschieden!');

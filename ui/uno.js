@@ -170,6 +170,7 @@ function renderUnoSnapshot(snap) {
     // Winner overlay
     if (snap.status === 'GAME_OVER' && snap.winner) {
         if (unoWinnerOverlay) unoWinnerOverlay.style.display = 'flex';
+        if (btnPlayAgainUno) btnPlayAgainUno.style.display = networkManager.isHost ? 'block' : 'none';
         if (unoWinnerText) unoWinnerText.textContent = `🏆 ${snap.winner} GEWINNT UNO!`;
     } else {
         if (unoWinnerOverlay) unoWinnerOverlay.style.display = 'none';

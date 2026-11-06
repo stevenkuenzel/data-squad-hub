@@ -122,6 +122,8 @@ function renderPong() {
     } else if (octaPongGame.status === 'GAME_OVER') {
         pongCountdownOverlay.style.display = 'none';
         pongWinnerOverlay.style.display = 'block';
+        const btnAgainPong = document.querySelector('.btn-play-again-pong');
+        if (btnAgainPong) btnAgainPong.style.display = networkManager.isHost ? 'block' : 'none';
         pongWinnerText.textContent = octaPongGame.winner ? `🏆 ${octaPongGame.winner.name} GEWINNT!` : 'SPIEL ENDE';
     } else {
         pongCountdownOverlay.style.display = 'none';

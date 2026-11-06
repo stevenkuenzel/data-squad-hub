@@ -2052,6 +2052,7 @@ body.in-room .reaction-bar { display: flex; }
 
 /* While an evening runs, the games' own "play again" buttons would break the playlist */
 body.evening-active .btn-play-again-curve,
+body.evening-active .btn-play-again-tank,
 body.evening-active .btn-play-again-pong,
 body.evening-active .btn-play-again-uno,
 body.evening-active .btn-play-again-db,

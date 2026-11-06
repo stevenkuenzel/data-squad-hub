@@ -11,6 +11,7 @@
 # curve
 - [x] wirkt sich links rechts troll auch auf bots aus? -> Ja! Der Invert-Effekt betrifft auch Bots (Bot will z. B. nach links lenken, Curve dreht jedoch invertiert nach rechts in die Wand). Durch automatisierten Test in `sim-tests.mjs` verifiziert.
 - [x] perks in einstellungen deaktivierbar -> Erledigt: Power-Ups / Perks lassen sich sowohl in den Lobby-Einstellungen als auch direkt im Curve-HUD über den ⚡-Button per Klick ein- und ausschalten (Orbs und Effekte werden bei Deaktivierung sofort bereinigt).
+- [x] Wenn ich zu einem remote server verbinde, sehe ich bei spielstart nur die links-rechts-buttons maximiert über den ganzen bildschirm -> Erledigt: `currentInviteLink()` in `ui/beamer.js` hing bisher auch ohne Beamer-Modus immer `&pad=1` an den Lobby-QR-Code/Link an, wodurch beitretende Spieler automatisch im Vollbild-Controller (`#pad-screen`) landeten und das Häkchen `#opt-pad` auch nach Rückkehr in den Hub aktiv blieb. Jetzt wird `&pad=1` nur noch im echten Beamer-Modus gesetzt, beim Verlassen zurückgesetzt und im Controller-Header gibt es zusätzlich einen `🖥️ Spielfeld`-Button zum direkten Umschalten auf die Spielansicht.
 
 # comn dodgeball
 - [x] wie kann man fangen? -> Erledigt: Fangen ist nun über `Shift`, `Rechtsklick`, `C`, `F` oder auf Mobile über den prominenten `FANGEN / DASH 🧤` Button möglich! Catch-Radius wurde vergrößert, Partikeleffekt & "🎯 GEFANGEN!"-Banner hinzugefügt und Steuerungs-Pill direkt im HUD eingebunden.

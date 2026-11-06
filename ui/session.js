@@ -145,7 +145,7 @@ function hostHandleJoin(peerId, payload) {
         return;
     }
 
-    if (g.players.size + spectators.size >= MAX_HUB_PLAYERS) {
+    if (g.players.size + spectators.size >= getMaxPlayers()) {
         networkManager.sendTo(peerId, { type: 'ROOM_FULL', payload: { msg: 'Raum voll.' } });
         return;
     }
@@ -199,14 +199,16 @@ function hostHandlePeerGone(peerId) {
 // Spectators join the game instance as soon as a new match starts (any "play again" included)
 function promoteSpectatorsInto(g) {
     if (!networkManager.isHost || spectators.size === 0) return;
+    const maxP = getMaxPlayers();
     for (const s of spectators.values()) {
+        if (g.players.size >= maxP) break;
         g.addPlayer(s.id, s.name, s.color, false);
         if (typeof eveningRoster !== 'undefined' && evening) {
             eveningRoster.set(s.id, { id: s.id, name: s.name, color: s.color, isBot: false });
         }
         networkManager.sendToPlayer(s.id, { type: 'PROMOTED', payload: {} });
+        spectators.delete(s.id);
     }
-    spectators.clear();
     broadcastProfiles();
 }
 

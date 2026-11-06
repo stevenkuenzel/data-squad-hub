@@ -43,7 +43,13 @@ const gameViews = {
 let activeGameType = 'curve';
 let myPlayerId = 'p-' + Math.floor(Math.random() * 100000);
 const MAX_HUB_PLAYERS = 12;
-const MAX_NAME_LENGTH = 15;
+const MAX_NAME_LENGTH = 16;
+const EIGHT_PLAYER_GAMES = new Set(['tank', 'pong', 'uno', 'dodgeball', 'roulette']);
+
+function getMaxPlayers(gameType = activeGameType) {
+    if (typeof eveningMode !== 'undefined' && eveningMode) return MAX_HUB_PLAYERS;
+    return EIGHT_PLAYER_GAMES.has(gameType) ? 8 : MAX_HUB_PLAYERS;
+}
 
 // Escape any text before it goes into innerHTML (names, logs, clues come from other peers)
 function esc(value) {
@@ -187,6 +193,8 @@ function showScreen(screenEl) {
 
 function openHub() {
     resetSessionState();
+    if (typeof optPad !== 'undefined' && optPad) optPad.checked = false;
+    padMode = false;
     if (networkManager.peer) networkManager.disconnect();
     showScreen(homeScreen);
     const url = new URL(window.location.href);
@@ -199,6 +207,31 @@ document.querySelectorAll('.btn-hub-back').forEach(btn => {
         if (confirm('Möchtest du das aktuelle Spiel verlassen und zum Hub zurückkehren?')) {
             openHub();
         }
+    });
+});
+
+// Room-Code-Pillen in den Spielansichten kopieren beim Anklicken den Einladungslink
+[
+    ['curve-room-pill', 'curve'],
+    ['cn-room-pill', 'codenames'],
+    ['tank-room-pill', 'tank'],
+    ['pong-room-pill', 'pong'],
+    ['uno-room-pill', 'uno'],
+    ['db-room-pill', 'dodgeball']
+].forEach(([pillId, gameType]) => {
+    const pill = document.getElementById(pillId);
+    if (!pill) return;
+    pill.addEventListener('click', () => {
+        if (!networkManager.roomCode) return;
+        const link = getShareableLink(gameType, networkManager.roomCode, beamerMode);
+        navigator.clipboard.writeText(link).then(() => {
+            const strong = pill.querySelector('strong');
+            const orig = strong ? strong.textContent : '';
+            if (strong && orig !== 'KOPIERT!') {
+                strong.textContent = 'KOPIERT!';
+                setTimeout(() => { strong.textContent = networkManager.roomCode || orig; }, 1500);
+            }
+        });
     });
 });
 

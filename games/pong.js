@@ -20,6 +20,7 @@ class OctaPongGame {
         this.countdownTimer = 0;
         this.winner = null;
         this.nextBallId = 1;
+        this.stats = {};
 
         // Precompute 8 vertices of the regular octagon
         this.vertices = [];
@@ -34,6 +35,7 @@ class OctaPongGame {
 
     addPlayer(id, name, color, isBot = false) {
         if (!this.players.has(id)) {
+            if (this.players.size >= 8) return null;
             // Find first available side 0..7
             const takenSides = new Set(Array.from(this.players.values()).map(p => p.sideIdx));
             let sideIdx = 0;
@@ -74,6 +76,7 @@ class OctaPongGame {
 
     startMatch() {
         this.winner = null;
+        this.stats = {};
         this.particles = [];
         for (const p of this.players.values()) {
             p.lives = 4;
@@ -195,6 +198,7 @@ class OctaPongGame {
                                     // Position ball safely inside court on paddle face
                                     b.x = p1.x + t * dx + nx * (BALL_RADIUS + 4);
                                     b.y = p1.y + t * dy + ny * (BALL_RADIUS + 4);
+                                    bumpStat(this, playerOnSide.id, 'saves');
 
                                     if (window.soundFX) window.soundFX.playClick();
                                     break;
@@ -326,6 +330,10 @@ class OctaPongGame {
         this.winner = snap.winner ? { name: snap.winner } : null;
         this.balls = snap.balls || [];
 
+        const playerIds = new Set(snap.players.map(pl => pl.id));
+        for (const id of Array.from(this.players.keys())) {
+            if (!playerIds.has(id)) this.players.delete(id);
+        }
         for (const pl of snap.players) {
             let p = this.players.get(pl.id);
             if (!p) p = this.addPlayer(pl.id, pl.name, pl.color, pl.isBot);

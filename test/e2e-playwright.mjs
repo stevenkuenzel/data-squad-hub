@@ -80,13 +80,16 @@ async function runE2E() {
         await hostPage.goto('http://localhost:8123/');
         console.log('  ✅ Host loaded Hub successfully');
 
-        // Verify game cards are visible
+        // Verify game cards are visible (8 games + Spieleabend card)
         const cardsCount = await hostPage.locator('.game-card').count();
-        console.log(`  ✅ Hub rendered ${cardsCount} game cards (Curve, Codenames, Skribbl, Tank, Pong)`);
+        if (cardsCount < 8) {
+            throw new Error(`Expected at least 8 game cards, got ${cardsCount}`);
+        }
+        console.log(`  ✅ Hub rendered ${cardsCount} game cards (Curve, Codenames, Skribbl, Tank, Pong, UNO, Dodgeball, Roulette + Spieleabend)`);
 
         // Test Codenames View
         await hostPage.click('.game-card[data-game="codenames"] .btn-host-game');
-        await hostPage.waitForSelector('#game-codenames', { state: 'visible' });
+        await hostPage.waitForSelector('#lobby-screen', { state: 'visible' });
         console.log('  ✅ Host navigated to Codenames lobby');
 
         // Start Codenames match
