@@ -103,6 +103,23 @@ const GAME_INSTRUCTIONS = {
             'Klicke auf "Zug beenden ➔", wenn du fertig bist.'
         ],
         tip: '💡 <strong>Taktik:</strong> Spiele Blocker gezielt gegen Spieler, die kurz vor 100% Go-Live stehen, und spare dir den Chef-Bypass für kritische Momente auf!'
+    },
+    hotel: {
+        title: '🏨 Hotel-Tycoon',
+        goal: 'Kaufe Grundstücke, baue Hotels Stufe für Stufe zu Fünf-Sterne-Häusern aus und kassiere bei deinen Mitspielern, wenn sie bei dir übernachten. Nach dem Rundenlimit gewinnt das größte Vermögen – wer vorher pleitegeht, scheidet aus.',
+        roles: [
+            '🎲 <strong>Ziehen:</strong> Würfeln und mit dem Auto vorrücken (Autos teilen kein Feld). Bei einer 6 darfst du nochmal.',
+            '🏷️ <strong>Land kaufen:</strong> Auf dem Kauffeld (erstes Feld eines Grundstücks) kaufst du das Land. Fremdes Land ohne Gebäude musst du zum halben Preis kaufen.',
+            '🏗️ <strong>Bauen:</strong> Erst beim nächsten Besuch deines Kauffelds: Hauptgebäude, dann bis zu 4 Ausbauten (1–5 ★). Auf den Folgefeldern deines Grundstücks eröffnest du Eingänge.',
+            '🛏️ <strong>Kassieren:</strong> Landet jemand auf dem Haupttor oder einem Eingang deines Hotels, würfelt er die Nächte × Preis deiner Sterne und zahlt dir.',
+            '📋 <strong>Sonderfelder:</strong> Bank (+2.000 beim Vorbeifahren, ab 3 Spielern), Rathaus (Gratis-Eingang je Hotel), Planungserlaubnis (Würfel: abgelehnt / erteilt / gratis / doppelte Kosten), Freie Bauphase, Freier Eintritt.'
+        ],
+        controls: [
+            'Klicke auf <strong>Würfeln</strong> und entscheide danach per Knopf: Kaufen, Bauen oder Überspringen.',
+            'Mit der Maus ziehen = Kamera drehen, Mausrad / Pinch = Zoom. 🎥 lässt die Kamera der aktiven Figur folgen, 🧊 wechselt zwischen 3D und 2D.',
+            'Kannst du nicht zahlen, verkaufst du Hotels an die Bank (50 % der Investition) – reicht das nicht, bist du raus.'
+        ],
+        tip: '💡 <strong>Taktik:</strong> Früh das Hauptgebäude bauen und Eingänge an gut erreichbaren Feldern eröffnen – die Miete steigt mit jedem Stern. Spare Bargeld für Pflichtkäufe und Übernachtungen auf!'
     }
 };
 

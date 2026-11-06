@@ -105,7 +105,8 @@ function setupLobbyForGame(gameType) {
         pong: 'Octa-Pong',
         uno: 'UNO',
         dodgeball: 'Corporate Dodgeball (Data Squad vs. ComN)',
-        roulette: 'ComN: Freigabe-Roulette'
+        roulette: 'ComN: Freigabe-Roulette',
+        hotel: 'Hotel-Tycoon'
     };
     lobbyGameTitle.textContent = eveningMode ? '🎉 Spieleabend' : (titles[gameType] || 'Lobby');
     curveSettings.style.display = (gameType === 'curve' && !eveningMode) ? 'block' : 'none';
@@ -387,5 +388,13 @@ function launchGameView(gameType, isHost) {
             broadcastRouletteState();
         }
         renderRouletteSnapshot(rouletteGame.getSnapshot(myPlayerId));
+    } else if (gameType === 'hotel') {
+        hotelResetView();
+        document.getElementById('hotel-room-code').textContent = networkManager.roomCode || 'SOLO';
+        if (isHost) {
+            hotelGame.startMatch();
+            broadcastHotelState();
+        }
+        renderHotelSnapshot(hotelGame.getSnapshot());
     }
 }

@@ -58,6 +58,10 @@ function simulationStep(now = performance.now()) {
             if (rouletteGame.turnIndex !== prevTurn || rouletteGame.status !== prevStatus || rouletteGame.cardsPlayedThisTurn !== prevCards) {
                 broadcastRouletteState();
             }
+        } else if (activeGameType === 'hotel') {
+            const prevVersion = hotelGame.version;
+            hotelGame.update(dt);
+            if (hotelGame.version !== prevVersion) broadcastHotelState();
         }
 
         // Broadcast states at ~35Hz

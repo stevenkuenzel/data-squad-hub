@@ -19,6 +19,7 @@ Ein leichtgewichtiges, browserbasiertes Echtzeit-Minigame-Portal zur Synchronisa
 | **🃏 UNO** | 2 – 8 Spieler | Klassisches Kartenspiel mit 108 Karten, Farbwahl & Aussetzen | Maus / Touch (Klick) |
 | **🤾 Corporate Dodgeball** | 2 – 8 Spieler | Data Squad vs. ComN! Büro-Völkerball mit Steinen, Akten & Releases | `WASD` / Pfeile + `Leertaste` / `Shift` |
 | **🎲 Freigabe-Roulette** | 2 – 8 Spieler | Satirisches Bürokratie-Kartenspiel: Go-Live vs. Steine im Weg & 4h-Meetings | Maus / Touch (Klick) |
+| **🏨 Hotel-Tycoon** | 2 – 6 Spieler | Immobilien-Brettspiel in 3D (three.js, 2D-Rückfall): Grundstücke kaufen, Hotels ausbauen, bei Mitspielern kassieren | Maus / Touch (Klick), Kamera per Ziehen / Mausrad / Pinch |
 
 ---
 
@@ -67,6 +68,7 @@ Das Repository enthält eine automatisierte Testsuite (`test/sim-tests.mjs` & `t
 - **UNO:** Prüft Standard-Deck (108 Karten), Aktionskarten (+2, Farbwahl, +4, Richtungswechsel), Bot-Entscheidungsfindung und Anti-Cheat Hand-Maskierung.
 - **Corporate Dodgeball:** Validiert Team-Aufteilung (Data Squad vs. ComN), Halbfeld-Grenzschutz, Ball-Pickups, Wurf- und Flugphysik, Hechtsprung-Fangen (Catch-Mechanik) und Erzeugung von Fels-Hindernissen ("Steine im Weg").
 - **Curve Arena:** Testet Linienausbau, Lückengenerierung, Raumkoordinaten sowie das Mario-Kart Power-Up System (Invert, Ghost, Turbo, Fat Lines, Bombe & Snapshot-Synchronisation).
+- **Hotel-Tycoon:** Prüft Brett (32 Felder, 8 Grundstücke), Kauf/Pflichtkauf, Bauen (nicht im Kaufzug), Eingänge, Miete, Schulden/Verkauf/Pleite, Bank & Rathaus, Planungserlaubnis, kollisionsfreie Autos, Snapshot-Sync und komplette Bot-Partien.
 - **Freigabe-Roulette:** Prüft 99-Karten-Deck (Fortschritt, ComN-Blocker, Aktionen), 100% Go-Live Siegbedingung, Chef-Bypass Schutzschild, Bot-KI und Anti-Cheat Hand-Maskierung.
 - **Sicherheit:** Simuliert bösartige Peers – fremde Zeichen-/Lösch-/Wortwahl-Aktionen, ungültige Striche, Zugbeenden durch das falsche Team, Rollenwechsel des Spionchefs mitten im Spiel und kaputte Eingabewerte.
 

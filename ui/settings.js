@@ -7,7 +7,8 @@ const gameSettingsPanels = {
     codenames: 'codenames-settings',
     uno: 'uno-settings',
     dodgeball: 'dodgeball-settings',
-    tank: 'tank-settings'
+    tank: 'tank-settings',
+    hotel: 'hotel-settings'
 };
 
 // Dodgeball: balance uneven teams with bots when the match starts
@@ -87,3 +88,5 @@ function fillDodgeballBots() {
         g.addPlayer(`bot-fill-${++n}`, 'Bot ' + names[(n - 1) % names.length], getUnusedColor(), true, team);
     }
 }
+
+bindSelect('hotel-rounds-select', () => hotelGame.maxRounds, v => { hotelGame.maxRounds = parseInt(v, 10) || 15; });

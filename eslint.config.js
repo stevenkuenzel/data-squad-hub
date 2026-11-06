@@ -9,13 +9,17 @@ const sharedScriptGlobals = Object.fromEntries([
     'qrEncode', 'qrToSvg', 'padBuildLink', 'padHasController', 'padStickToDirs',
     // game classes
     'CurveGame', 'CodenamesGame', 'SkribblGame', 'TankGame', 'OctaPongGame',
-    'UnoGame', 'DodgeballGame', 'FreigabeRouletteGame',
+    'UnoGame', 'DodgeballGame', 'FreigabeRouletteGame', 'HotelGame',
     'EveningSession', 'extractGameResult', 'EVENING_GAMES',
     // constants used by the renderer in ui/*.js
     'PLAYER_COLORS', 'ARENA_WIDTH', 'ARENA_HEIGHT', 'LINE_RADIUS',
     'TANK_ARENA_W', 'TANK_ARENA_H', 'BULLET_RADIUS', 'TANK_RADIUS', 'TANK_PICKUPS',
     'PADDLE_WIDTH_RATIO', 'BALL_RADIUS',
-    'DB_CENTER_X', 'DB_ARENA_W', 'DB_ARENA_H', 'DB_PLAYER_RADIUS'
+    'DB_CENTER_X', 'DB_ARENA_W', 'DB_ARENA_H', 'DB_PLAYER_RADIUS',
+    'HOTEL_FIELDS', 'HOTEL_LOTS', 'HOTEL_STAGES', 'HOTEL_START_MONEY',
+    // ui/hotel3d.js (three.js wird lazy nachgeladen)
+    'THREE', 'HotelScene', 'Hotel2D', 'HOTEL_FIELD_COUNT_UI', 'hotelStars', 'hotelWebGLAvailable',
+    'hotelReducedMotion', 'loadThree'
 ].map(name => [name, 'readonly']));
 
 // Cross-file state and helpers shared between ui/*.js (classic scripts loaded in index.html order)
@@ -48,7 +52,7 @@ const uiSharedGlobals = {
         'avatarHtml', 'avatarText', 'getRejoinKey', 'getPlayerName',
         'getShareableLink', 'showScreen', 'openHub',
         'curveGame', 'codenamesGame', 'skribblGame', 'tankGame',
-        'octaPongGame', 'unoGame', 'dodgeballGame', 'rouletteGame',
+        'octaPongGame', 'unoGame', 'dodgeballGame', 'rouletteGame', 'hotelGame',
         'getActiveGameInstance', 'getUnusedColor',
         // ui/session.js
         'identities', 'spectators', 'resetSessionState', 'clearGamePlayers',
@@ -77,6 +81,7 @@ const uiSharedGlobals = {
         'broadcastUnoState', 'renderUnoSnapshot',
         'renderDodgeball',
         'broadcastRouletteState', 'renderRouletteSnapshot',
+        'broadcastHotelState', 'renderHotelSnapshot', 'hotelResetView',
         // ui/routing.js
         'handleHostGameEvent', 'handleClientGameEvent'
     ].map(name => [name, 'readonly']))
@@ -84,7 +89,7 @@ const uiSharedGlobals = {
 
 export default [
     {
-        ignores: ['peerjs.min.js', 'node_modules/**']
+        ignores: ['peerjs.min.js', 'three.min.js', 'node_modules/**']
     },
     js.configs.recommended,
     {

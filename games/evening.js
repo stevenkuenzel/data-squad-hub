@@ -11,7 +11,8 @@ const EVENING_GAMES = {
     pong: { name: 'Octa-Pong', icon: '🏓' },
     uno: { name: 'UNO', icon: '🃏' },
     dodgeball: { name: 'Corporate Dodgeball', icon: '🤾' },
-    roulette: { name: 'Freigabe-Roulette', icon: '🎲' }
+    roulette: { name: 'Freigabe-Roulette', icon: '🎲' },
+    hotel: { name: 'Hotel-Tycoon', icon: '🏨' }
 };
 
 // Punkte pro Platz (Einzelspiele) bzw. für Sieger/Verlierer-Team (Teamspiele)
@@ -19,7 +20,7 @@ const EVENING_POINTS = [10, 7, 5, 4, 3, 2, 1];
 const EVENING_TEAM_POINTS = [8, 3];
 
 // Statistiken, bei denen der beste Einzelwert zählt statt der Summe
-const EVENING_MAX_STATS = ['survival'];
+const EVENING_MAX_STATS = ['survival', 'wealth'];
 
 // Kleine Erfolge pro Spiel. test(stats, ctx) – stats sind die Zahlen des Spielers aus game.stats
 const EVENING_ACHIEVEMENTS = [
@@ -35,7 +36,9 @@ const EVENING_ACHIEVEMENTS = [
     { id: 'oops', game: 'codenames', icon: '☠️', title: 'Attentäter-Pech', desc: 'Den Attentäter aufgedeckt', test: s => (s.assassin || 0) >= 1 },
     { id: 'wall', game: 'pong', icon: '🧱', title: 'Bollwerk', desc: '8 Bälle in einer Partie abgewehrt', test: s => (s.saves || 0) >= 8 },
     { id: 'saboteur', game: 'roulette', icon: '🪨', title: 'Bürokratie-Saboteur', desc: '3 Blocker in einer Partie geworfen', test: s => (s.blockers || 0) >= 3 },
-    { id: 'teflon', game: 'roulette', icon: '🛡️', title: 'Teflon-Projekt', desc: '2 ComN-Angriffe abgewehrt oder weitergeleitet', test: s => (s.blocked || 0) >= 2 }
+    { id: 'teflon', game: 'roulette', icon: '🛡️', title: 'Teflon-Projekt', desc: '2 ComN-Angriffe abgewehrt oder weitergeleitet', test: s => (s.blocked || 0) >= 2 },
+    { id: 'tycoon', game: 'hotel', icon: '🏨', title: 'Hotelmagnat', desc: '5.000 Übernachtungseinnahmen in einer Partie', test: s => (s.rent || 0) >= 5000 },
+    { id: 'builder', game: 'hotel', icon: '🏗️', title: 'Bauherr', desc: '6 Bauabschnitte in einer Partie', test: s => (s.built || 0) >= 6 }
 ];
 
 // Lustige Titel für die Zeremonie. stat 'wins' kommt aus der Gesamtwertung, alle anderen aus den Spielstatistiken.
@@ -51,7 +54,9 @@ const EVENING_AWARDS = [
     { id: 'found', icon: '🔍', title: 'Chefermittler', unit: 'Agenten gefunden' },
     { id: 'draws', icon: '🃏', title: 'Kartensammler', unit: 'gezogene Karten' },
     { id: 'saves', icon: '🏓', title: 'Torwart-Titan', unit: 'Paraden' },
-    { id: 'blockers', icon: '🚧', title: 'ComN-Ehrenmitglied', unit: 'Blocker' }
+    { id: 'blockers', icon: '🚧', title: 'ComN-Ehrenmitglied', unit: 'Blocker' },
+    { id: 'rent', icon: '🛎️', title: 'Hotel-Mogul', unit: 'Einnahmen' },
+    { id: 'built', icon: '🏗️', title: 'Bauherr des Jahres', unit: 'Bauabschnitte' }
 ];
 
 // Gleiche Werte teilen sich einen Platz. entries: [{ id, value }] (höher = besser)
@@ -105,6 +110,15 @@ function extractGameResult(gameType, g) {
             const rest = players.filter(p => p.id !== winnerId);
             const ranking = groupRanking(rest.map(p => ({ id: p.id, value: p.progress || 0 })));
             if (winnerId) ranking.unshift([winnerId]);
+            return result(ranking);
+        }
+        case 'hotel': {
+            if (g.status !== 'GAME_OVER') return null;
+            // Vermögen = Bargeld + Grundstücke/Gebäude; Pleitegegangene landen hinten
+            const alive = players.filter(p => p.alive !== false);
+            const out = players.filter(p => p.alive === false);
+            const ranking = groupRanking(alive.map(p => ({ id: p.id, value: g.netWorth(p.id) })));
+            if (out.length > 0) ranking.push(out.map(p => p.id));
             return result(ranking);
         }
         case 'dodgeball': {

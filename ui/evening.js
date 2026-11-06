@@ -14,7 +14,7 @@ let eveningPendingResult = null;
 let eveningView = null;             // alle: letzter empfangener Stand der Gesamtwertung
 
 // Reihenfolge + Auswahl der Playlist (Host, Lobby)
-let eveningOrder = ['curve', 'codenames', 'dodgeball', 'tank', 'uno', 'skribbl', 'pong', 'roulette'];
+let eveningOrder = ['curve', 'codenames', 'dodgeball', 'tank', 'uno', 'skribbl', 'pong', 'roulette', 'hotel'];
 const eveningEnabled = new Set(['curve', 'codenames', 'dodgeball']);
 let eveningCatchUp = false;
 

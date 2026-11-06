@@ -87,6 +87,8 @@ function handleHostGameEvent(type, payload, senderId) {
             rouletteGame.endTurn();
             broadcastRouletteState();
         }
+    } else if (type === 'HOTEL_ACT') {
+        if (hotelGame.act(senderId, String(payload.action), payload.arg)) broadcastHotelState();
     }
 }
 
@@ -130,5 +132,8 @@ function handleClientGameEvent(type, payload) {
         dodgeballGame.applySnapshot(payload);
     } else if (type === 'ROULETTE_STATE') {
         renderRouletteSnapshot(payload);
+    } else if (type === 'HOTEL_STATE') {
+        hotelGame.applySnapshot(payload);
+        renderHotelSnapshot(payload);
     }
 }

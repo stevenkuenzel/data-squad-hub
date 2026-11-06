@@ -57,6 +57,7 @@ const curveSrc = readFileSync('./games/curve.js', 'utf-8');
 const unoSrc = readFileSync('./games/uno.js', 'utf-8');
 const dodgeballSrc = readFileSync('./games/dodgeball.js', 'utf-8');
 const rouletteSrc = readFileSync('./games/roulette.js', 'utf-8');
+const hotelSrc = readFileSync('./games/hotel.js', 'utf-8');
 const eveningSrc = readFileSync('./games/evening.js', 'utf-8');
 const qrSrc = readFileSync('./games/qr.js', 'utf-8');
 const padSrc = readFileSync('./games/pad.js', 'utf-8');
@@ -69,6 +70,7 @@ runInContext(curveSrc, sandbox);
 runInContext(unoSrc, sandbox);
 runInContext(dodgeballSrc, sandbox);
 runInContext(rouletteSrc, sandbox);
+runInContext(hotelSrc, sandbox);
 runInContext(eveningSrc, sandbox);
 runInContext(qrSrc, sandbox);
 runInContext(padSrc, sandbox);
@@ -1700,6 +1702,220 @@ console.log('\n--- TEST: GAME STATS, HANDICAPS & TEAM MIXER ---');
     cgClient.applySnapshot(rejoinSnap);
     assert(!cgClient.players.has('stale') && cgClient.players.has('p1'), 'Curve: applySnapshot entfernt nicht mehr vorhandene Spieler');
 
+}
+
+
+// ----------------------------------------------------
+// TEST SUITE: HOTEL-TYCOON
+// ----------------------------------------------------
+console.log('\n--- TEST: HOTEL-TYCOON ENGINE ---');
+{
+    const mk = (n = 3, bots = false) => {
+        const g = new sandbox.HotelGame();
+        for (let i = 0; i < n; i++) g.addPlayer('p' + i, 'Spieler ' + i, '#00f3ff', bots);
+        g.startMatch(10);
+        return g;
+    };
+    // Spieler wieder an die Reihe setzen (Tests springen direkt auf Felder)
+    const giveTurn = (g, p) => {
+        g.turnIndex = g.playerOrder.indexOf(p.id);
+        g.beginTurn();
+    };
+    const FIELDS = sandbox.HOTEL_FIELDS;
+    const LOTS = sandbox.HOTEL_LOTS;
+
+    assert(FIELDS.length === 32 && FIELDS.every(Boolean), 'Hotel: Brett hat 32 lückenlose Felder');
+    assert(LOTS.length === 8 && LOTS.every(l => l.fields.length === 3 && FIELDS[l.fields[0]].slot === 0), 'Hotel: 8 Grundstücke mit je 3 Feldern (Kauffeld zuerst)');
+
+    const g = mk(3);
+    assert(g.status === 'PLAYING' && g.phase === 'ROLL' && g.players.size === 3, 'Hotel: Spiel startet im Würfel-Zustand');
+    assert(Array.from(g.players.values()).every(p => p.money === 12000 && p.pos === 0), 'Hotel: Alle starten mit 12.000 auf dem Parkplatz');
+    const cur = g.getCurrentPlayer();
+    const other = Array.from(g.players.values()).find(p => p.id !== cur.id);
+    assert(g.roll(other.id) === false, 'Hotel: Nur der aktive Spieler darf würfeln');
+    assert(g.roll(cur.id) === true && g.dice.value >= 1 && g.dice.value <= 6 && g.dice.seq === 1, 'Hotel: Würfeln setzt Würfelwert und Sequenz für die Animation');
+
+    // Kauf & Pflichtkauf zum halben Preis
+    const g2 = mk(3);
+    let a = g2.getCurrentPlayer();
+    a.pos = LOTS[0].fields[0];
+    g2.resolveLanding(a);
+    assert(g2.phase === 'BUY' && g2.pending.lot === 0 && g2.pending.price === LOTS[0].price, 'Hotel: Landen auf freiem Kauffeld bietet Kauf an');
+    assert(g2.act(a.id, 'decline') === true && g2.getCurrentPlayer().id !== a.id, 'Hotel: Kauf ablehnen beendet den Zug');
+
+    const g3 = mk(3);
+    a = g3.getCurrentPlayer();
+    a.pos = LOTS[0].fields[0];
+    g3.resolveLanding(a);
+    const moneyBefore = a.money;
+    assert(g3.act(a.id, 'buy') && g3.lots[0].owner === a.id && a.money === moneyBefore - LOTS[0].price, 'Hotel: Kauf bucht den Preis ab und setzt den Besitzer');
+    const b = g3.getCurrentPlayer();
+    assert(b.id !== a.id, 'Hotel: Nach dem Kauf ist der nächste Spieler dran');
+    b.pos = LOTS[0].fields[0];
+    const aMoney = a.money;
+    g3.resolveLanding(b);
+    const half = Math.round(LOTS[0].price / 2 / 50) * 50;
+    assert(g3.phase === 'BUY' && g3.pending.forced === true && g3.pending.price === half, 'Hotel: Fremdes unbebautes Land -> Pflichtkauf zum halben Preis');
+    assert(g3.act(b.id, 'decline') === false, 'Hotel: Pflichtkauf lässt sich nicht ablehnen');
+    g3.act(b.id, 'buy');
+    assert(g3.lots[0].owner === b.id && a.money === aMoney + half, 'Hotel: Vorbesitzer bekommt das Geld beim Pflichtkauf');
+
+    // Bauen: nicht im Kaufzug, wohl beim nächsten Besuch
+    const g4 = mk(2);
+    const a4 = g4.getCurrentPlayer();
+    g4.lots[2].owner = a4.id;
+    g4.lots[2].boughtTurn = g4.turnCounter; // gerade gekauft
+    a4.pos = LOTS[2].fields[0];
+    g4.resolveLanding(a4);
+    assert(g4.getCurrentPlayer().id !== a4.id, 'Hotel: Im Kaufzug darf noch nicht gebaut werden');
+    giveTurn(g4, a4);
+    a4.pos = LOTS[2].fields[0];
+    g4.resolveLanding(a4);
+    assert(g4.phase === 'BUILD' && g4.pending.options[0].kind === 'stage', 'Hotel: Auf eigenem Kauffeld wird die nächste Ausbaustufe angeboten');
+    const m4 = a4.money;
+    g4.act(a4.id, 'build', 0);
+    assert(g4.lots[2].stage === 1 && g4.lots[2].ent[0] === true && a4.money === m4 - LOTS[2].stageCost[0], 'Hotel: Bauen zahlt die Stufe, Hauptgebäude öffnet das Haupttor');
+
+    giveTurn(g4, a4);
+    a4.pos = LOTS[2].fields[1];
+    g4.resolveLanding(a4);
+    assert(g4.phase === 'BUILD' && g4.pending.options[0].kind === 'entrance', 'Hotel: Auf eigenem Folgefeld kann ein Eingang gebaut werden');
+    g4.act(a4.id, 'build', 0);
+    assert(g4.lots[2].ent[1] === true, 'Hotel: Eingang ist eröffnet');
+
+    // Miete
+    const g5 = mk(2);
+    const own = g5.getCurrentPlayer();
+    const guest = Array.from(g5.players.values()).find(p => p.id !== own.id);
+    g5.lots[3].owner = own.id; g5.lots[3].stage = 2; g5.lots[3].ent = [true, true, false];
+    giveTurn(g5, guest);
+    const gm = guest.money, om = own.money;
+    guest.pos = LOTS[3].fields[1];
+    g5.resolveLanding(guest);
+    const paid = gm - guest.money;
+    assert(paid > 0 && paid % LOTS[3].stageRate[1] === 0 && own.money === om + paid, 'Hotel: Gast zahlt Nächte × Preis der Hotelstufe an den Besitzer');
+    giveTurn(g5, guest);
+    const gm2 = guest.money;
+    guest.pos = LOTS[3].fields[2];
+    g5.resolveLanding(guest);
+    assert(guest.money === gm2, 'Hotel: Feld ohne Eingang ist mietfrei');
+    giveTurn(g5, guest);
+    guest.freeEntry = true;
+    const gm3 = guest.money;
+    guest.pos = LOTS[3].fields[0];
+    g5.resolveLanding(guest);
+    assert(guest.money === gm3 && guest.freeEntry === false, 'Hotel: Freier Eintritt erlässt eine Übernachtung');
+
+    // Schulden: Pleite ohne Besitz
+    const g6 = mk(2);
+    const d = g6.getCurrentPlayer();
+    const c = Array.from(g6.players.values()).find(p => p.id !== d.id);
+    g6.lots[7].owner = c.id; g6.lots[7].stage = 5; g6.lots[7].ent = [true, true, true];
+    d.money = 100;
+    d.pos = LOTS[7].fields[0];
+    g6.resolveLanding(d);
+    assert(g6.status === 'GAME_OVER' && g6.winner && g6.winner.id === c.id && d.alive === false, 'Hotel: Ohne Besitz ist man pleite, der Gläubiger gewinnt (2 Spieler)');
+
+    // Schulden: Verkauf von Hotels
+    const g7 = mk(3);
+    const d7 = g7.getCurrentPlayer();
+    const c7 = Array.from(g7.players.values()).find(p => p.id !== d7.id);
+    g7.lots[7].owner = c7.id; g7.lots[7].stage = 5; g7.lots[7].ent = [true, true, true];
+    g7.lots[0].owner = d7.id; g7.lots[0].stage = 2; g7.lots[0].ent = [true, false, false];
+    d7.money = 100;
+    d7.pos = LOTS[7].fields[0];
+    g7.resolveLanding(d7);
+    assert(g7.phase === 'DEBT' && g7.pending.amount > d7.money, 'Hotel: Mit Besitz geht es in die Schuldenphase');
+    const worth = g7.sellValue(0);
+    assert(worth > 0, 'Hotel: Verkaufswert ist positiv');
+    g7.act(d7.id, 'sell', 0);
+    assert(g7.lots[0].owner === null && (d7.alive === false || g7.phase !== 'DEBT' || d7.money >= 100 + worth), 'Hotel: Hotel verkaufen bringt 50% der Investition an die Bank');
+
+    // Planungserlaubnis / Freie Bauphase
+    const g8 = mk(2);
+    const pm = g8.getCurrentPlayer();
+    g8.lots[1].owner = pm.id;
+    g8.offerBuilding(pm, 'free');
+    assert(g8.phase === 'PERMIT' && g8.pending.options[0].cost === 0, 'Hotel: Freie Bauphase bietet kostenlosen Bau');
+    const mBefore = pm.money;
+    g8.act(pm.id, 'permit', 1);
+    assert(g8.lots[1].stage === 1 && pm.money === mBefore, 'Hotel: Baugenehmigung baut die nächste Stufe am gewählten Hotel');
+    giveTurn(g8, pm);
+    g8.offerBuilding(pm, 'double');
+    assert(g8.pending.options[0].cost === LOTS[1].stageCost[1] * 2, 'Hotel: Doppelte Baukosten bei "doppelte 2"');
+
+    // Keine Auto-Kollision
+    const g9 = mk(3);
+    const [p1, p2] = Array.from(g9.players.values());
+    p2.pos = 5;
+    p1.pos = 2;
+    g9.moveBy(p1, 3);
+    assert(p1.pos === 6, 'Hotel: Autos teilen sich kein Feld (besetztes Zielfeld -> nächstes freies)');
+
+    // Bank-Bonus
+    const g10 = mk(3);
+    const bp = g10.getCurrentPlayer();
+    bp.pos = 14;
+    const bm = bp.money;
+    g10.moveBy(bp, 4);
+    assert(bp.money === bm + 2000, 'Hotel: Vorbeifahren an der Bank bringt +2.000');
+    const g11 = mk(2);
+    const bp2 = g11.getCurrentPlayer();
+    bp2.pos = 14;
+    const bm2 = bp2.money;
+    g11.moveBy(bp2, 4);
+    assert(bp2.money === bm2, 'Hotel: Bei nur 2 Spielern entfällt der Bank-Bonus');
+
+    // Rathaus: Eingang pro Hotel gratis
+    const g12 = mk(3);
+    const tp = g12.getCurrentPlayer();
+    g12.lots[0].owner = tp.id; g12.lots[0].stage = 1; g12.lots[0].ent = [true, false, false];
+    tp.pos = 20;
+    g12.moveBy(tp, 5);
+    assert(g12.lots[0].ent[1] === true, 'Hotel: Vorbeifahren am Rathaus eröffnet einen Gratis-Eingang');
+
+    // Spielerlimit
+    const gl = new sandbox.HotelGame();
+    for (let i = 0; i < 6; i++) gl.addPlayer('x' + i, 'X' + i, '#fff', true);
+    assert(gl.addPlayer('x7', 'zu viel', '#fff', true) === null, 'Hotel: maximal 6 Spieler');
+
+    // Snapshot-Roundtrip
+    const gs = mk(3);
+    const snap = JSON.parse(JSON.stringify(gs.getSnapshot()));
+    const gc = new sandbox.HotelGame();
+    gc.addPlayer('ghost', 'Ghost', '#fff', false);
+    gc.applySnapshot(snap);
+    assert(!gc.players.has('ghost') && gc.players.size === 3 && gc.getCurrentPlayer().id === gs.getCurrentPlayer().id, 'Hotel: applySnapshot übernimmt Spieler und Zug, entfernt Veraltetes');
+
+    // Komplette Bot-Partien laufen bis zum Ende
+    for (const [n, rounds] of [[2, 12], [4, 15], [6, 15]]) {
+        const gb = new sandbox.HotelGame();
+        for (let i = 0; i < n; i++) gb.addPlayer('b' + i, 'Bot ' + i, '#fff', true);
+        gb.startMatch(rounds);
+        let guard = 0;
+        while (gb.status === 'PLAYING' && guard++ < 200000) gb.update(0.5);
+        assert(gb.status === 'GAME_OVER' && gb.winner, `Hotel: Bot-Partie (${n} Spieler, ${rounds} Runden) endet mit Sieger`);
+        const totalBuilt = Object.values(gb.stats).reduce((sum, s) => sum + (s.built || 0), 0);
+        assert(totalBuilt > 0, `Hotel: Bots bauen in der ${n}-Spieler-Partie tatsächlich Hotels (${totalBuilt})`);
+    }
+
+    // Timer: untätiger Mensch verliert nach 60 s den Zug
+    const gt = mk(2);
+    const idle = gt.getCurrentPlayer();
+    gt.update(59);
+    assert(gt.getCurrentPlayer().id === idle.id && idle.pos === 0, 'Hotel: Vor Timer-Ablauf bleibt der Zug beim Spieler');
+    gt.update(2);
+    assert(idle.pos !== 0 || gt.getCurrentPlayer().id !== idle.id, 'Hotel: Nach 60 s wird automatisch für den Spieler gewürfelt');
+
+    // Spieleabend-Ergebnis
+    const ge = new sandbox.HotelGame();
+    ge.addPlayer('w', 'Winner', '#fff', true);
+    ge.addPlayer('l', 'Loser', '#fff', true);
+    ge.startMatch(1);
+    ge.players.get('w').money = 20000;
+    ge.endGame();
+    const hres = sandbox.extractGameResult('hotel', ge);
+    assert(hres && hres.ranking[0][0] === 'w' && hres.ranking[1][0] === 'l', 'Hotel: Spieleabend-Wertung nach Vermögen');
 }
 
 console.log('\n========================================');

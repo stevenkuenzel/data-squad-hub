@@ -104,6 +104,7 @@ function sendGameStateTo(peerId, playerId, spectator) {
             break;
         case 'uno': send('UNO_STATE', unoGame.getSnapshot(playerId)); break;
         case 'roulette': send('ROULETTE_STATE', rouletteGame.getSnapshot(playerId)); break;
+        case 'hotel': send('HOTEL_STATE', hotelGame.getSnapshot()); break;
     }
     if (eveningMode && evening && evening.phase !== 'PLAYING') send('EVENING_STATE', evening.getSnapshot());
 }
@@ -223,7 +224,7 @@ function promoteSpectatorsInto(g) {
 [
     [curveGame, 'resetMatch'], [codenamesGame, 'startNewGame'], [skribblGame, 'startMatch'],
     [tankGame, 'startMatch'], [octaPongGame, 'startMatch'], [unoGame, 'startMatch'],
-    [dodgeballGame, 'startMatch'], [rouletteGame, 'startMatch']
+    [dodgeballGame, 'startMatch'], [rouletteGame, 'startMatch'], [hotelGame, 'startMatch']
 ].forEach(([game, method]) => {
     const original = game[method].bind(game);
     game[method] = (...args) => {

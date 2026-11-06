@@ -36,7 +36,8 @@ const gameViews = {
     pong: document.getElementById('game-pong'),
     uno: document.getElementById('game-uno'),
     dodgeball: document.getElementById('game-dodgeball'),
-    roulette: document.getElementById('game-roulette')
+    roulette: document.getElementById('game-roulette'),
+    hotel: document.getElementById('game-hotel')
 };
 
 // State
@@ -47,6 +48,8 @@ const MAX_NAME_LENGTH = 16;
 const EIGHT_PLAYER_GAMES = new Set(['tank', 'pong', 'uno', 'dodgeball', 'roulette']);
 
 function getMaxPlayers(gameType = activeGameType) {
+    // Hotel-Tycoon hat nur 6 Sitzplätze – auch im Spieleabend (Überzählige schauen zu)
+    if (gameType === 'hotel') return 6;
     if (typeof eveningMode !== 'undefined' && eveningMode) return MAX_HUB_PLAYERS;
     return EIGHT_PLAYER_GAMES.has(gameType) ? 8 : MAX_HUB_PLAYERS;
 }
@@ -217,7 +220,8 @@ document.querySelectorAll('.btn-hub-back').forEach(btn => {
     ['tank-room-pill', 'tank'],
     ['pong-room-pill', 'pong'],
     ['uno-room-pill', 'uno'],
-    ['db-room-pill', 'dodgeball']
+    ['db-room-pill', 'dodgeball'],
+    ['hotel-room-pill', 'hotel']
 ].forEach(([pillId, gameType]) => {
     const pill = document.getElementById(pillId);
     if (!pill) return;
@@ -264,6 +268,7 @@ const octaPongGame = new OctaPongGame();
 const unoGame = new UnoGame();
 const dodgeballGame = new DodgeballGame();
 const rouletteGame = new FreigabeRouletteGame();
+const hotelGame = new HotelGame();
 
 function getActiveGameInstance() {
     switch (activeGameType) {
@@ -275,6 +280,7 @@ function getActiveGameInstance() {
         case 'uno': return unoGame;
         case 'dodgeball': return dodgeballGame;
         case 'roulette': return rouletteGame;
+        case 'hotel': return hotelGame;
         default: return curveGame;
     }
 }
