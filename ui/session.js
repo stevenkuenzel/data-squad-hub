@@ -164,7 +164,14 @@ function hostHandleJoin(peerId, payload) {
         return;
     }
 
-    g.addPlayer(playerId, name, color, false);
+    if (!g.addPlayer(playerId, name, color, false)) {
+        // Spiel voll (z. B. Pong im Abend-Modus mit >8 Spielern): als Zuschauer führen
+        spectators.set(playerId, { id: playerId, name, color });
+        sendGameStateTo(peerId, playerId, true);
+        broadcastProfiles();
+        showToast(`${name} schaut zu und spielt in der nächsten Partie mit.`);
+        return;
+    }
     broadcastLobby();
     broadcastProfiles();
     updateLobbyUI();
@@ -202,7 +209,8 @@ function promoteSpectatorsInto(g) {
     const maxP = getMaxPlayers();
     for (const s of spectators.values()) {
         if (g.players.size >= maxP) break;
-        g.addPlayer(s.id, s.name, s.color, false);
+        // Spiel kann ablehnen (z. B. Pong: max. 8 Seiten) -> Zuschauer bleibt Zuschauer
+        if (!g.addPlayer(s.id, s.name, s.color, false)) continue;
         if (typeof eveningRoster !== 'undefined' && evening) {
             eveningRoster.set(s.id, { id: s.id, name: s.name, color: s.color, isBot: false });
         }
